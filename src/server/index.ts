@@ -10,27 +10,25 @@ const HAXBALL_HEADLESS_URL = "https://www.haxball.com/headless";
   const roomLink = await loadRoomAndGetURL(browser);
 
   if (IS_HEADLESS) return;
-  await joinRoom(browser, roomLink, "GAMMA RAY12344");
+  await joinRoom(browser, roomLink, "NIPSEY HUSSLE");
 })();
 
 async function loadRoomAndGetURL(browser: puppeteer.Browser): Promise<string> {
-  const haxballAPIPage = await browser.newPage();
+  const haxballAPIPage = (await browser.pages())[0];
+
   await haxballAPIPage.goto(HAXBALL_HEADLESS_URL, {
     waitUntil: "networkidle2",
   });
 
-  await haxballAPIPage.addScriptTag({ path: "dist/app-bundle.js" });
+  await haxballAPIPage.addScriptTag({ path: "dist/room-bundle.js" });
 
   const haxballAPIIframe = haxballAPIPage
     .frames()
     .find((frame) => frame.parentFrame() !== null);
 
   // look for room url within frame
-
   const roomLinkTag = await haxballAPIIframe.waitForSelector("#roomlink a");
-
   const roomLink = await roomLinkTag.getProperty("href");
-
   return await roomLink.jsonValue();
 }
 
