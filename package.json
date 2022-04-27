@@ -1,0 +1,17 @@
+{
+  "name": "hfl_new",
+  "version": "1.0.0",
+  "description": "New HFL Bot using Typescript",
+  "main": "webpack.config.js",
+  "scripts": {
+    "start": "node dist/server-bundle.js",
+    "build": "webpack",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "ts-loader": "^9.2.9",
+    "typescript": "^4.6.3"
+  }
+}
