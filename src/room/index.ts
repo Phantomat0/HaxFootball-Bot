@@ -1,20 +1,31 @@
 import onChat from "./events/onChat";
+import onGameTick from "./events/onGameTick";
+import onJoin from "./events/onJoin";
 import HBClient from "./HBClient";
 import roomConfig from "./roomConfig";
-import Room from "./structures/Room";
+import Room from "./roomStructures/Room";
+import HFL_MAP from "./utils/map";
 
 //@ts-ignore
-const room: HBClient = HBInit(roomConfig);
+const client: HBClient = HBInit(roomConfig);
 
-Room.initClient(room);
+export default client;
 
-room.onPlayerJoin = (player) => {
-  room.setPlayerAdmin(player.id, true);
+Room.initClient(client);
+
+client.setCustomStadium(HFL_MAP);
+
+client.onPlayerJoin = (player) => {
+  client.setPlayerAdmin(player.id, true);
 };
 
-room.onPlayerBallKick = (player) => {
+client.onPlayerBallKick = (player) => {
   console.log("Kick", player);
-  console.log(Room.lmao);
+  // console.log(Room.lmao);
 };
 
-room.onPlayerChat = onChat;
+client.onPlayerJoin = onJoin;
+
+client.onGameTick = onGameTick;
+
+client.onPlayerChat = onChat;
