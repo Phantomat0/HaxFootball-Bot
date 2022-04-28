@@ -1,9 +1,13 @@
 import { PlayerObject } from "../HBClient";
-import Room from "../structures/Room";
+import Snap from "../plays/snap";
+import Room from "../roomStructures/Room";
 
 export default function onChat(player: PlayerObject, message: string) {
-  if (message === "r") {
-    Room.getPlayers();
-    Room.lmao = 5;
+  if (message === "hike") {
+    console.log("SET PLAY YEP");
+    return Room.setPlay(new Snap(player));
+  }
+  if (message === "lmao") {
+    console.log(Room);
   }
 }
