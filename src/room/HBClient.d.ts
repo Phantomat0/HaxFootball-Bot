@@ -240,7 +240,7 @@ export default interface HBClient {
   /**
    * Gets the properties of the disc at discIndex. Returns null if discIndex is out of bounds.
    */
-  getDiscProperties(): DiscPropertiesObject;
+  getDiscProperties(discId: number): DiscPropertiesObject;
   /**
    * Same as setDiscProperties but targets the disc belonging to a player with the given Id.
    */
@@ -251,7 +251,7 @@ export default interface HBClient {
   /**
    * Same as getDiscProperties but targets the disc belonging to a player with the given Id.
    */
-  getPlayerDiscProperties(): DiscPropertiesObject;
+  getPlayerDiscProperties(playerId: PlayerObject["id"]): DiscPropertiesObject;
   /**
    * Gets the number of discs in the game including the ball and player discs.
    */
