@@ -2,6 +2,8 @@ export type HBRecording = string;
 
 type TeamId = 0 | 1 | 2;
 
+type PlayableTeamId = 1 | 2;
+
 export interface ScoresObject {
   red: number;
   blue: number;
@@ -11,6 +13,11 @@ export interface ScoresObject {
 }
 
 interface Position {
+  x: number;
+  y: number;
+}
+
+interface Speed {
   x: number;
   y: number;
 }

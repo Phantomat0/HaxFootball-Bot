@@ -1,15 +1,16 @@
-import { Position, TeamId } from "../HBClient";
-import { MAP__AREAS } from "../utils/map";
-import Room from "../roomStructures/Room";
-import client from "..";
+import { PlayableTeamId, Position, TeamId } from "../HBClient";
+import { DISC_IDS, MAP__AREAS } from "../utils/map";
+import { client } from "..";
 
 class Ball {
+  IMMOVABLE_INV_MASS: 0.000001;
+
   getPosition() {
     return client.getBallPosition();
   }
 
   getSpeed() {
-    const { xspeed, yspeed } = client.getDiscProperties(0);
+    const { xspeed, yspeed } = client.getDiscProperties(DISC_IDS.BALL);
     return {
       xspeed,
       yspeed,
@@ -18,7 +19,7 @@ class Ball {
 
   setPosition(position: Position) {
     const { x, y = 0 } = position;
-    client.setDiscProperties(0, {
+    client.setDiscProperties(DISC_IDS.BALL, {
       x: x,
       y: y,
       xspeed: 0,
@@ -29,8 +30,8 @@ class Ball {
   }
 
   suppress() {
-    client.setDiscProperties(0, {
-      invMass: 0.000001,
+    client.setDiscProperties(DISC_IDS.BALL, {
+      invMass: this.IMMOVABLE_INV_MASS,
       xspeed: 0,
       yspeed: 0,
     });
@@ -38,7 +39,7 @@ class Ball {
   }
 
   release() {
-    client.setDiscProperties(0, {
+    client.setDiscProperties(DISC_IDS.BALL, {
       invMass: 1,
       xspeed: 0,
       yspeed: 0,
@@ -46,17 +47,26 @@ class Ball {
     return this;
   }
 
-  score(team: Omit<TeamId, "0">) {
+  score(teamId: PlayableTeamId) {
     const x =
-      team === 2 ? MAP__AREAS.BLUE_SCORE_LINE : MAP__AREAS.RED_SCORE_LINE;
+      teamId === 2 ? MAP__AREAS.BLUE_SCORE_LINE : MAP__AREAS.RED_SCORE_LINE;
     client.setDiscProperties(0, {
       x: x,
       y: -200,
       xspeed: 0,
       yspeed: 0,
       ygravity: 0.015,
-      invMass: 0.000001,
+      invMass: this.IMMOVABLE_INV_MASS,
     });
+  }
+
+  removeGravity() {
+    client.setDiscProperties(DISC_IDS.BALL, {
+      invMass: 1,
+      xspeed: 0,
+      ygravity: 0,
+    });
+    return this;
   }
 }
 

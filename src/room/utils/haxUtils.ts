@@ -1,4 +1,4 @@
-import client from "..";
+import { client } from "..";
 import { PlayerObject } from "../HBClient";
 
 export const getPlayerDiscProperties = (id: number) => {
@@ -8,6 +8,11 @@ export const getPlayerDiscProperties = (id: number) => {
     position: { x, y },
     speed: { x: xspeed, y: yspeed },
   };
+};
+
+export const quickPause = () => {
+  client.pauseGame(true);
+  client.pauseGame(false);
 };
 
 export const flattenPlayer = ({ id, team, name }: PlayerObject) => {

@@ -26,9 +26,12 @@ async function loadRoomAndGetURL(browser: puppeteer.Browser): Promise<string> {
     .frames()
     .find((frame) => frame.parentFrame() !== null);
 
+  if (!haxballAPIIframe) throw Error("Could not find API Iframe");
+
   // look for room url within frame
   const roomLinkTag = await haxballAPIIframe.waitForSelector("#roomlink a");
-  const roomLink = await roomLinkTag.getProperty("href");
+
+  const roomLink = await roomLinkTag!.getProperty("href");
   return await roomLink.jsonValue();
 }
 
@@ -46,12 +49,14 @@ async function joinRoom(
   const haxballPlayPageIframe = haxballPlayPage
     .frames()
     .find((frame) => frame.parentFrame() !== null);
+
+  if (!haxballPlayPageIframe) throw Error("Could not find haxball page Iframe");
+
   await haxballPlayPageIframe.waitForSelector("div.label-input input");
   await haxballPlayPageIframe.focus("div.label-input input");
   await haxballPlayPage.keyboard.type(playerName);
 
-  await haxballPlayPageIframe.$eval(
-    "div.dialog button",
-    (el: HTMLButtonElement) => el.click()
+  await haxballPlayPageIframe.$eval("div.dialog button", (el) =>
+    (el as HTMLButtonElement).click()
   );
 }

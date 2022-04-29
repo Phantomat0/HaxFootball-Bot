@@ -1,257 +1,68 @@
-const room = HBInit({
-  roomName: "HAXFOOTBALL",
-  maxPlayers: 16,
-  noPlayer: true,
-  public: false,
-  token: "thr1.AAAAAGEyo6J1ZLU6J03txw.xDqJmT27d3I",
-});
+const GAME_CONFIG = {
+  SCORE_LIMIT: 0,
+  TIME_LIMIT: 0,
+};
 
-room.onPlayerChat = (author, message) => {
-  if (message === "hike") return snapInit(author);
-  if (message === "fgset") return fieldGoalInit(author);
-  if (message === "punt") return puntInit(author);
-  if (message === "kickoff") return kickOffInit(author);
-  if (message === "test") return testFunc(author);
-  if (message === "swap") {
-    game.swapOffense();
-    resetBall();
+const PLAY_TYPES = {
+  PASS_CATCH: "pass catch",
+  PASS_DEFLECTION: "pass deflection",
+  PASS_OUT_OF_BOUNDS: "pass out of bounds",
+  KICK_CATCH: "kick catch",
+  KICK_OUT_OF_BOUNDS: "kick out of bounds",
+  KICK_DOWNED: "kick downed",
+  FG_INCOMPLETE: "field goal incomplete",
+  FG_GOOD: "field goal good",
+  FG_AUTO_GOOD: "field goal auto good",
+  FG_AUTO_INCOMPLETE: "field goal auto good",
+  PLYR_OUT_OF_BOUNDS: "player out of bounds",
+  CATCH_OUT_OF_BOUNDS: "caught out of bounds",
+  TOUCHDOWN: "touchdown",
+  RUN: "run",
+  FUMBLE: "fumble",
+  TACKLE: "tackle",
+  SACK: "sack",
+  TOUCHBACK: "touchback",
+  SAFETY: "safety",
+};
+
+roomInit();
+
+const sendMessageMaybeWithClock = (message) => {
+  const WARNING_TIME = 600;
+  const { time } = room.getScores();
+  return Chat.send(`${message} ${time >= WARNING_TIME ? toClock(time) : ""}`);
+};
+
+const fumbleCheck = (playerSpeed, ballCarrierSpeed) => {
+  const FUMBLE_SPEED = 3;
+  const playerXSpeed = Math.abs(playerSpeed.x);
+  const playerYSpeed = Math.abs(playerSpeed.y);
+
+  const ballCarrierXSpeed = Math.abs(ballCarrierSpeed.x);
+  const ballCarrierYSpeed = Math.abs(ballCarrierSpeed.y);
+
+  const totalPlayerSpeed = (playerXSpeed + playerYSpeed).toFixed(3);
+
+  Chat.send(totalPlayerSpeed);
+
+  if (totalPlayerSpeed > FUMBLE_SPEED) {
+    // Chat.send(totalPlayerSpeed)
+    return true;
   }
+
+  return false;
 };
 
-room.setTimeLimit(0);
+const sendScoreBoard = () => {
+  const { redScore, blueScore } = game.getScore();
 
-let play = null;
-let game = null;
-
-const host = {
-  isBotOn: true,
-};
-
-const MAP = {
-  HIDDEN: 10000,
-  HALF_FIELD: 775,
-  YARD: 15.5,
-  PLAYER_RADIUS: 15,
-  BALL_RADIUS: 8.5,
-  TOP_SIDELINE: -265,
-  BOT_SIDELINE: 265,
-  RED_SIDELINE: -930,
-  BLUE_SIDELINE: 930,
-  RED_ENDZONE: -775,
-  BLUE_ENDZONE: 775,
-  RED_SCORE_LINE: -1040,
-  BLUE_SCORE_LINE: 1040,
-  RED_FIELD_GOAL_LINE: -930,
-  BLUE_FIELD_GOAL_LINE: 930,
-  ABOVE_HASH: -110,
-  BELOW_HASH: 110,
-  TOP_HASH: -80,
-  BOT_HASH: 80,
-};
-
-const getYardMessage = (yard) => {
-  return yard === 0 ? `in the endzone` : `at the ${yard} yard line`;
-};
-
-const sendPlayMessage = (playObj) => {
-  const {
-    type,
-    player1Name = "",
-    player2Name = "",
-    endYard = "",
-    netYards = "",
-    mapSection = "null",
-  } = playObj;
-
-  const endingMsg = getNetYardsMessage(netYards);
-  const endYardMsg = getYardMessage(endYard);
-
-  switch (type) {
-    case "tackle":
-      Chat.send(
-        `${player2Name} tackled ${player1Name} ${endYardMsg} for ${endingMsg} | ${mapSection}`
-      );
-      break;
-    case "catch":
-      Chat.send(`${player1Name} caught the ball ${endYardMsg} | ${mapSection}`);
-      break;
-    case "pass deflection":
-      Chat.send(`Pass Incomplete, deflected by ${player1Name}`);
-      break;
-    case "player out of bounds":
-      Chat.send(
-        `${player1Name} ran out of bounds ${endYardMsg} for ${endingMsg} | ${mapSection}`
-      );
-      break;
-    case "caught out of bounds":
-      Chat.send(`Pass Incomplete, caught out of bounds by ${player1Name}`);
-      break;
-    case "touchdown":
-      Chat.send(`Touchdown scored by ${player1Name} for ${endingMsg} `);
-  }
-};
-
-const getTeamFortyYardLinePosition = (team) => {
-  return team === 1 ? MAP.YARD * -10 : MAP.YARD * 10;
-};
-
-const getPlayerDiscProperties = (id) => {
-  // Flattened the native method because we only use speed and and position
-  const { xpseed, yspeed, x, y } = room.getPlayerDiscProperties(id);
-  return {
-    position: { x, y },
-    speed: { x: xpseed, y: yspeed },
-  };
-};
-
-const flattenPlayer = ({ id, team, name }) => {
-  return {
-    id,
-    team,
-    name,
-  };
-};
-
-const checkIfBehind = (team, p1, p2) => {
-  console.log(team, p1, p2);
-  return team === 1 ? p1.x < p2.x : p1.x > p2.x;
-};
-
-const Chat = {
-  silenced: false,
-
-  message(message, options = {}) {
-    const {
-      icon = "",
-      info = "",
-      id = null,
-      color = null,
-      style = null,
-      sound = null,
-    } = options;
-    const str = [icon, info, message]
-      .map((str) => (str.length > 0 ? str + " " : str))
-      .join("")
-      .trim();
-    room.sendAnnouncement(str, id, color, style, sound);
-  },
-
-  setSilence(bool) {
-    this.silenced = bool;
-  },
-
-  send(msg, options = {}) {
-    this.message(msg, options);
-  },
-
-  sendSuccess(msg, options = {}) {
-    options.icon = ICONS.GreenCheck;
-    this.message(msg, options);
-    return this;
-  },
-
-  sendNotification(msg, options = {}) {
-    options.icon = ICONS.Bell;
-    options.sound = 2;
-    this.message(msg, options);
-  },
-
-  sendDM(msg, options = {}) {
-    options.color = COLORS.Gray;
-    this.message(msg, options);
-    return this;
-  },
-
-  sendWarning(msg, options = {}) {
-    options.icon = ICONS.RedTriangle;
-    options.sound = 2;
-    this.message(msg, options);
-    return this;
-  },
-
-  sendBotError(msg, options = {}) {
-    options.icon = ICONS.Construction;
-    this.message(msg, options);
-    return this;
-  },
-
-  sendCommandError(msg, options = {}) {
-    options.icon = ICONS.Exclamation;
-    options.color = COLORS.Green;
-    this.message(msg, options);
-    return this;
-  },
-};
-
-room.setCustomStadium(HFL_MAP);
-room.startGame();
-
-room.onPlayerJoin = (player) => {
-  room.setPlayerAdmin(player.id, true);
-  room.setPlayerTeam(player.id, 1);
-  room.setPlayerDiscProperties(player.id, { x: -150, y: 0 });
-};
-
-room.onPlayerTeamChange = () => {
-  game.updateTeams();
-};
-
-room.onGameStart = () => {
-  game = new Game();
-};
-
-var isKickOff = false;
-var isFieldGoal = false;
-var isPunt = false;
-var isTwoPoint = false;
-var isIntermission = false;
-var isGame = false;
-var canTwoPoint = false;
-
-// Live Play
-var quarterback = null; // Player who snapped the ball
-var ballCarrier = null; // Player who has posession of the ball
-var ballPosition;
-var ballCarrierPosition;
-var ballPositionOnKick;
-var blitzClock;
-var catchPositionX;
-
-// Live Play Booleans
-var ballSnapped = false;
-var ballPassed = false;
-var ballContact = false;
-var ballCaught = false;
-var ballBlitzed = false;
-var ballLive = false;
-var blitzAble = false;
-var blitzed = false;
-var ballRan = false;
-
-const getOpposingTeamEndzone = (team) => {
-  return team === 1 ? MAP.BLUE_ENDZONE : MAP.RED_ENDZONE;
-};
-
-const getTeamEndzone = (team) => {
-  return team === 1 ? MAP.RED_ENDZONE : MAP.BLUE_ENDZONE;
+  Chat.send(
+    `${ICONS.RedSquare} ${redScore} -  ${blueScore} ${ICONS.BlueSquare}`
+  );
 };
 
 class Game {
-  static CONFIG = {
-    YARDS_TO_GET: 20,
-  };
-
   constructor() {
-    this.state = {};
-    this._los = {
-      x: 0,
-      y: 0,
-    };
-    this._down = {
-      down: 1,
-      yards: Game.CONFIG.YARDS_TO_GET,
-    };
-
     this._red = {
       players: [],
       score: 0,
@@ -265,41 +76,25 @@ class Game {
     this._isLivePlay = false;
   }
 
-  setState(property, value = true) {
-    const strProp = `_${property}`;
-    this.state[strProp] = value;
+  getLivePlay() {
+    return this._isLivePlay;
+  }
+
+  setLivePlay(bool) {
+    this._isLivePlay = Boolean(bool);
     return this;
   }
 
-  getState(property) {
-    const strProp = `_${property}`;
-    return this.state[strProp] ?? false;
+  // Resets everything
+  hardReset() {
+    this.setLivePlay(false);
+    play?.reset();
+    down?.startNew();
   }
+}
 
-  getDownYards() {
-    return this._down.yards;
-  }
-
-  getDownYardsStr() {
-    return this._down.yards;
-  }
-
-  getDown() {
-    return this._down.down;
-  }
-
-  getLOSYard() {
-    return new DistanceCalculator(this.getLOS()).getInYards();
-  }
-
-  getLOSHalfStr() {
-    const LOS = this.getLOS();
-    if (LOS > 0) return "Blue ";
-    if (LOS < 0) return "Red ";
-    return "";
-  }
-
-  getDownStr() {
+const sendDownAndDistance = () => {
+  const getDownStr = () => {
     const downStrings = {
       1: "1st",
       2: "2nd",
@@ -307,401 +102,123 @@ class Game {
       4: "4th",
       5: "5th",
     };
-    return downStrings[this._down.down];
-  }
+    return downStrings[down.getDown()];
+  };
 
-  addDown() {
-    this._down.down++;
-    return this;
-  }
-
-  setDown(down) {
-    this._down.down = down;
-    return this;
-  }
-
-  setYards(yards) {
-    this._down.yards = yards;
-    return this;
-  }
-
-  subtractYards(yards) {
-    this._down.yards -= yards;
-    return this;
-  }
-
-  resetDownAndYards() {
-    this._down.down = 1;
-    this._down.yards = Game.CONFIG.YARDS_TO_GET;
-  }
-
-  #getTeamObjFromID(teamID) {
-    return teamID === 1 ? this._red : this._blue;
-  }
-
-  getLivePlay() {
-    return this._isLivePlay;
-  }
-
-  setLivePlay(bool) {
-    this._isLivePlay = bool;
-    return this;
-  }
-
-  updateTeams() {
-    this._red.players = room.getPlayerList().filter(({ team }) => team === 1);
-    this._blue.players = room.getPlayerList().filter(({ team }) => team === 2);
-    this._fieldedPlayers = room
-      .getPlayerList()
-      .filter(({ team }) => team !== 0);
-    return this;
-  }
-
-  getTeamPlayers() {
-    return {
-      red: this._red.players,
-      blue: this._blue.players,
-      fielded: this._fieldedPlayers,
-    };
-  }
-
-  getOffenseDefensePlayers() {
-    try {
-      return {
-        offensePlayers: this.#getTeamObjFromID(this.getOffenseTeam()).players,
-        defensePlayers: this.#getTeamObjFromID(this.getDefenseTeam()).players,
-      };
-    } catch (error) {
-      console.log(error);
-      Chat.send("This cant be run when a play is not live!!!");
-    }
-  }
-
-  getOffenseTeam() {
-    return this._offenseTeamID;
-  }
-
-  setOffenseTeam(teamID) {
-    this._offenseTeamID = teamID;
-  }
-
-  getDefenseTeam() {
-    return this.getOffenseTeam() === 1 ? 2 : 1;
-  }
-
-  swapOffense() {
-    const offense = this.getOffenseTeam();
-    console.log(offense);
-    if (offense === 1) {
-      this.setOffenseTeam(2);
-    } else {
-      this.setOffenseTeam(1);
-    }
-    return this;
-  }
-
-  getScore() {
-    return {
-      red: this._red.score,
-      blue: this._blue.score,
-    };
-  }
-
-  setScore(teamID, score) {
-    teamID === 1 ? this._red.score === score : this._blue.score === score;
-    return this;
-  }
-
-  addScore(teamID, score) {
-    teamID === 1 ? (this._red.score += score) : (this._blue.score += score);
-    return this;
-  }
-
-  setLOS(x) {
-    this._los.x = x;
-    return this;
-  }
-
-  getLOS() {
-    return this._los.x;
-  }
-
-  getLineToGain() {
-    return new DistanceCalculator([
-      this._los.x,
-      MAP.YARD * Game.CONFIG.YARDS_TO_GET,
+  const showYardsOrGoal = () => {
+    const lineToGain = new DistanceCalculator([
+      down.getLOS(),
+      MAP.YARD * down.getYards(),
     ])
-      .addByTeam(this.getOffenseTeam())
-      .getDistance();
-  }
-
-  getSnapDistance() {
-    return new DistanceCalculator([this._los.x, MAP.YARD * 5])
-      .subtractByTeam(this.getOffenseTeam())
-      .getDistance();
-  }
-
-  getSnapYard() {
-    return new DistanceCalculator([this._los.x, MAP.YARD * 5])
-      .subtractByTeam(this.getOffenseTeam())
-      .getYardLine();
-  }
-
-  getLOSYard() {
-    return new DistanceCalculator(this.getLOS()).getYardLine();
-  }
-
-  moveFieldMarkers() {
-    const hideLineToGain =
-      this.getLineToGain() <= MAP.RED_ENDZONE ||
-      this.getLineToGain() >= MAP.BLUE_ENDZONE;
-    const lineToGainX = hideLineToGain ? MAP.HIDDEN : this.getLineToGain();
-
-    room.setDiscProperties(1, {
-      x: this._los.x,
-      y: MAP.TOP_SIDELINE,
-    });
-    room.setDiscProperties(2, {
-      x: this._los.x,
-      y: MAP.BOT_SIDELINE,
-    });
-
-    room.setDiscProperties(3, {
-      x: lineToGainX,
-      y: MAP.TOP_SIDELINE,
-    });
-    room.setDiscProperties(4, {
-      x: lineToGainX,
-      y: MAP.BOT_SIDELINE,
-    });
-
-    return this;
-  }
-}
-
-function checkIfWithinHash(position, radius) {
-  const { y } = position;
-  const { topHash, botHash } = adjustMapCoordinatesForRadius(radius);
-
-  return y > topHash && y < botHash;
-}
-
-function checkIfFieldGoalSuccessful() {
-  const { x } = ball.getPosition();
-  const { redFG, blueFG } = adjustMapCoordinatesForRadius(MAP.BALL_RADIUS);
-  return game.getOffenseTeam() === 1 ? x > blueFG : x < redFG;
-}
-
-function checkIfBallIsMoving() {
-  const BALL_DEAD_SPEED = 0.05;
-  const { xspeed } = ball.getSpeed();
-
-  // xpseed can be negative, so make sure you get absoltue value
-  return Math.abs(xspeed) > BALL_DEAD_SPEED;
-}
-
-// Interface that easily allows for distance calculation, rounding, and conversion to yards
-class DistanceCalculator {
-  static adjustPosition(player) {
-    const { team, id } = player;
-    const {
-      position: { x, y },
-    } = getPlayerDiscProperties(id);
-
-    return {
-      x: new DistanceCalculator([x, MAP.PLAYER_RADIUS])
-        .addByTeam(team)
-        .getDistance(),
-      y,
-    };
-  }
-
-  // Remember 775 is the limit
-
-  constructor(distance) {
-    this._distance = distance;
-  }
-
-  getDistance() {
-    return this._distance;
-  }
-
-  getInYards() {
-    return this._distance / MAP.YARD;
-  }
-
-  getYardLine() {
-    return (MAP.HALF_FIELD - Math.abs(this._distance)) / MAP.YARD;
-  }
-
-  addByTeam(team) {
-    const [p1, p2] = this._distance;
-    this._distance = team === 1 ? p1 + p2 : p1 - p2;
-    return this;
-  }
-
-  subtractByTeam(team) {
-    const [p1, p2] = this._distance;
-    this._distance = team === 1 ? p1 - p2 : p1 + p2;
-    return this;
-  }
-
-  calcDifference() {
-    const [p1, p2] = this._distance;
-    if (p1.x === undefined) {
-      this._distance = Math.abs(p1 - p2);
-      return this;
-    }
-    // If 2D points
-    const d1 = p1.x - p2.x;
-    const d2 = p1.y - p2.y;
-    this._distance = Math.hypot(d1, d2);
-    return this;
-  }
-
-  calcDifferenceByTeam(team) {
-    const [p1, p2] = this._distance;
-    const distance = p1 - p2;
-
-    // We need to get the net difference, and that varies by team since net for blue is from positive to negative
-    if (team === 1) {
-      if (distance > 0) {
-        this._distance = -distance;
-      }
-      if (distance < 0) {
-        this._distance = Math.abs(distance);
-      }
-    } else {
-      this._distance = distance;
-    }
-
-    return this;
-  }
-
-  roundByTeam(team) {
-    const { YARD } = MAP;
-
-    // Cant round to the endzone, we always round to 1 yard if the distance is between 0 and 1 yard line
-    const endzone = getTeamEndzone(team);
-    const oneYardLine = new DistanceCalculator([endzone, YARD])
-      .addByTeam(team)
+      .addByTeam(game.getOffenseTeam())
       .getDistance();
 
-    if (team === 1) {
-      this._distance =
-        this._distance < oneYardLine && this._distance > endzone
-          ? oneYardLine
-          : YARD * Math.floor(this._distance / YARD);
-    } else {
-      this._distance =
-        this._distance > oneYardLine && this._distance < endzone
-          ? oneYardLine
-          : YARD * Math.ceil(this._distance / YARD);
-    }
+    if (lineToGain <= MAP.RED_ENDZONE || lineToGain >= MAP.BLUE_ENDZONE)
+      return "GOAL";
+    return down.getYards();
+  };
 
-    return this;
-  }
+  const getLOSYard = () => {
+    return new DistanceCalculator(down.getLOS()).getYardLine();
+  };
 
-  // In case the play ends in the endzone, we need to round to the endzone
-  // because we dont care about the distance after the endzone
-  roundToMap() {
-    if (this._distance > MAP.BLUE_ENDZONE) {
-      this._distance = MAP.BLUE_ENDZONE;
-    }
-    if (this._distance < MAP.RED_ENDZONE) {
-      this._distance = MAP.RED_ENDZONE;
-    }
-    return this;
-  }
-}
+  const showRedZonePenaltiesIfAvail = () => {
+    const currentRedZonePenalties = down.getState("redZonePenaltyCounter");
+    if (currentRedZonePenalties === false) return ""; // If there are no redzone penalties
+    return ` [${currentRedZonePenalties}/3]`;
+  };
 
-const ball = {
-  getPosition() {
-    return room.getBallPosition();
-  },
+  const LOSHalfStr = getHalfStr(down.getLOS());
 
-  getSpeed() {
-    const { xspeed, yspeed } = room.getDiscProperties(0);
-    return {
-      xspeed,
-      yspeed,
-    };
-  },
-
-  setPosition(position) {
-    const { x, y = 0 } = position;
-    room.setDiscProperties(0, {
-      x: x,
-      y: y,
-      xspeed: 0,
-      yspeed: 0,
-      ygravity: 0,
-    });
-    return this;
-  },
-
-  suppress() {
-    room.setDiscProperties(0, {
-      invMass: 0.000001,
-      xspeed: 0,
-      yspeed: 0,
-    });
-    return this;
-  },
-
-  release() {
-    room.setDiscProperties(0, {
-      invMass: 1,
-      xspeed: 0,
-      yspeed: 0,
-    });
-    return this;
-  },
-
-  score(team) {
-    const x = team === 2 ? MAP.BLUE_SCORE_LINE : MAP.RED_SCORE_LINE;
-    room.setDiscProperties(0, {
-      x: x,
-      y: -200,
-      xspeed: 0,
-      yspeed: 0,
-      ygravity: 0.015,
-      invMass: 0.000001,
-    });
-  },
-};
-
-room.onPositionsReset = () => {
-  kickOffInit();
-};
-
-const sendDownAndDistance = () => {
   Chat.send(
-    `${game.getDownStr()} & ${game.getDownYardsStr()} on ${game.getLOSHalfStr()}${game.getLOSYard()}`
+    `${getDownStr()} & ${showYardsOrGoal()} at ${LOSHalfStr}${getLOSYard()}${showRedZonePenaltiesIfAvail()}`
   );
 };
 
-// Master Class for all plays
-class Play {
-  static validate(player) {
-    return player.team === game.getOffenseTeam();
-  }
+const sendPlayMessage = (playObj) => {
+  const {
+    type,
+    playerName = "",
+    player2Name = "",
+    yard = "",
+    netYards = "",
+    mapSection = "null",
+    position = down.getLOS(),
+  } = playObj;
 
-  constructor() {
-    this.time = "0:01";
-    this.state = {};
+  const getMessage = () => {
+    console.log(playObj);
+
+    const name1 = truncateName(playerName);
+    const name2 = truncateName(player2Name);
+
+    const aGainOrLoss = getNetYardsMessage(netYards);
+    const atTheYardOrEndzone = getYardMessage(yard, position);
+
+    switch (type) {
+      case PLAY_TYPES.PASS_CATCH:
+        return `${ICONS.Football} Pass caught by ${name1} ${atTheYardOrEndzone}`;
+      case PLAY_TYPES.PASS_DEFLECTION:
+        return `${ICONS.DoNotEnter} Incomplete - pass broken up by ${name1}`;
+      case PLAY_TYPES.PASS_OUT_OF_BOUNDS:
+        return `${ICONS.DoNotEnter} Incomplete - ball went out of bounds ${atTheYardOrEndzone}`;
+      case PLAY_TYPES.CATCH_OUT_OF_BOUNDS:
+        return `${ICONS.DoNotEnter} Incomplete - caught out of bounds by ${name1} ${atTheYardOrEndzone}`;
+      case PLAY_TYPES.KICK_CATCH:
+        return `${ICONS.Football} Kick caught by ${name1} ${atTheYardOrEndzone}`;
+      case PLAY_TYPES.KICK_OUT_OF_BOUNDS:
+        return `${ICONS.Pushpin} Kick kicked out of bounds ${atTheYardOrEndzone}`;
+      case PLAY_TYPES.KICK_DOWNED:
+        return `${ICONS.SpeakingHead} Kick downed by kicking team`;
+      case PLAY_TYPES.FG_INCOMPLETE:
+        return `${ICONS.X} Field goal incomplete!`;
+      case PLAY_TYPES.FG_GOOD:
+        return `${ICONS.Target} Field goal is good!`;
+      case PLAY_TYPES.FG_AUTO_GOOD:
+        return `${ICONS.Target} Auto Field Goal! - llegally touched by ${name1}`;
+      case PLAY_TYPES.FG_AUTO_INCOMPLETE:
+        return `${ICONS.X} Incomplete - illegally touched by ${name1}`;
+      case PLAY_TYPES.PLYR_OUT_OF_BOUNDS:
+        return `${ICONS.Pushpin} ${name1} stepped out of bounds ${atTheYardOrEndzone} for ${aGainOrLoss}`;
+      case PLAY_TYPES.RUN:
+        return `${ICONS.Running} Run by ${name1}`;
+      case PLAY_TYPES.FUMBLE:
+        return `${ICONS.Collision} ${name1} fumbled the ball ${atTheYardOrEndzone}, recovered by ${name2}`;
+      case PLAY_TYPES.TACKLE:
+        return `${ICONS.HandFingersSpread} ${name2} tackled ${name1} ${atTheYardOrEndzone}, for ${aGainOrLoss}`;
+      case PLAY_TYPES.SACK:
+        return `${ICONS.HandFingersSpread} ${name2} sacked ${name1} ${atTheYardOrEndzone}, for ${aGainOrLoss}`;
+      case PLAY_TYPES.TOUCHDOWN:
+        return `${ICONS.Fire} TOUCHDOWN! ${name1} with ${aGainOrLoss}`;
+      case PLAY_TYPES.TOUCHBACK:
+        return `${ICONS.Loudspeaker} Touchback - ball placed at the receiving team's 20 yard line.`;
+      case PLAY_TYPES.SAFETY:
+        return `${ICONS.Loudspeaker} Safety - kickoff from the 20 yard line`;
+      default:
+        return "No message for this play";
+    }
+  };
+
+  Chat.send(getMessage());
+};
+
+// Master Class for all plays
+
+class Play {
+  constructor(time) {
+    this._time = Math.round(time);
+    this._ballPositionOnSet = {};
+    this._state = {};
   }
 
   // Sets true by default
   setState(property, value = true) {
-    const strProp = `_${property}`;
-    this.state[strProp] = value;
+    this._state[`_${property}`] = value;
     return this;
   }
 
   getState(property) {
-    const strProp = `_${property}`;
-    return this.state[strProp] ?? false;
+    return this._state[`_${property}`] ?? false;
   }
 
   getBallCarrier() {
@@ -713,36 +230,38 @@ class Play {
     return this;
   }
 
-  determineAndExecuteBallContact(ballContactObj) {
-    const {
-      player: { team },
-    } = ballContactObj;
-
-    return team === game.getOffenseTeam()
-      ? this.handleBallContactSameTeam(ballContactObj)
-      : this.handleBallContactOpposingTeam(ballContactObj);
+  getBallPositionOnSet() {
+    return this._ballPositionOnSet;
   }
 
-  getEndPlayData(rawPosition, team) {
+  setBallPositionOnSet(position) {
+    this._ballPositionOnSet = position;
+    return this;
+  }
+
+  reset() {
+    Chat.send("RESET RAN");
+  }
+
+  positionBallAndFieldMarkers() {
+    ball.setPosition({ x: down.getSnapDistance() });
+    down.moveFieldMarkers();
+    return this;
+  }
+
+  getPlayData(rawPosition, team) {
     const { x } = rawPosition;
 
     // Either the LOS for snaps and field goals, or the catch position for punts and kickoffs
     const startingPosition = this.getStartingPosition();
-
-    console.log(x);
-
-    console.log(rawPosition);
-
-    const { name: mapSection = null } =
-      mapSections.getSection(rawPosition) ?? {};
+    const mapSection = new MapSection(rawPosition).getSectionName();
 
     const roundedX = new DistanceCalculator([x, MAP.PLAYER_RADIUS])
       .addByTeam(team)
       .roundByTeam(team)
       .roundToMap();
-
-    console.log(roundedX);
     // We dont need to round since we already did
+
     const netYards = new DistanceCalculator([
       startingPosition,
       roundedX.getDistance(),
@@ -760,20 +279,34 @@ class Play {
     };
   }
 
-  handleTouchdown() {
+  onTouchdown() {
     const { name, team } = this.getBallCarrier();
 
-    // Get what kind of touchdown
+    if (this.getState("twoPoint") === false) {
+      Chat.send("yup");
+      down.setState("canTwoPoint");
+    }
 
-    Chat.send(`Touchdown scored by ${name}!`);
+    // Get what kind of touchdown for stats
 
-    ball.score(team);
+    const endzone = getOpposingTeamEndzone(team);
+    const { netYards } = this.getPlayData({ x: endzone }, team);
+
+    sendPlayMessage({
+      type: PLAY_TYPES.TOUCHDOWN,
+      playerName: name,
+      netYards: netYards,
+    });
+
+    game.setLivePlay(false);
+
+    return this.getState("twoPoint")
+      ? this.scorePlay(2, game.getOffenseTeam())
+      : this.scorePlay(7, game.getOffenseTeam());
   }
 
   handleSafety() {
-    game.setLivePlay(false);
-    Chat.send("SAFETY!!!");
-    ball.score(game.getDefenseTeam());
+    sendPlayMessage({ type: PLAY_TYPES.SAFETY });
 
     const offenseEndZone = getTeamEndzone(game.getOffenseTeam());
     const offenseTwentyYardLine = new DistanceCalculator([
@@ -782,257 +315,91 @@ class Play {
     ])
       .addByTeam(game.getOffenseTeam())
       .getDistance();
-    game.setState("kickOffPosition", offenseTwentyYardLine);
+
+    // ? Why is offense scoring? Because we need the defense to get the ball, so offense has to kickoff
+    this.scorePlay(2, game.getDefenseTeam(), game.getOffenseTeam());
+
+    // Score the play first, so we can create a new down
+    down.setState("safetyKickOff", offenseTwentyYardLine);
   }
 
-  end() {
+  resetAfterDown() {
     sendDownAndDistance();
+    setPlayers();
+    // Sets the players too
+    play = null;
+    setBallAndFieldMarkersPlayEnd();
   }
 
-  score() {}
-}
+  scorePlay(score, team, teamEndZoneToScore = team) {
+    game.setLivePlay(false);
 
-class Punt extends Play {
-  constructor(kicker) {
-    super();
-    this._kicker = kicker;
-    this._ballCarrier = null;
+    game.addScore(team, score);
+    ball.score(teamEndZoneToScore);
+    sendScoreBoard();
+
+    // Dont swap offense, we swap offense on the kickoff
   }
 
-  getKicker() {
-    return this._kicker;
-  }
+  endPlay({ netYards = 0, endPosition = null, addDown = true }) {
+    console.log(netYards, endPosition, addDown);
 
-  getStartingPosition() {
-    return this.getState("catchPosition");
-  }
+    // const isKickOffOrPunt = this.getState("punt") || this.getState("kickOff")
 
-  putOffenseInPosition() {
-    return this;
-  }
+    const updateDown = () => {
+      console.log("UPDATE DOWN RAN");
+      // Dont update the down if nothing happened, like off a pass deflection or on a punt and kickoff
+      if (endPosition === null) return;
 
-  putDefenseInPosition() {
-    return this;
-  }
+      const addYardsAndStartNewDownIfNecessary = () => {
+        down.setLOS(endPosition);
+        down.subtractYards(netYards);
 
-  createInvisibleWallForDefense() {
-    return this;
-  }
+        const currentYardsToGet = down.getYards();
 
-  determineAndExecuteBallContact(ballContactObj) {
-    // We have to do this check AGAIN because playerOnkick is not an event listener, but a native listener
-    if (this.getState("puntCaught")) return;
-    super.determineAndExecuteBallContact(ballContactObj);
-  }
+        if (currentYardsToGet <= 0) {
+          Chat.send("FIRST DOWN!");
+          down.startNew();
+        } else if (play.getState("fieldGoal")) {
+          // This endplay only runs when there is a running play on the field goal
+          Chat.send(`${ICONS.Loudspeaker} Turnover on downs FIELD GOAL!`);
+          game.swapOffense();
+          down.startNew();
+        }
+      };
 
-  handleBallDownedByKickingTeam(playerPosition, playerTeam) {
-    // What if they down in the endzone? Check for safety?
-    Chat.send("Ball downed by kicking team");
+      addYardsAndStartNewDownIfNecessary();
+    };
 
-    const x = new DistanceCalculator(playerPosition.x)
-      .roundByTeam(playerTeam)
-      .getDistance();
+    const enforceDown = () => {
+      const currentDown = down.getDown();
+      // if (currentDown === 4) {
+      //   Chat.send(`4th down, GFI or PUNT`);
+      // }
+      if (currentDown === 5) {
+        Chat.send(`${ICONS.Loudspeaker} Turnover on downs!`);
+        game.swapOffense();
+        down.startNew();
+      }
+    };
 
-    game.setLOS(x);
+    game.setLivePlay(false);
 
-    resetBall();
-  }
+    if (addDown) {
+      down.addDown();
+    }
 
-  handleBallContactSameTeam(ballContactObj) {
-    const { type, player, playerPosition } = ballContactObj;
-    const { name, id, team } = player;
+    updateDown();
 
-    if (id !== this.getKicker().id)
-      return this.handleBallDownedByKickingTeam(playerPosition);
-    if (type === "touch") return;
+    enforceDown();
 
-    this.setState("puntKicked");
-    return Chat.send(`Punt Kicked`);
-  }
-
-  handleCatch(ballContactObj) {
-    game.swapOffense();
-
-    const {
-      player,
-      playerPosition: { x },
-    } = ballContactObj;
-    const { name, team } = player;
-
-    const adjustedX = new DistanceCalculator([x, MAP.PLAYER_RADIUS])
-      .addByTeam(team)
-      .roundByTeam();
-
-    const yardOfCatch = adjustedX.getInYards();
-
-    this.setState("catchPosition", adjustedX.getDistance());
-
-    Chat.send(`Punt caught by ${name} @ the ${yardOfCatch}`);
-
-    this.setState("puntCaught");
-
-    this.setBallCarrier(player);
-  }
-
-  handleBallContactOpposingTeam(ballContactObj) {
-    return this.handleCatch(ballContactObj);
-  }
-
-  handleBallOutOfBounds(ballPosition) {
-    const { x } = ballPosition;
-    const team = game.getDefenseTeam();
-
-    const roundedX = new DistanceCalculator(x).roundByTeam(team);
-
-    const yardLineAtOutOfBounds = roundedX.getYardLine();
-
-    Chat.send(`Ball went out of bounds at the ${yardLineAtOutOfBounds}`);
-
-    game.setLOS(roundedX.getDistance());
-
-    game.swapOffense();
-
-    resetBall();
-  }
-
-  handleBallCarrierOutOfBounds(ballCarrierPosition) {
-    const { team, name } = this.getBallCarrier();
-
-    const { netYards, endPosition, endYard, mapSection } = super.getEndPlayData(
-      ballCarrierPosition,
-      team
-    );
-
-    sendPlayMessage({
-      type: "player out of bounds",
-      player1Name: name,
-      endYard: endYard,
-      netYards: netYards,
-      mapSection: mapSection,
-    });
-
-    game.setLOS(endPosition);
-
-    resetBall();
-  }
-
-  handleBallCarrierContactOpposingTeam(contactObj) {
-    const { player, playerPosition, ballCarrierPosition } = contactObj;
-    const { team, name } = this.getBallCarrier();
-
-    const { netYards, endPosition, endYard, mapSection } = super.getEndPlayData(
-      ballCarrierPosition,
-      team
-    );
-
-    game.setLOS(endPosition);
-
-    console.log(this.getStartingPosition());
-
-    sendPlayMessage({
-      type: "tackle",
-      player1Name: name,
-      player2Name: player.name,
-      endYard: endYard,
-      netYards: netYards,
-      mapSection: mapSection,
-    });
-
-    resetBall();
+    this.resetAfterDown();
   }
 }
 
-class KickOff extends Punt {
-  constructor(position) {
-    super();
-    this._kickOffPosition = position;
-  }
-
-  getKickOffPosition() {
-    return this._kickOffPosition;
-  }
-
-  putBallInPosition() {
-    ball.setPosition({ x: this._kickOffPosition });
-    return this;
-  }
-
-  putOffenseInPosition() {
-    return this;
-  }
-
-  putDefenseInPosition() {
-    return this;
-  }
-
-  createInvisibleWallForDefense() {
-    return this;
-  }
-
-  handleCatch(ballContactObj) {
-    game.swapOffense();
-
-    const {
-      player,
-      playerPosition: { x },
-    } = ballContactObj;
-    const { name, team } = player;
-
-    const adjustedX = new DistanceCalculator([x, MAP.PLAYER_RADIUS])
-      .addByTeam(team)
-      .roundByTeam();
-
-    const yardOfCatch = adjustedX.getInYards();
-
-    this.setState("catchPosition", adjustedX.getDistance());
-
-    Chat.send(`Kickoff caught by ${name} @ the ${yardOfCatch}`);
-
-    this.setState("kickOffCaught");
-
-    this.setBallCarrier(player);
-  }
-
-  determineAndExecuteBallContact(ballContactObj) {
-    // We have to do this check AGAIN because playerOnkick is not an event listener, but a native listener
-    if (this.getState("kickOffCaught")) return;
-    super.determineAndExecuteBallContact(ballContactObj);
-  }
-
-  handleBallContactSameTeam(ballContactObj) {
-    const { type, player, playerPosition } = ballContactObj;
-    const { name, id, team } = player;
-
-    if (this.getState("kickOffKicked"))
-      return super.handleBallDownedByKickingTeam(playerPosition);
-    if (type === "touch") return;
-
-    this.setState("kickOffKicked");
-    return Chat.send(`KICKOFF!`);
-  }
-
-  handleBallOutOfBounds(ballPosition) {
-    const { x } = ballPosition;
-    const team = game.getDefenseTeam();
-    const teamFortyYardLinePosition = getTeamFortyYardLinePosition(team);
-
-    const roundedX = new DistanceCalculator(x).roundByTeam(team);
-
-    const yardLineAtOutOfBounds = roundedX.getYardLine();
-
-    Chat.send(`Ball went out of bounds at the ${yardLineAtOutOfBounds}`);
-    Chat.send("PENALTY!!! AUTOMATIC 40!");
-
-    game.swapOffense();
-
-    game.setLOS(teamFortyYardLinePosition);
-
-    resetBall();
-  }
-}
 class Snap extends Play {
-  constructor(quarterback) {
-    super();
+  constructor(time, quarterback) {
+    super(time);
     this._quarterback = quarterback;
     this._ballCarrier = quarterback;
   }
@@ -1042,38 +409,264 @@ class Snap extends Play {
   }
 
   getStartingPosition() {
-    return game.getLOS();
+    return down.getLOS();
+  }
+
+  checkForPenalties() {
+    const snapOutOfBoundsCheck = () => {
+      const { position } = getPlayerDiscProperties(this._quarterback.id);
+      const isOutOfBounds = checkIfOutOfBounds(position, MAP.PLAYER_RADIUS);
+      return isOutOfBounds ? { type: PENALTY_TYPES.SNAP_OUT_OF_BOUNDS } : null;
+    };
+
+    const snapOutsideHashesCheck = () => {
+      const { position } = getPlayerDiscProperties(this._quarterback.id);
+      const withinHash = checkIfWithinHash(position, MAP.PLAYER_RADIUS);
+      return withinHash ? null : { type: PENALTY_TYPES.SNAP_OUT_OF_HASHES };
+    };
+
+    const checkOffsideOffense = () => {
+      const { offensePlayers } = game.getOffenseDefensePlayers();
+      const offensiveTeam = game.getOffenseTeam();
+      const offsidePlayer = getOffsidePlayer(offensePlayers, offensiveTeam);
+      return Boolean(offsidePlayer)
+        ? {
+            type: PENALTY_TYPES.OFFSIDES_OFFENSE,
+            playerName: offsidePlayer.name,
+          }
+        : null;
+    };
+
+    const checkOffsideDefense = () => {
+      const { defensePlayers } = game.getOffenseDefensePlayers();
+      const defensiveTeam = game.getDefenseTeam();
+      const offsidePlayer = getOffsidePlayer(defensePlayers, defensiveTeam);
+      return Boolean(offsidePlayer)
+        ? {
+            type: PENALTY_TYPES.OFFSIDES_DEFENSE,
+            playerName: offsidePlayer.name,
+          }
+        : null;
+    };
+
+    // Put it in an array so we can control the order of the functions
+    const penaltyArray = [
+      snapOutOfBoundsCheck(),
+      snapOutsideHashesCheck(),
+      checkOffsideOffense(),
+      checkOffsideDefense(),
+    ];
+
+    const penaltyObj = penaltyArray.find(
+      (penalty) => Boolean(penalty) === true
+    );
+
+    if (Boolean(penaltyObj)) {
+      handlePenalty(penaltyObj);
+      return true;
+    }
+    return false;
+  }
+
+  onBallContact(ballContactObj) {
+    // We have to do this check AGAIN because playerOnkick is not an event listener, but a native listener
+    if (
+      this.getState("ballCaught") ||
+      this.getState("ballRan") ||
+      this.getState("ballBlitzed")
+    )
+      return;
+    super.onBallContact(ballContactObj);
+  }
+
+  onPlayerContactOffense(contactObj) {
+    const {
+      player,
+      playerPosition,
+      playerSpeed,
+      ballCarrierPosition,
+      ballCarrierSpeed,
+    } = contactObj;
+    // Verify that its a legal run
+
+    // fumbleCheck(playerSpeed, ballCarrierSpeed)
+
+    // Chat.send(`X: ${playerSpeed.x.toFixed(3)} Y: ${playerSpeed.y.toFixed(3)} || X: ${ballCarrierSpeed.x.toFixed(3)} Y: ${ballCarrierSpeed.y.toFixed(3)}`)
+    // Chat.send(`TOTAL: ${(Math.abs(playerSpeed.x) + Math.abs(playerSpeed.y) + Math.abs(ballCarrierSpeed.x) + Math.abs(ballCarrierSpeed.y)).toFixed(3)}`)
+
+    const isBehindQuarterBack = checkIfBehind(
+      playerPosition.x,
+      ballCarrierPosition.x,
+      player.team
+    );
+
+    if (isBehindQuarterBack) return this.handleRun(contactObj);
+
+    handlePenalty({
+      type: PENALTY_TYPES.ILLEGAL_RUN,
+      playerName: player.name,
+    });
+
+    // Might need to adjust the player's position here, but for now, nahhh lmao
+  }
+
+  onPlayerContactDefense(contactObj) {
+    const { player, playerPosition, ballCarrierPosition } = contactObj;
+    const { team, name } = this.getBallCarrier();
+
+    const { netYards, endPosition, endYard, mapSection } = super.getPlayData(
+      ballCarrierPosition,
+      team
+    );
+
+    const isSack = checkIfBehind(endPosition, down.getLOS(), team);
+
+    sendPlayMessage({
+      type: isSack ? PLAY_TYPES.SACK : PLAY_TYPES.TACKLE,
+      playerName: name,
+      player2Name: player.name,
+      yard: endYard,
+      netYards: netYards,
+      mapSection: mapSection,
+      position: endPosition,
+    });
+
+    maybeSendQuoteMessage(player.name, netYards);
+
+    const isSafety = checkIfSafetyPlayer(ballCarrierPosition, team);
+
+    if (isSafety) return super.handleSafety();
+
+    this.endPlay({ netYards: netYards, endPosition: endPosition });
+  }
+
+  onBallOutOfBounds(ballPosition) {
+    const { x } = ballPosition;
+    const { team } = this.getQuarterback();
+
+    const rounded = new DistanceCalculator(x).roundByTeam(team);
+
+    const endYard = rounded.getYardLine();
+    const endPosition = rounded.getDistance();
+
+    sendPlayMessage({
+      type: PLAY_TYPES.PASS_OUT_OF_BOUNDS,
+      yard: endYard,
+      position: endPosition,
+    });
+
+    const isSafety = checkIfSafetyBall(x, team);
+    if (isSafety) return super.handleSafety();
+
+    this.endPlay({ netYards: 0 });
+  }
+
+  onPlayerOutOfBounds(ballCarrierPosition) {
+    const { team, name } = this.getBallCarrier();
+
+    const { netYards, endPosition, endYard, mapSection } = super.getPlayData(
+      ballCarrierPosition,
+      team
+    );
+
+    sendPlayMessage({
+      type: PLAY_TYPES.PLYR_OUT_OF_BOUNDS,
+      playerName: name,
+      yard: endYard,
+      netYards: netYards,
+      position: endPosition,
+    });
+
+    const isSafety = checkIfSafetyPlayer(ballCarrierPosition, team);
+
+    if (isSafety) return super.handleSafety();
+
+    this.endPlay({ netYards: netYards, endPosition: endPosition });
+  }
+
+  onKickDrag(dragAmount) {
+    handlePenalty({
+      type: PENALTY_TYPES.SNAP_DRAG,
+      playerName: this._quarterback.name,
+    });
   }
 
   handleRun(contactObj) {
     const { player, playerPosition } = contactObj;
 
-    Chat.send(`Run by ${player.name} at the ${Math.round(playerPosition.x)}`);
+    sendPlayMessage({ type: PLAY_TYPES.RUN, playerName: player.name });
 
     this.setBallCarrier(player).setState("ballRan");
   }
 
   handleCatch(ballContactObj) {
     const { player, playerPosition } = ballContactObj;
-    const { name } = player;
+    const { name, team } = player;
+
+    const adjustedX = new DistanceCalculator([
+      playerPosition.x,
+      MAP.PLAYER_RADIUS,
+    ])
+      .addByTeam(team)
+      .roundByTeam()
+      .roundToMap();
 
     const isOutOfBounds = checkIfOutOfBounds(playerPosition, MAP.PLAYER_RADIUS);
     if (isOutOfBounds) {
-      Chat.send(`Pass Incomplete, caught out of bounds by ${name}`);
-      return resetBall();
+      sendPlayMessage({
+        type: PLAY_TYPES.CATCH_OUT_OF_BOUNDS,
+        playerName: name,
+        yard: adjustedX.getYardLine(),
+        position: adjustedX.getDistance(),
+      });
+      return this.endPlay({ netYards: 0 });
     }
 
     this.setState("ballCaught");
 
-    const { name: mapSection = null } =
-      mapSections.getSection(playerPosition) ?? {};
+    const mapSection = new MapSection(playerPosition).getSectionName();
 
-    Chat.send(`Pass caught by ${name} | ${mapSection}`);
+    sendPlayMessage({
+      type: PLAY_TYPES.PASS_CATCH,
+      playerName: name,
+      yard: adjustedX.getYardLine(),
+      mapSection: mapSection,
+      position: adjustedX.getDistance(),
+    });
 
     this.setBallCarrier(player);
   }
 
-  handleBallContactOpposingTeam(ballContactObj) {
+  handleIllegalCrossOffense() {
+    handlePenalty({
+      type: PENALTY_TYPES.ILLEGAL_LOS_CROSS,
+      playerName: this._quarterback.name,
+    });
+  }
+
+  handleBallContactOffense(ballContactObj) {
+    const { type, player, playerPosition } = ballContactObj;
+    const { name, id } = player;
+
+    if (
+      this.getState("ballPassed") === false &&
+      id !== this.getQuarterback().id
+    )
+      return this.#handleIllegalTouch(name);
+    if (type === BALL_CONTACT_TYPES.TOUCH && id === this.getQuarterback().id)
+      return;
+
+    // A touch by the QB never happens, only kicks
+    if (id === this.getQuarterback().id) {
+      this.setState("ballPassed");
+      this.setBallCarrier(null);
+      return;
+    }
+
+    return this.handleCatch(ballContactObj);
+  }
+
+  handleBallContactDefense(ballContactObj) {
     if (this.getState("ballPassed") === false)
       return this.setState("ballBlitzed");
 
@@ -1083,626 +676,341 @@ class Snap extends Play {
       playerPosition,
     } = ballContactObj;
 
-    const { name: mapSection = null } =
-      mapSections.getSection(playerPosition) ?? {};
+    const mapSection = new MapSection(playerPosition).getSectionName();
 
-    sendPlayMessage({
-      type: "pass deflection",
-      player1Name: name,
-      mapSection: mapSection,
-    });
+    sendPlayMessage({ type: PLAY_TYPES.PASS_DEFLECTION, playerName: name });
 
-    resetBall();
+    maybeSendQuoteMessage(name, 0);
 
-    // Chat.send(`Ball Contact type: ${type} @ ${Math.round(x)} by ${name}`)
+    this.endPlay({ netYards: 0 });
   }
 
-  #handleIllegalTouch() {
-    Chat.send("ILLEGAL TOUCH!");
-
-    resetBall();
+  #handleIllegalTouch(playerName) {
+    handlePenalty({ type: PENALTY_TYPES.ILLEGAL_PASS, playerName: playerName });
   }
 
-  handleBallContactSameTeam(ballContactObj) {
-    const { type, player, playerPosition } = ballContactObj;
-    const { name, id } = player;
+  handleAutoTouchdown() {
+    // After three redzone penalties
 
-    if (
-      this.getState("ballPassed") === false &&
-      id !== this.getQuarterback().id
-    )
-      return this.#handleIllegalTouch();
-    if (type === "touch" && id === this.getQuarterback().id) return;
+    Chat.send(`AUTO TOUCHDOWN!`);
 
-    // A touch by the QB never happens, only kicks
-    if (id === this.getQuarterback().id) {
-      this.setState("ballPassed");
-      return Chat.send(`Ball Passed!`);
-    }
-
-    return this.handleCatch(ballContactObj);
-  }
-
-  determineAndExecuteBallContact(ballContactObj) {
-    // We have to do this check AGAIN because playerOnkick is not an event listener, but a native listener
-    if (
-      this.getState("ballCaught") ||
-      this.getState("ballRan") ||
-      this.getState("ballBlitzed")
-    )
-      return;
-    super.determineAndExecuteBallContact(ballContactObj);
-  }
-
-  handleBallCarrierContactSameTeam(contactObj) {
-    // If he touches
-
-    const { player, playerPosition, ballCarrierPosition } = contactObj;
-    // Verify that its a legal run
-
-    const isBehindQuarterBack = checkIfBehind(
-      player.team,
-      playerPosition,
-      ballCarrierPosition
-    );
-
-    if (isBehindQuarterBack) return this.handleRun(contactObj);
-    if (!isBehindQuarterBack) Chat.send(`Illegal run!`);
-    // Might need to adjust the player's position here, but for now, nahhh lmao
-
-    resetBall();
-  }
-
-  handleBallCarrierContactOpposingTeam(contactObj) {
-    const { player, playerPosition, ballCarrierPosition } = contactObj;
-    const { team, name } = this.getBallCarrier();
-
-    const { netYards, endPosition, endYard, mapSection } = super.getEndPlayData(
-      ballCarrierPosition,
-      team
-    );
-
-    game.setLOS(endPosition);
-
-    sendPlayMessage({
-      type: "tackle",
-      player1Name: name,
-      player2Name: player.name,
-      endYard: endYard,
-      netYards: netYards,
-      mapSection: mapSection,
-    });
-
-    const isSafety = checkIfSafetyPlayer(ballCarrierPosition, team);
-
-    console.log(isSafety);
-
-    if (isSafety) return super.handleSafety();
-
-    resetBall();
-  }
-
-  handleBallOutOfBounds(ballPosition) {
-    const { x } = ballPosition;
-    const { team } = this.getBallCarrier();
-
-    const yardLineAtOutOfBounds = new DistanceCalculator(x)
-      .roundByTeam(team)
-      .getYardLine();
-
-    Chat.send(`Ball went out of bounds at the ${yardLineAtOutOfBounds}`);
-
-    const isSafety = checkIfSafetyBall(game.getOffenseTeam());
-    if (isSafety) return super.handleSafety();
-
-    resetBall();
-  }
-
-  handleBallCarrierOutOfBounds(ballCarrierPosition) {
-    const { team, name } = this.getBallCarrier();
-
-    const { netYards, endPosition, endYard, mapSection } = super.getEndPlayData(
-      ballCarrierPosition,
-      team
-    );
-
-    sendPlayMessage({
-      type: "player out of bounds",
-      player1Name: name,
-      endYard: endYard,
-      netYards: netYards,
-      mapSection: mapSection,
-    });
-
-    const isSafety = checkIfSafetyPlayer(ballCarrierPosition, team);
-
-    if (isSafety) return super.handleSafety();
-
-    game.setLOS(endPosition);
-
-    resetBall();
+    this.scorePlay(7, game.getOffenseTeam());
   }
 }
 
-class FieldGoal extends Play {
-  constructor(kicker) {
-    super();
-    this._kicker = kicker;
-    this._ballCarrier = kicker;
+class TwoPoint extends Snap {
+  constructor(time, quarterback) {
+    super(time, quarterback);
   }
+}
 
-  getKicker() {
-    return this._kicker;
-  }
+const PENALTY_TYPES = {
+  SNAP_OUT_OF_HASHES: "Snap Out Of Hashes",
+  SNAP_OUT_OF_BOUNDS: "Snap Out Of Bounds",
+  DOUBLE_HIKE: "Double Hike",
+  OFFSIDES_OFFENSE: "Offsides Offense",
+  OFFSIDES_DEFENSE: "Offsides Defense",
+  SNAP_DRAG: "Snap Drag",
+  FG_DRAG: "Field Goal Drag",
+  PUNT_DRAG: "Punt Drag",
+  KICKOFF_DRAG: "Kickoff Drag",
+  KICKOFF_DRAG_SAFETY: "Kickoff Drag Safety",
+  KICKOFF_OUT_OF_BOUNDS: "Kick Off Out Of Bounds",
+  KICKOFF_OUT_OF_BOUNDS_SAFETY: "Kick Off Out Of Bounds Safety",
+  KICKOFF_OFFSIDES: "Kick Off Offsides Offense",
+  KICKOFF_OFFSIDES_SAFETY: "Kick Off Offsides Offense Safety",
+  ILLEGAL_PASS: "Illegal Pass",
+  ILLEGAL_RUN: "Illegal Run",
+  ILLEGAL_LOS_CROSS: "Illegal LOS Cross",
+  ILLEGAL_BLITZ: "Illegal Blitz",
+};
 
-  putKickerInPosition() {
-    const { team, id } = this._kicker;
-    const sevenYardsBehindBall = new DistanceCalculator([
-      game.getSnapDistance(),
+const handlePenalty = (penaltyObj) => {
+  quickPause();
+  game.setLivePlay(false);
+
+  const { type, playerName = "" } = penaltyObj;
+
+  const { time } = room.getScores();
+
+  const PENALTIES = [
+    {
+      name: PENALTY_TYPES.SNAP_OUT_OF_HASHES,
+      description: `Illegal Snap, Out Of Hashes, automatic loss of down`,
+      netYards: 0,
+      addDown: true,
+    },
+    {
+      name: PENALTY_TYPES.SNAP_OUT_OF_BOUNDS,
+      description: `Illegal Snap, Out of Bounds, automatic loss of down`,
+      netYards: 0,
+      addDown: true,
+    },
+    {
+      name: PENALTY_TYPES.DOUBLE_HIKE,
+      description: `Double Hike`,
+      netYards: 0,
+      addDown: true,
+    },
+    {
+      name: PENALTY_TYPES.OFFSIDES_OFFENSE,
+      description: `Offsides Offense ${playerName}, 10 yard penalty, repeat the down`,
+      netYards: -10,
+      addDown: false,
+    },
+    {
+      name: PENALTY_TYPES.OFFSIDES_DEFENSE,
+      description: `Offsides Defense ${playerName}, 10 yard penalty, repeat the down`,
+      netYards: 10,
+      addDown: false,
+    },
+    {
+      name: PENALTY_TYPES.SNAP_DRAG,
+      description: `Quarterback Drag, automatic loss of down`,
+      netYards: 0,
+      addDown: true,
+    },
+    {
+      name: PENALTY_TYPES.FG_DRAG,
+      description: `Field Goal Kick Drag, automatic loss of down`,
+      netYards: 0,
+      addDown: true,
+    },
+    {
+      name: PENALTY_TYPES.PUNT_DRAG,
+      description: `Punt Kick Drag, 10 yard penalty, repeat the down`,
+      netYards: -10,
+      addDown: false,
+    },
+    {
+      name: PENALTY_TYPES.ILLEGAL_PASS,
+      description: `Illegal touching of the ball by ${playerName}, automatic loss of down`,
+      netYards: 0,
+      addDown: true,
+    },
+    {
+      name: PENALTY_TYPES.ILLEGAL_RUN,
+      description: `Illegal run by ${playerName}, automatic loss of down`,
+      netYards: 0,
+      addDown: true,
+    },
+    {
+      name: PENALTY_TYPES.ILLEGAL_LOS_CROSS,
+      description: `${playerName} illegally crossed the line of scrimmage, automatic loss of down`,
+      netYards: 0,
+      addDown: true,
+    },
+    {
+      // To plural
+      name: PENALTY_TYPES.ILLEGAL_BLITZ,
+      description: `Illegal blitz by ${playerName} at ${Math.round(
+        time
+      )} seconds, 10 yard penalty, repeat the down`,
+      netYards: 10,
+      addDown: false,
+    },
+    // These have their own handlers
+    {
+      name: PENALTY_TYPES.KICKOFF_DRAG,
+      description: `Kickoff Drag, automatic offense 40 yard line`,
+      netYards: 0,
+      addDown: false,
+      hasOwnHandler: true,
+    },
+    {
+      name: PENALTY_TYPES.KICKOFF_DRAG_SAFETY,
+      description: `Kickoff Drag after a safety, automatic defense 40 yard line`,
+      netYards: 0,
+      addDown: false,
+      hasOwnHandler: true,
+    },
+    {
+      name: PENALTY_TYPES.KICKOFF_OUT_OF_BOUNDS,
+      description: `Kickoff kicked out of bounds, automatic offense 40 yard line`,
+      netYards: 0,
+      addDown: false,
+      hasOwnHandler: true,
+    },
+    {
+      name: PENALTY_TYPES.KICKOFF_OUT_OF_BOUNDS_SAFETY,
+      description: `Kickoff kicked out of bounds after a safety, automatic defense 40 yard line`,
+      netYards: 0,
+      addDown: false,
+      hasOwnHandler: true,
+    },
+    {
+      name: PENALTY_TYPES.KICKOFF_OFFSIDES,
+      description: `Offsides Offense ${playerName}, automatic offense 40 yard line`,
+      netYards: 0,
+      addDown: false,
+      hasOwnHandler: true,
+    },
+    {
+      name: PENALTY_TYPES.KICKOFF_OFFSIDES_SAFETY,
+      description: `Offsides Offense ${playerName} after a safety, automatic defense 40 yard line`,
+      netYards: 0,
+      addDown: false,
+      hasOwnHandler: true,
+    },
+  ];
+
+  const penalty = PENALTIES.find((penalty) => penalty.name === type);
+
+  const { description, netYards, addDown } = penalty;
+
+  Chat.send(`${ICONS.YellowSquare} ${description}`);
+
+  // The play's handler already does the work
+  if (penalty.hasOwnProperty("hasOwnHandler")) return;
+
+  const getAdjustedNetYardsForRedzone = () => {
+    const LOSYard = new DistanceCalculator(down.getLOS()).getYardLine();
+    return Math.floor(LOSYard / 2);
+  };
+
+  const isRedZonePenaltyOnDefense = isInRedzone(down.getLOS()) && netYards > 0;
+
+  const adjustedNetYards = isRedZonePenaltyOnDefense
+    ? getAdjustedNetYardsForRedzone()
+    : netYards;
+
+  const endPosition = new DistanceCalculator([
+    down.getLOS(),
+    adjustedNetYards * MAP.YARD,
+  ])
+    .addByTeam(game.getOffenseTeam())
+    .getDistance();
+
+  const incrementRedZonePenalty = () => {
+    if (!isRedZonePenaltyOnDefense) return;
+    const currentValue = down.getState("redZonePenaltyCounter") ?? 0; // Set it to 0 initially
+    down.setState("redZonePenaltyCounter", currentValue + 1);
+  };
+
+  incrementRedZonePenalty();
+
+  const PENALTY_COUNTER_AUTO_TOUCHDOWN = 3;
+
+  if (down.getState("redZonePenaltyCounter") === PENALTY_COUNTER_AUTO_TOUCHDOWN)
+    return play.handleAutoTouchdown();
+
+  play.endPlay({
+    netYards: adjustedNetYards,
+    endPosition: endPosition,
+    addDown: addDown,
+  });
+};
+
+const maybeSendQuoteMessage = (playerName, netyards) => {
+  console.log(netyards);
+  const isSnap = play instanceof Snap;
+  // Only send it if its a snap and the netYards was less than 1
+
+  return;
+
+  if (netyards < 1 && isSnap) return;
+
+  const quotesArray = [
+    `${ICONS.Clown} WHAT ARE YOU DOING?`,
+    `ıllıllı ʙɪɢ ʜɪᴛ ıllıllı`,
+    ` ${ICONS.Lock} L O C K D O W N ${ICONS.Lock}`,
+    `${ICONS.Police} GET THE TRAINER ${ICONS.Police}`,
+    `QUARTERBACK's head = IM IN IT`,
+  ];
+
+  const randomInt = getRandomInt(quotesArray.length);
+
+  const quoteString = quotesArray[randomInt];
+
+  Chat.send(`${playerName}: ${quoteString}`);
+};
+
+const setBallAndFieldMarkersPlayEnd = () => {
+  ball.setPosition({ x: down.getSnapDistance(), y: 0 }).suppress();
+  down.moveFieldMarkers();
+};
+
+const setPlayers = () => {
+  const offensePositionsMap = play.getState("offensePositions") || new Map();
+  const defensePositionsMap = play.getState("defensePositions") || new Map();
+
+  console.log(defensePositionsMap);
+
+  const { offensePlayers, defensePlayers } = game.getOffenseDefensePlayers();
+
+  offensePlayers.forEach((player) => {
+    const newXPos = new DistanceCalculator([
+      down.getSnapDistance(),
       MAP.YARD * 7,
     ])
-      .subtractByTeam(team)
-      .getDistance();
-    room.setPlayerDiscProperties(id, {
-      x: sevenYardsBehindBall,
-      y: MAP.TOP_HASH,
-    });
-
-    return this;
-  }
-
-  putOffenseInPosition() {
-    const { team } = this._kicker;
-    const { offensePlayers } = game.getOffenseDefensePlayers();
-    const opposingEndzone = getOpposingTeamEndzone(team);
-
-    const fiveYardsBeforeEndzone = new DistanceCalculator([
-      opposingEndzone,
-      MAP.YARD * 5,
-    ])
-      .subtractByTeam(team)
+      .subtractByTeam(game.getOffenseTeam())
       .getDistance();
 
-    offensePlayers.forEach(({ id }) => {
-      if (id === this.getBallCarrier().id) return;
-      room.setPlayerDiscProperties(id, { x: fiveYardsBeforeEndzone });
+    const hasOldYPos = offensePositionsMap.get(player.id) ?? null;
+    room.setPlayerDiscProperties(player.id, {
+      x: newXPos,
     });
 
-    return this;
-  }
-
-  putDefenseInPosition() {
-    const team = game.getDefenseTeam();
-    const { defensePlayers } = game.getOffenseDefensePlayers();
-    const opposingEndzone = getOpposingTeamEndzone(game.getOffenseTeam());
-
-    const oneYardInFrontOfEndzone = new DistanceCalculator([
-      opposingEndzone,
-      MAP.YARD * 1,
-    ])
-      .subtractByTeam(team)
-      .getDistance();
-
-    defensePlayers.forEach(({ id }) => {
-      room.setPlayerDiscProperties(id, { x: oneYardInFrontOfEndzone });
-    });
-
-    return this;
-  }
-
-  getStartingPosition() {
-    return game.getLOS();
-  }
-
-  handleSuccess() {
-    Chat.send("FG IS GOOD!!!!");
-
-    resetBall();
-  }
-
-  handleBallOutOfHashes() {
-    Chat.send("BALL WENT OUT OF HASHES, NO GOOD!");
-
-    resetBall();
-  }
-
-  handleRun(contactObj) {
-    const { player, playerPosition } = contactObj;
-
-    Chat.send(`Run by ${player.name} at the ${Math.round(playerPosition.x)}`);
-
-    this.setBallCarrier(player).setState("ballRan");
-  }
-
-  determineAndExecuteBallContact(ballContactObj) {
-    // We have to do this check AGAIN because playerOnkick is not an event listener, but a native listener
-
-    if (this.getState("ballRan") || this.getState("fieldGoalBlitzed")) return;
-    super.determineAndExecuteBallContact(ballContactObj);
-  }
-
-  handleBallCarrierContactSameTeam(contactObj) {
-    // If he touches
-
-    const { player, playerPosition, ballCarrierPosition } = contactObj;
-    // Verify that its a legal run
-
-    const isBehindQuarterBack = checkIfBehind(
-      player.team,
-      playerPosition,
-      ballCarrierPosition
-    );
-
-    if (isBehindQuarterBack) return this.handleRun(contactObj);
-    if (!isBehindQuarterBack) Chat.send(`Illegal run!`);
-    // Might need to adjust the player's position here, but for now, nahhh lmao
-
-    resetBall();
-  }
-
-  handleBallCarrierContactOpposingTeam(contactObj) {
-    const { player, playerPosition, ballCarrierPosition } = contactObj;
-    const { team, name } = this.getBallCarrier();
-
-    const { netYards, endPosition, endYard, mapSection } = super.getEndPlayData(
-      ballCarrierPosition,
-      team
-    );
-
-    game.setLOS(endPosition);
-
-    sendPlayMessage({
-      type: "tackle",
-      player1Name: name,
-      player2Name: player.name,
-      endYard: endYard,
-      netYards: netYards,
-      mapSection: mapSection,
-    });
-
-    resetBall();
-  }
-
-  handleBallCarrierOutOfBounds(ballCarrierPosition) {
-    const { team, name } = this.getBallCarrier();
-
-    const { netYards, endPosition, endYard } = super.getEndPlayData(
-      ballCarrierPosition,
-      team
-    );
-
-    sendPlayMessage({
-      type: "player out of bounds",
-      player1Name: name,
-      endYard: endYard,
-      netYards: netYards,
-      mapSection: mapSection,
-    });
-
-    game.setLOS(endPosition);
-
-    resetBall();
-  }
-
-  handleIncomplete(ballContactObj = "def") {
-    console.log(ballContactObj);
-    console.log(this);
-    Chat.send(`Field Goal Incomplete!`);
-
-    resetBall();
-  }
-
-  handleBallContactOpposingTeam(ballContactObj) {
-    const {
-      player: { name },
-    } = ballContactObj;
-
-    if (this.getState("fieldGoalKicked") === false)
-      return this.setState("fieldGoalBlitzed");
-
-    Chat.send(`Field Goal Touched by ${name} Auto Field Goal!`);
-
-    resetBall();
-  }
-
-  handleBallContactSameTeam(ballContactObj) {
-    const {
-      type,
-      player: { id, name },
-    } = ballContactObj;
-
-    // console.log(this.handleBallContactSameTeam.caller.name)
-
-    console.log(ballContactObj);
-
-    console.log(id, this.getKicker().id);
-
-    console.log(this.getState("fieldGoalKicked"));
-
-    if (id !== this.getKicker().id || this.getState("fieldGoalKicked"))
-      return this.handleIncomplete("from handleBallContactSameTeam");
-    if (type === "kick") return this.setState("fieldGoalKicked");
-  }
-
-  score() {}
-
-  end() {}
-}
-
-const getNetYardsMessage = (netYards) => {
-  if (netYards > 0) return `a gain of ${netYards}`;
-  if (netYards < 0) return `a loss of ${Math.abs(netYards)}`;
-  return ``;
-};
-
-const isInRectangleArea = ({ x1, y1, x2, y2 }, { x, y }) => {
-  return x > x1 && x < x2 && y > y1 && y < y2;
-};
-
-/*
-      O-----y1------O
-      |             |
-      x1			 x2
-      |			 |
-      O----y2------O
-      */
-
-const mapSections = {
-  list: [
-    {
-      name: "Top Corner",
-      getRectangleArea: function () {
-        const { YARD, TOP_SIDELINE, ABOVE_HASH } = MAP;
-        const LOSX = game.getLOS();
-
-        const fifteenYardsInFrontOfLOS = LOSX + YARD * 15;
-        const fifteenYardsBehindLOS = LOSX - YARD * 15;
-
-        return {
-          x1: fifteenYardsBehindLOS,
-          y1: TOP_SIDELINE,
-          x2: fifteenYardsInFrontOfLOS,
-          y2: ABOVE_HASH,
-        };
-      },
-    },
-    {
-      name: "Bottom Corner",
-      getRectangleArea: function () {
-        const { YARD, BOT_SIDELINE, BELOW_HASH } = MAP;
-        const LOSX = game.getLOS();
-
-        const fifteenYardsInFrontOfLOS = LOSX + YARD * 15;
-        const fifteenYardsBehindLOS = LOSX - YARD * 15;
-
-        return {
-          x1: fifteenYardsBehindLOS,
-          y1: BELOW_HASH,
-          x2: fifteenYardsInFrontOfLOS,
-          y2: BOT_SIDELINE,
-        };
-      },
-    },
-    {
-      name: "Middle",
-      getRectangleArea: function () {
-        const { YARD, ABOVE_HASH, BELOW_HASH } = MAP;
-        const LOSX = game.getLOS();
-
-        const fifteenYardsInFrontOfLOS = LOSX + YARD * 15;
-        const fifteenYardsBehindLOS = LOSX - YARD * 15;
-
-        return {
-          x1: fifteenYardsBehindLOS,
-          y1: ABOVE_HASH,
-          x2: fifteenYardsInFrontOfLOS,
-          y2: BELOW_HASH,
-        };
-      },
-    },
-    {
-      name: "Deep",
-      getRectangleArea: function () {
-        const { YARD, BOT_SIDELINE, TOP_SIDELINE, BLUE_SIDELINE } = MAP;
-        const LOSX = game.getLOS();
-        const fifteenYardsInFrontOfLOS = LOSX + YARD * 15;
-
-        return {
-          x1: fifteenYardsInFrontOfLOS,
-          y1: TOP_SIDELINE,
-          x2: BLUE_SIDELINE,
-          y2: BOT_SIDELINE,
-        };
-      },
-    },
-  ],
-
-  getSection(position) {
-    return this.list.find((section) => {
-      const rectangleArea = section.getRectangleArea();
-      console.log(rectangleArea);
-      console.log(position);
-      return isInRectangleArea(rectangleArea, position);
-    });
-  },
-};
-
-const adjustMapCoordinatesForRadius = (objectRadius) => {
-  const {
-    TOP_SIDELINE,
-    BOT_SIDELINE,
-    RED_SIDELINE,
-    BLUE_SIDELINE,
-    TOP_HASH,
-    BOT_HASH,
-    RED_FIELD_GOAL_LINE,
-    BLUE_FIELD_GOAL_LINE,
-  } = MAP;
-
-  return {
-    topSideLine: TOP_SIDELINE + objectRadius,
-    botSideLine: BOT_SIDELINE - objectRadius,
-    redSideLine: RED_SIDELINE + objectRadius,
-    blueSideLine: BLUE_SIDELINE - objectRadius,
-    topHash: TOP_HASH + objectRadius,
-    botHash: BOT_HASH - objectRadius,
-    redFG: RED_FIELD_GOAL_LINE - objectRadius,
-    blueFG: BLUE_FIELD_GOAL_LINE + objectRadius,
-  };
-};
-
-// Also returns the endzone the player is in
-const checkIfPlayerInEndZone = (player) => {
-  const { x } = DistanceCalculator.adjustPosition(player);
-  return checkIfInEndzone(x);
-};
-
-const checkIfInEndzone = (x) => {
-  const { RED_ENDZONE, BLUE_ENDZONE } = MAP;
-
-  if (x <= RED_ENDZONE) return 1;
-  if (x >= BLUE_ENDZONE) return 2;
-  return null;
-};
-
-const checkIfTouchdown = (player) => {
-  const endZone = checkIfPlayerInEndZone(player);
-  return endZone && endZone !== player.team;
-};
-
-const checkIfOutOfBounds = (objectToCheck, objectRadius) => {
-  const { x, y } = objectToCheck;
-  // Adjust for Ball Radius
-  const { topSideLine, botSideLine, redSideLine, blueSideLine } =
-    adjustMapCoordinatesForRadius(objectRadius);
-  return (
-    y < topSideLine || y > botSideLine || x < redSideLine || x > blueSideLine
-  );
-};
-
-const checkIfBallOutOfBounds = () => {
-  const ballPosition = ball.getPosition();
-  const isOutOfBounds = checkIfOutOfBounds(ballPosition, MAP.BALL_RADIUS);
-  return isOutOfBounds ? ballPosition : null;
-};
-
-const checkIfSafetyPlayer = (position, team) => {
-  const adjustedPos = new DistanceCalculator([position.x, MAP.PLAYER_RADIUS])
-    .addByTeam(team)
-    .getDistance();
-
-  const inEndzone = checkIfInEndzone(adjustedPos);
-  return inEndzone;
-};
-
-const checkIfSafetyBall = (team) => {
-  const ballPosition = ball.getPosition();
-
-  return checkIfInEndzone(ballPosition) === team;
-};
-
-const checkIfPlayerOutOfBounds = (player) => {
-  // We have to adjust the player position
-  const { position } = getPlayerDiscProperties(player.id);
-  const isOutOfBounds = checkIfOutOfBounds(position, MAP.PLAYER_RADIUS);
-  return isOutOfBounds ? position : null;
-};
-
-// Coordinate distance between two points
-
-room.onPlayerBallKick = (player) => {
-  if (game.getLivePlay() === false || play === null) return;
-
-  const { position } = player;
-  const ballContact = new BallContact("kick", player, position);
-
-  play.determineAndExecuteBallContact(ballContact);
-};
-
-class BallContact {
-  constructor(contactType, player, playerPosition) {
-    this.type = contactType; // Either touch or kick
-    this.player = flattenPlayer(player);
-    this.playerPosition = playerPosition;
-  }
-}
-
-class PlayerContact {
-  constructor(player, playerPosition, ballCarrierPosition) {
-    this.player = flattenPlayer(player);
-    this.playerPosition = playerPosition;
-    this.ballCarrierPosition = ballCarrierPosition;
-  }
-}
-
-const checkBallContact = () => {
-  const TOUCHING_DISTANCE = MAP.BALL_RADIUS + MAP.PLAYER_RADIUS + 0.01;
-  const ballPosition = ball.getPosition();
-  const { fielded } = game.getTeamPlayers();
-
-  for (const player of fielded) {
-    const { id } = player;
-    const { position: playerPosition } = getPlayerDiscProperties(id);
-
-    const distanceToBall = new DistanceCalculator([
-      playerPosition,
-      ballPosition,
-    ])
-      .calcDifference()
-      .getDistance();
-
-    if (distanceToBall < TOUCHING_DISTANCE)
-      return new BallContact("touch", player, playerPosition);
-  }
-
-  return null;
-};
-
-// This function takes an array of players as a parameter to allow for this function to be used for both runs and tackles
-const checkBallCarrierContact = (playerArray) => {
-  // Player array will never include the ballcarrier, we will filter him out
-  const TOUCHING_DISTANCE = MAP.PLAYER_RADIUS * 2 + 1;
-  const ballCarrier = play.getBallCarrier();
-  const { position: ballCarrierPosition } = getPlayerDiscProperties(
-    ballCarrier.id
-  );
-
-  for (const player of playerArray) {
-    const { id } = player;
-    if (id === ballCarrier.id) continue;
-    const { position: playerPosition, speed: playerSpeed } =
-      getPlayerDiscProperties(id);
-
-    const distanceToBallCarrier = new DistanceCalculator([
-      playerPosition,
-      ballCarrierPosition,
-    ])
-      .calcDifference()
-      .getDistance();
-
-    if (distanceToBallCarrier < TOUCHING_DISTANCE)
-      return new PlayerContact(player, playerPosition, ballCarrierPosition);
-  }
-
-  return null;
-};
-
-const resetBall = () => {
-  const playerSet = new DistanceCalculator([
-    game.getSnapDistance(),
-    MAP.YARD * 5,
-  ])
-    .subtractByTeam(game.getOffenseTeam())
-    .getDistance();
-  room.setPlayerDiscProperties(play?.getBallCarrier()?.id, {
-    x: playerSet,
-    y: 0,
+    if (hasOldYPos) {
+      room.setPlayerDiscProperties(player.id, {
+        y: hasOldYPos.y,
+      });
+    }
   });
-  ball.setPosition({ x: game.getSnapDistance(), y: 0 }).suppress();
 
-  play = null;
+  defensePlayers.forEach((player) => {
+    const newXPos = new DistanceCalculator([down.getLOS(), MAP.YARD * 5])
+      .subtractByTeam(game.getDefenseTeam())
+      .getDistance();
 
-  game.setLivePlay(false).moveFieldMarkers();
+    const hasOldYPos = defensePositionsMap.get(player.id) ?? null;
+    room.setPlayerDiscProperties(player.id, {
+      x: newXPos,
+    });
+
+    if (hasOldYPos) {
+      room.setPlayerDiscProperties(player.id, {
+        y: hasOldYPos.y,
+      });
+    }
+  });
+};
+
+const checkOffsideDefense = () => {
+  const { defensePlayers } = game.getOffenseDefensePlayers();
+  const defensiveTeam = game.getDefenseTeam();
+  const LOS = down.getLOS();
+
+  defensePlayers.find((player) => {
+    const {
+      position: { x },
+    } = getPlayerDiscProperties(player.id);
+    const isOnside = checkIfBehind(x, LOS, defensiveTeam);
+    return !isOnside;
+  });
+};
+
+const getOffsidePlayer = (playerArray, team) => {
+  const LOS = down.getLOS();
+  return (
+    playerArray.find((player) => {
+      const { x } = DistanceCalculator.adjustPlayerPosition(player);
+      return !checkIfBehind(x, LOS, team);
+    }) ?? null
+  );
+};
+
+// No adjusting player position
+const getOffSidePlayerNoAdjust = (playerArray, team) => {
+  const LOS = down.getLOS();
+  return (
+    playerArray.find((player) => {
+      const {
+        position: { x },
+      } = getPlayerDiscProperties(player.id);
+      return !checkIfBehind(x, LOS, team);
+    }) ?? null
+  );
 };
 
 const Event = {
@@ -1734,235 +1042,169 @@ const Event = {
   },
 };
 
-const EventListeners = [
-  {
-    // Done
-    // Pass Incompletes, Punts/Kickoffs Out Of Bounds
-    name: "Ball Out Of Bounds",
-    runWhen: ["snap", "punt", "kickOff"],
-    stopWhen: ["ballCaught", "ballRan", "puntCaught", "kickOffCaught"],
-    func: () => {
-      const ballOutOfBounds = checkIfBallOutOfBounds(); // This returns either null or the ballPosition,
-      if (ballOutOfBounds !== null)
-        return play.handleBallOutOfBounds(ballOutOfBounds);
-    },
-  },
-  {
-    // Field Goal Out Of Hashes, Field Goal Successful
-    name: "Ball Field Goal",
-    runWhen: ["fieldGoal"],
-    stopWhen: ["fieldGoalBlitzed", "ballRan"],
-    func: function () {
-      // Here we check if the ball is within the hashes,
-      // Check if the ball has enough speed to even reach the field goal posts
-      // Check if the ball went through the posts
-      const withinHash = checkIfWithinHash(ball.getPosition(), MAP.BALL_RADIUS);
-      if (!withinHash) return play.handleBallOutOfHashes();
-      const successfulFieldGoal = checkIfFieldGoalSuccessful();
-      if (successfulFieldGoal) return play.handleSuccess();
+function snapInit(player) {
+  const { time } = room.getScores();
 
-      if (play.getState("fieldGoalKicked")) {
-        const ballMoving = checkIfBallIsMoving();
-        if (!ballMoving) return play.handleIncomplete("FROM EVENT LISTENER");
-      }
-    },
-  },
-  {
-    // Done
-    // Catches, Pass Deflections, Field Goal Incomplete, Field Goal Auto, DownedBall, Punt Catch, Kickoff Catch
-    name: "Ball Contact",
-    runWhen: ["all"],
-    stopWhen: [
-      "ballCaught",
-      "ballRan",
-      "ballBlitzed",
-      "fieldGoalBlitzed",
-      "puntCaught",
-      "kickOffCaught",
-    ],
-    func: () => {
-      const ballContact = checkBallContact();
-      if (ballContact !== null)
-        return play.determineAndExecuteBallContact(ballContact);
-    },
-  },
-  {
-    // Player Out Of Bounds and Player Touchdowns
-    name: "BallCarrier Position Tracker",
-    runWhen: ["snap", "fieldGoal", "puntCaught", "kickOffCaught"],
-    stopWhen: ["fieldGoalKicked"],
-    func: function () {
-      const ballCarrier = play.getBallCarrier();
-      const ballCarrierOutOfBounds = checkIfPlayerOutOfBounds(ballCarrier);
-      const isTouchdown = checkIfTouchdown(ballCarrier);
-      if (ballCarrierOutOfBounds)
-        return play.handleBallCarrierOutOfBounds(ballCarrierOutOfBounds);
-      if (isTouchdown) return play.handleTouchdown();
-    },
-  },
-  {
-    // Tackles, Sacks, Fumbles
-    name: "BallCarrier Player Contact Opposing Team",
-    runWhen: ["snap", "fieldGoal", "puntCaught", "kickOffCaught"],
-    stopWhen: ["ballIntercepted"],
-    func: () => {
-      // Here we get the defensive team, and use as an argument to the function
-      const { defensePlayers } = game.getOffenseDefensePlayers();
-      if (defensePlayers.length === 0) return;
-      const playerContact = checkBallCarrierContact(defensePlayers);
-      if (playerContact !== null)
-        return play.handleBallCarrierContactOpposingTeam(playerContact);
-    },
-  },
-  {
-    // Runs
-    name: "BallCarrier Player Contact Same Team",
-    runWhen: ["snap", "fieldGoal"],
-    stopWhen: ["ballRan", "ballCaught", "ballIntercepted"],
-    func: () => {
-      // Here we get the offensive team, filter out the QB, and use as an argument to the function
-      const { offensePlayers } = game.getOffenseDefensePlayers();
-      const playerContact = checkBallCarrierContact(offensePlayers);
-      if (playerContact !== null)
-        return play.handleBallCarrierContactSameTeam(playerContact);
-    },
-  },
-  {
-    // Early Blitz Penalty
-    name: "Defense Position",
-    runWhen: ["all"],
-    stopWhen: [],
-    func: () => {},
-  },
-  {
-    // Early LOS Cross Penalty
-    name: "Quarterback Position",
-    runWhen: ["all"],
-    stopWhen: [],
-    func: () => {},
-  },
-  {
-    // Kick Drag Pass, FG, Punt, Kickoff
-    name: "Kick Drag",
-    runWhen: ["all"],
-    stopWhen: [],
-    func: () => {
-      // Each Play has a this.MAX_DRAG_DISTANCE
-    },
-  },
-];
+  if (player.team !== game.getOffenseTeam()) {
+    return Chat.send("You are not on offense!", { id: player.id });
+  }
+  const HIKE_MSG = `${ICONS.GreenCircle} Ball is Hiked`;
+  sendMessageMaybeWithClock(HIKE_MSG);
 
-const checkIfRunListener = (listenerObj) => {
-  return listenerObj.runWhen.some(
-    (state) => state === "all" || play.getState(state)
-  );
-};
+  play = new Snap(time, player);
 
-const checkIfStopListener = (listenerObj) => {
-  return listenerObj.stopWhen.some((state) => play.getState(state));
-};
+  // Set the player positions
 
-room.onGameTick = () => {
-  // Run Event.runListeners()
-  EventListeners.forEach((listenerObj) => {
-    if (game === null || game.getLivePlay() === false) return;
-    if (checkIfRunListener(listenerObj) === false) return null;
-    if (checkIfStopListener(listenerObj) === true) return null;
-    listenerObj.func();
+  const { offensePlayers, defensePlayers } = game.getOffenseDefensePlayers();
+
+  const offensePositionsArray = offensePlayers.map((player) => {
+    const playerPosition = room.getPlayerDiscProperties(player.id);
+    return [player.id, { x: playerPosition.x, y: playerPosition.y }];
   });
-};
+  const defensePositionsArray = defensePlayers.map((player) => {
+    const playerPosition = room.getPlayerDiscProperties(player.id);
+    return [player.id, { x: playerPosition.x, y: playerPosition.y }];
+  });
 
-const quickPause = () => {
-  room.pauseGame(true);
-  room.pauseGame(false);
-};
+  const offensePositionsMap = new Map(offensePositionsArray);
+  const defensePositionsMap = new Map(defensePositionsArray);
+
+  console.log(defensePositionsArray);
+  console.log(defensePositionsMap);
+
+  play.setState("offensePositions", offensePositionsMap);
+  play.setState("defensePositions", defensePositionsMap);
+
+  const isPenalty = play.checkForPenalties();
+  if (isPenalty) return;
+
+  play
+    .setState("snap")
+    .positionBallAndFieldMarkers()
+    .setBallPositionOnSet(ball.getPosition());
+  ball.release();
+  game.setLivePlay(true);
+}
 
 function fieldGoalInit(player) {
-  // quickPause()
+  const { time } = room.getScores();
 
-  play = new FieldGoal(player);
+  quickPause();
 
-  console.log(play);
+  const yardInt = new DistanceCalculator(down.getLOS()).getYardLine();
 
-  ball.release();
+  const FG_MSG = `${ICONS.PurpleCircle} Field Goal Called, ${yardInt} yard attempt`;
+  sendMessageMaybeWithClock(FG_MSG);
+
+  play = new FieldGoal(time, player);
 
   play
     .setState("fieldGoal")
+    .setState("canBlitz")
+    .positionBallAndFieldMarkers()
     .putKickerInPosition()
     .putOffenseInPosition()
     .putDefenseInPosition();
 
+  play.setBallPositionOnSet(ball.getPosition());
+  ball.release();
   game.setLivePlay(true);
-
-  Chat.send(`Field Goal Set`);
 }
 
-function snapInit(player) {
-  const valid = Play.validate(player);
-  if (!valid) return Chat.send("You are not on offense!");
+function twoPointPrepare() {
+  // Quickpause
 
-  play = new Snap(player);
+  down.setState("twoPoint");
+  const TWO_POINT_MSG = `${ICONS.BrownCircle} Two point conversion called`;
+  sendMessageMaybeWithClock(TWO_POINT_MSG);
 
-  play.validate;
+  const defenseEndZone = getTeamEndzone(game.getDefenseTeam());
 
+  const defenseTenYardLine = new DistanceCalculator([
+    defenseEndZone,
+    10 * MAP.YARD,
+  ])
+    .addByTeam(game.getDefenseTeam())
+    .getDistance();
+
+  ball.removeGravity();
+  ball.suppress();
+  down.setLOS(defenseTenYardLine);
+  play.positionBallAndFieldMarkers();
+}
+
+function twoPointInit(player) {
+  const { time } = room.getScores();
+
+  const HIKE_MSG = `${ICONS.GreenCircle} Ball is Hiked`;
+  sendMessageMaybeWithClock(HIKE_MSG);
+
+  play = new TwoPoint(time, player);
+
+  const isPenalty = play.checkForPenalties();
+  if (isPenalty) return;
+
+  // Two point has the exact same mechanics as a snap
+  play.setState("twoPoint");
   play.setState("snap");
 
-  Chat.send(`Ball is hiked!`);
-
+  play.setBallPositionOnSet(ball.getPosition());
   ball.release();
-
   game.setLivePlay(true);
+
+  // Set the players
 }
 
 function puntInit(player) {
-  const valid = Play.validate(player);
-  if (!valid) return Chat.send("You are not on offense!");
+  const { time } = room.getScores();
+  const PUNT_MSG = `${ICONS.OrangeCircle} Punt Called`;
+  sendMessageMaybeWithClock(PUNT_MSG);
 
-  play = new Punt(player);
+  play = new Punt(time);
 
   play
     .setState("punt")
+    .positionBallAndFieldMarkers()
     .putOffenseInPosition()
     .putDefenseInPosition()
     .createInvisibleWallForDefense();
 
-  Chat.send(`Ball punted!`);
-
+  play.setBallPositionOnSet(ball.getPosition());
   ball.release();
-
   game.setLivePlay(true);
 }
 
-function kickOffInit() {
-  const kickOffPosition = game.getState("kickOffPosition")
-    ? game.getState("kickOffPosition")
-    : 0;
+async function kickOffInit() {
+  const { time } = room.getScores();
+  const getKickOffPosition = () => {
+    if (down.getState("safetyKickOff")) {
+      const offenseEndZone = getTeamEndzone(game.getOffenseTeam());
+      return (offenseTwentyYardLine = new DistanceCalculator([
+        offenseEndZone,
+        MAP.YARD * 20,
+      ])
+        .addByTeam(game.getOffenseTeam())
+        .getDistance());
+    }
 
-  play = new KickOff(kickOffPosition);
+    return MAP.KICKOFF;
+  };
+
+  const kickOffPosition = getKickOffPosition();
+
+  play = new KickOff(time);
+
+  down.setLOS(kickOffPosition).moveFieldMarkers();
 
   play
     .setState("kickOff")
-    .putBallInPosition()
+    .positionBallAndFieldMarkers()
     .putOffenseInPosition()
     .putDefenseInPosition()
     .createInvisibleWallForDefense();
 
-  Chat.send(`KICKOFF`);
-
+  await play.setBallPositionOnSet({ x: kickOffPosition, y: 0 });
   ball.release();
 
-  game.setLivePlay(true);
+  await game.setLivePlay(true);
 }
-
-const testFunc = (player) => {
-  console.log("Test Ran");
-
-  console.log(play);
-  console.log(game);
-
-  console.log(room.getDiscProperties(0));
-
-  console.log(ball.getSpeed());
-
-  return;
-};

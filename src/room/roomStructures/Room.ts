@@ -1,41 +1,28 @@
+import Game from "../classes/Game";
 import HBClient from "../HBClient";
-import { Play } from "../plays/basePlay";
 
-class RoomClient {
+export default class RoomClient {
   public client: HBClient;
-  public play: Play = null;
-  public offensiveTeam: 1 | 2 = 1;
+  public game: Game = new Game();
+  private _isBotOn: boolean = true;
 
-  initClient(client: HBClient) {
+  constructor(client: HBClient) {
     this.client = client;
   }
 
-  setPlay(play: Play): {
-    valid: boolean;
-    message?: string;
-    sendToPlayer?: boolean;
-  } {
-    const verificationDetails = play.validate();
+  get isBotOn() {
+    return this._isBotOn;
+  }
 
-    console.log(verificationDetails);
-
-    if (!verificationDetails.valid) return verificationDetails;
-
-    console.log("WE GOT HERE");
-
-    this.play = play;
-    this.play.run();
-
-    return {
-      valid: true,
-    };
+  /**
+   * Used when we know play has to be defined
+   */
+  getPlay() {
+    if (!this.game.play) throw new Error("Game Error: Play is not defined");
+    return this.game.play;
   }
 
   getPlayers() {
     return this.client.getPlayerList();
   }
 }
-
-const Room = new RoomClient();
-
-export default Room;
