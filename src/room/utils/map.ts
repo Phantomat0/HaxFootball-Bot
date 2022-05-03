@@ -461,12 +461,12 @@ const HFL_MAP = `{
     "cGroup" : [ "ball"
     ],
     "color" : "602323",
-    "radius" : 8
+    "radius" : 6.7
   
   },
   
   "playerPhysics" : {
-    "kickStrength" : 6.8,
+    "kickStrength" : 7.2,
     "bCoef" : 0.75,
     "invMass" : 0.8
   }
@@ -484,7 +484,7 @@ Kick Strength: 5
 
 export const MAP_POINTS = {
   PLAYER_RADIUS: 15,
-  BALL_RADIUS: 6.5,
+  BALL_RADIUS: 6.7,
   // =============
   KICKOFF: 0,
   HIDDEN: 10000,
@@ -506,6 +506,8 @@ export const MAP_POINTS = {
   BELOW_HASH: 110,
   TOP_HASH: -80,
   BOT_HASH: 80,
+  TOP_FG_POST: -60,
+  BOTTOM_FG_POST: 60,
 };
 
 export const DISC_IDS = {
