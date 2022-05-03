@@ -20,10 +20,9 @@ export const checkBallContact = () => {
     const { id } = player;
     const { position: playerPosition } = getPlayerDiscProperties(id);
 
-    const distanceToBall = new DistanceCalculator().calcDifference3D(
-      playerPosition,
-      ballPosition
-    );
+    const distanceToBall = new DistanceCalculator()
+      .calcDifference3D(playerPosition, ballPosition)
+      .calculate();
 
     if (distanceToBall < TOUCHING_DISTANCE.BALL)
       return new BallContact("touch", player, playerPosition);
@@ -44,17 +43,17 @@ export const checkBallCarrierContact = (playerArray: PlayerObject[]) => {
 
   for (const player of playerArray) {
     const { id } = player;
+    if (id === ballCarrier.id) continue;
     const { position: playerPosition, speed: playerSpeed } =
       getPlayerDiscProperties(id);
 
-    const distanceToBallCarrier = new DistanceCalculator([
-      playerPosition,
-      ballCarrierPosition,
-    ])
-      .calcDifference()
-      .getDistance();
+    const distanceToBallCarrier = new DistanceCalculator()
+      .calcDifference3D(playerPosition, ballCarrierPosition)
+      .calculate();
 
-    if (distanceToBallCarrier < TOUCHING_DISTANCE.PLAYER)
+    if (distanceToBallCarrier < TOUCHING_DISTANCE.PLAYER) {
+      console.log(playerArray);
+      console.log(player, ballCarrier);
       return new PlayerContact(
         player,
         playerPosition,
@@ -62,6 +61,7 @@ export const checkBallCarrierContact = (playerArray: PlayerObject[]) => {
         ballCarrierPosition,
         ballCarrierSpeed
       );
+    }
   }
 
   return null;

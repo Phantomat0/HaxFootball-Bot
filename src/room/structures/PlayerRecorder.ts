@@ -1,5 +1,5 @@
 import { client } from "..";
-import { PlayerObject } from "../HBClient";
+import { PlayableTeamId, PlayerObject } from "../HBClient";
 import Collection from "../utils/Collection";
 import { partition } from "../utils/utils";
 
@@ -21,7 +21,7 @@ export default class PlayerRecorder {
     offenseNoQb: PlayerObject[];
   };
 
-  updateStaticPlayerList(offensiveTeam: number, quarterbackId: number) {
+  updateStaticPlayerList(offensiveTeam: PlayableTeamId, quarterbackId: number) {
     const players = client.getPlayerList();
 
     const fielded = players.filter((player) => player.team !== 0);
@@ -31,7 +31,15 @@ export default class PlayerRecorder {
       (player) => player.team === offensiveTeam
     );
 
+    console.log(offense, defense);
+
+    console.log("OFFENSE TEAM", offensiveTeam);
+
+    console.log("QB", quarterbackId);
+
     const offenseNoQb = offense.filter((player) => player.id !== quarterbackId);
+
+    console.log(offenseNoQb);
 
     this._playersStatic = {
       fielded: fielded,

@@ -1,5 +1,5 @@
-import { PlayableTeamId, Position, TeamId } from "../HBClient";
-import { DISC_IDS, MAP__AREAS } from "../utils/map";
+import { PlayableTeamId, Position } from "../HBClient";
+import { DISC_IDS, MAP_POINTS } from "../utils/map";
 import { client } from "..";
 
 class Ball {
@@ -49,7 +49,7 @@ class Ball {
 
   score(teamId: PlayableTeamId) {
     const x =
-      teamId === 2 ? MAP__AREAS.BLUE_SCORE_LINE : MAP__AREAS.RED_SCORE_LINE;
+      teamId === 2 ? MAP_POINTS.BLUE_SCORE_LINE : MAP_POINTS.RED_SCORE_LINE;
     client.setDiscProperties(0, {
       x: x,
       y: -200,

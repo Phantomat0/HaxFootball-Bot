@@ -12,7 +12,7 @@ interface MapSection {
   };
 }
 
-class MapSectionFinder {
+export default class MapSectionFinder {
   private _mapSectionsList: MapSection[] = [
     {
       name: "Top Corner",

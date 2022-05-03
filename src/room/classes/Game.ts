@@ -1,10 +1,14 @@
-import { TEAMS } from "..";
-import { PlayableTeamId, TeamId } from "../HBClient";
-import { Play } from "../plays/BasePlay";
+import { client, TEAMS } from "..";
+import { PlayableTeamId } from "../HBClient";
+import { PLAY_TYPES } from "../plays/BasePlay";
 import Chat from "../roomStructures/Chat";
 import PlayerRecorder from "../structures/PlayerRecorder";
+import Down from "./Down";
+import WithStateStore from "./WithStateStore";
 
-export default class Game {
+type GAME_STATES = "kickOffPosition";
+
+export default class Game extends WithStateStore<GAME_STATES> {
   score: {
     red: number;
     blue: number;
@@ -12,14 +16,16 @@ export default class Game {
     red: 0,
     blue: 0,
   };
-  offenseTeamId: TeamId;
-  play: Play | null = null;
+  offenseTeamId: PlayableTeamId = 1;
+  play: PLAY_TYPES | null = null;
+  down: Down = new Down();
   players: PlayerRecorder = new PlayerRecorder();
 
   updateStaticPlayers() {
     this.players.updateStaticPlayerList(
       this.offenseTeamId,
-      this?.play?.getQuarterback().id ?? 0
+      //@ts-ignore
+      this.play?.getQuarterback().id ?? 0
     );
   }
 
@@ -29,26 +35,29 @@ export default class Game {
     throw Error("DEFENSE IS 0");
   }
 
-  setOffenseTeam(teamId: TeamId) {
-    this.offenseTeamId === teamId;
+  setOffenseTeam(teamId: PlayableTeamId) {
+    this.offenseTeamId = teamId;
   }
 
   swapOffense() {
     if (this.offenseTeamId === 1) {
+      console.log("change it to 2");
       this.setOffenseTeam(2);
     } else {
+      console.log("change it to 1");
       this.setOffenseTeam(1);
     }
 
     Chat.send(`Teams swapped! ${this.offenseTeamId} is now on offense`);
   }
 
-  setPlay(play: Play): {
+  setPlay(play: PLAY_TYPES): {
     valid: boolean;
     message?: string;
     sendToPlayer?: boolean;
   } {
-    const verificationDetails = play.validate();
+    //@ts-ignore
+    const verificationDetails = play?.validateBeforePlayBegins();
 
     console.log(verificationDetails);
 
@@ -57,11 +66,17 @@ export default class Game {
     console.log("WE GOT HERE");
 
     this.play = play;
+
+    //@ts-ignore
     this.play.run();
 
     return {
       valid: true,
     };
+  }
+
+  endPlay() {
+    this.play = null;
   }
 
   setScore(teamID: PlayableTeamId, score: number) {
@@ -76,7 +91,9 @@ export default class Game {
     return this;
   }
 
-  getTeamObjFromID(teamID: PlayableTeamId) {
-    return teamID === TEAMS.RED ? this.red : this._blue;
+  getTime() {
+    return client.getScores().time ?? 0;
   }
+
+  sendScoreBoard() {}
 }

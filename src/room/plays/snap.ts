@@ -1,13 +1,23 @@
 import Room from "..";
 import BallContact from "../classes/BallContact";
-import { PlayableTeamId, PlayerObject, Position } from "../HBClient";
+import PlayerContact from "../classes/PlayerContact";
+import { PlayerObject, Position } from "../HBClient";
 import Chat from "../roomStructures/Chat";
-import DistanceCalculator from "../structures/DistanceCalculator";
+import Ball from "../structures/Ball";
 import MapReferee from "../structures/MapReferee";
-import { MAP_POINTS } from "../utils/map";
-import BasePlay from "./BasePlay";
+import SnapEvents from "./play_events/Snap.events";
 
-export default class Snap extends BasePlay<SNAP_PLAY_STATES> {
+// CASES
+// 1. Pass out of bounds
+// 2. Catch
+// 3. Pass Deflection
+// 4. Interception
+// 5. Run
+// 6. Illegal touch offense
+// 7. Illegal blitz defebse
+// 8. Ball blitzed defense
+
+export default class Snap extends SnapEvents {
   private _quarterback: PlayerObject;
   constructor(time: number, quarterback: PlayerObject) {
     super(time);
@@ -15,35 +25,16 @@ export default class Snap extends BasePlay<SNAP_PLAY_STATES> {
     this._ballCarrier = quarterback;
   }
 
-  validate(): { valid: boolean; message: string; sendToPlayer: boolean } {
-    // Check if they can even run the command
-    return {
-      valid: true,
-      message: "You are not on offense",
-      sendToPlayer: true,
-    };
-
-    // Check for penalties
-  }
-
-  run() {
-    Room.game.updateStaticPlayers();
-    this._setLivePlay(true);
-    this.setState("ballSnapped");
-  }
-
   getQuarterback() {
     return this._quarterback;
   }
 
-  private _handleCatch(ballContactObj: BallContact) {
+  protected _handleCatch(ballContactObj: BallContact) {
     const { player, playerPosition } = ballContactObj;
     const { name } = player;
 
-    const isOutOfBounds = MapReferee.checkIfOutOfBounds(
-      playerPosition,
-      MAP_POINTS.PLAYER_RADIUS
-    );
+    const isOutOfBounds = MapReferee.checkIfPlayerOutOfBounds(playerPosition);
+
     if (isOutOfBounds) {
       Chat.send(`Pass Incomplete, caught out of bounds by ${name}`);
       // return resetBall();
@@ -51,21 +42,31 @@ export default class Snap extends BasePlay<SNAP_PLAY_STATES> {
     }
 
     this.setState("ballCaught");
-
     Chat.send(`Pass caught by ${name}`);
-
     this.setBallCarrier(player);
   }
 
-  private _handleIllegalTouch(ballContactObj: BallContact) {
-    Chat.send("ILLEGAL TOUCH");
+  protected _handleRun(playerContactObj: PlayerContact) {
+    const { player } = playerContactObj;
+
+    Chat.send("RUN");
+
+    // sendPlayMessage({ type: PLAY_TYPES.RUN, playerName: player.name });
+
+    this.setBallCarrier(player).setState("ballRan");
   }
 
-  _handleBallContactQuarterback(ballContactObj: BallContact) {
+  protected _handleIllegalTouch(ballContactObj: BallContact) {
+    Chat.send("ILLEGAL TOUCH");
+
+    this._setLivePlay(false);
+  }
+
+  protected _handleBallContactQuarterback(ballContactObj: BallContact) {
     const { type } = ballContactObj;
 
     // QB tries to catch their own pass
-    const qbContactAfterPass = this.readState("ballPassed");
+    const qbContactAfterPass = this.getState("ballPassed");
     if (qbContactAfterPass) return;
 
     // QB touched the ball before the pass
@@ -80,56 +81,142 @@ export default class Snap extends BasePlay<SNAP_PLAY_STATES> {
     }
   }
 
-  _handleBallContactOffense(ballContactObj: BallContact) {
+  protected _handleBallContactOffense(ballContactObj: BallContact) {
+    if (this.getState("ballDeflected"))
+      return this._handleBallContactDuringInterception(ballContactObj);
+
     const { player } = ballContactObj;
     const { id } = player;
 
+    // If contact was made by QB, handle it seperately
     const isQBContact = id === this.getQuarterback().id;
-
     if (isQBContact) return this._handleBallContactQuarterback(ballContactObj);
 
     // Receiver touched but there wasnt a pass yet
-    const touchButNoQbPass = this.readState("ballPassed") === null;
+    const touchButNoQbPass = this.getState("ballPassed") === null;
     if (touchButNoQbPass) return this._handleIllegalTouch(ballContactObj);
 
+    // Has to be a catch
     this._handleCatch(ballContactObj);
   }
-  _handleBallContactDefense(ballContactObj: BallContact) {
-    if (this.readState("ballPassed") === null)
-      return this.setState("ballBlitzed");
 
-    this.setState("ballDeflected");
+  protected _handleBallContactDuringInterception(ballContactObj: BallContact) {
+    // If anyone but the intercepting player touches the ball, reset play
+    const interceptingPlayer = this.getState("interceptingPlayer");
+    if (interceptingPlayer.id !== ballContactObj.player.id) {
+      Chat.send("Someone else touched");
+      return this._setLivePlay(false);
+    }
+
+    // Ok now we know the contacts are from the intercepting player, lets check for the kick time
+    const firstTouchTime = this.getState("interceptFirstTouchTime");
+    const differenceFromFirstTouchToTimeNow =
+      Room.game.getTime() - firstTouchTime;
+
+    const INTERCEPTION_TIME_LIMIT = 5;
+
+    if (differenceFromFirstTouchToTimeNow > INTERCEPTION_TIME_LIMIT) {
+      Chat.send("Sorry time expired");
+      return this._setLivePlay(false);
+    }
+  }
+
+  protected _handleBallContactDefense(ballContactObj: BallContact) {
+    // If the ball wasn't passed yet, ball must have been blitzed
+    if (!this.getState("ballPassed")) return this.setState("ballBlitzed");
+
+    if (this.getState("ballDeflected"))
+      return this._handleBallContactDuringInterception(ballContactObj);
+
     Chat.send("Deflection!");
+    this.setState("ballDeflected");
+    this.setBallCarrier(ballContactObj.player);
+    Room.game.swapOffense();
+    Room.game.players.updateStaticPlayerList(
+      Room.game.offenseTeamId,
+      this.getQuarterback().id
+    );
+    console.log(Room.game.offenseTeamId);
+    console.log(Room.game.players.getDefense());
+    this.setState("interceptingPlayer", ballContactObj.player);
+    this.setState("interceptFirstTouchTime", Room.game.getTime());
+
+    // this._setLivePlay(false);
+  }
+
+  _handleSuccessfulInterception() {
+    Chat.send("Successful Int!");
+
+    this.setState("interceptionRuling");
+    this.setState("interceptionSuccessful");
+
+    const endPosition = this.getState("interceptionPlayerEndPosition");
+
+    if (!endPosition) return;
+
+    Chat.send("we have a tackle position");
+
+    Ball.setPosition(endPosition as Position);
     this._setLivePlay(false);
   }
 
-  handleBallOutOfBounds(ballPosition: Position) {
-    const { x: ballPositionX } = ballPosition;
-    const { team } = this.getBallCarrier()!;
+  _handleInterceptionOutOfBounds(ballCarrierPosition: Position) {
+    // If there was a ruling on if the int was good or not and it was successful, handle the tackle
+    if (
+      this.getState("interceptionRuling") &&
+      this.getState("interceptionSuccessful")
+    ) {
+      Chat.send("OUT OF BOUNDS DURING ITN");
+      this._setLivePlay(false);
+    }
 
-    const { yardLine: yardLineAtOutOfBounds } = new DistanceCalculator(x)
-      .roundToYardByTeam(team as PlayableTeamId)
-      .calculate();
-
-    Chat.send(`Ball went out of bounds!`);
-
-    const isSafety = MapReferee.checkIfSafetyBall(
-      ballPositionX,
-      Room.game.offenseTeamId as PlayableTeamId
-    );
-    if (isSafety) return super.handleSafety();
-
-    // resetBall();
+    this.setState("interceptionPlayerEndPosition", ballCarrierPosition);
   }
-  handleBallCarrierOutOfBounds(ballCarrierPosition: Position) {}
-  handleTouchdown() {}
-}
 
-export type SNAP_PLAY_STATES =
-  | "ballSnapped"
-  | "ballPassed"
-  | "ballCaught"
-  | "ballDeflected"
-  | "ballRan"
-  | "ballBlitzed"
-  | "ballIntercepted";
+  _handleTackle(playerContact: PlayerContact) {
+    Chat.send("TACKLE!");
+
+    this._setLivePlay(false);
+  }
+
+  _handleInterceptionTackle(playerContactObj: PlayerContact) {
+    // If there was a ruling on if the int was good or not and it was successful, handle the tackle
+    if (
+      this.getState("interceptionRuling") &&
+      this.getState("interceptionSuccessful")
+    )
+      return this._handleTackle(playerContactObj);
+
+    // If there hasn't been a ruling yet on the int, save the tackle position
+    this.setState(
+      "interceptionPlayerEndPosition",
+      playerContactObj.playerPosition
+    );
+  }
+
+  // onKickDrag(dragAmount) {
+  //   handlePenalty({
+  //     type: PENALTY_TYPES.SNAP_DRAG,
+  //     playerName: this._quarterback.name,
+  //   });
+  // }
+
+  // handleIllegalCrossOffense() {
+  //   handlePenalty({
+  //     type: PENALTY_TYPES.ILLEGAL_LOS_CROSS,
+  //     playerName: this._quarterback.name,
+  //   });
+  // }
+
+  // #handleIllegalTouch(playerName) {
+  //   handlePenalty({ type: PENALTY_TYPES.ILLEGAL_PASS, playerName: playerName });
+  // }
+
+  // handleAutoTouchdown() {
+  //   // After three redzone penalties
+
+  //   Chat.send(`AUTO TOUCHDOWN!`);
+
+  //   this.scorePlay(7, game.getOffenseTeam());
+  // }
+}

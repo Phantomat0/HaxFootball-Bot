@@ -1,9 +1,10 @@
-import { client } from "..";
+import Room, { client } from "..";
 import { Position } from "../HBClient";
+import DistanceCalculator from "../structures/DistanceCalculator";
 import { DISC_IDS, MAP_POINTS } from "../utils/map";
 import WithStateStore from "./WithStateStore";
 
-type DownState = "lmao";
+type DownState = "kickOff" | "punt";
 
 export default class Down extends WithStateStore<DownState> {
   static CONFIG = {
@@ -12,14 +13,16 @@ export default class Down extends WithStateStore<DownState> {
 
   private _los: {
     x: number;
+    y: 0;
   } = {
     x: 0,
+    y: 0,
   };
   private _currentDown: 1 | 2 | 3 | 4 = 1;
   private _yards: number = Down.CONFIG.DEFAULT_YARDS_TO_GET;
 
   getLOS() {
-    return this._los.x;
+    return this._los;
   }
 
   setLOS(x: Position["x"]) {
@@ -62,40 +65,69 @@ export default class Down extends WithStateStore<DownState> {
     return;
   }
 
-  getSnapDistance() {
-    return new DistanceCalculator([this._los.x, MAP.YARD * 5])
-      .subtractByTeam(game.getOffenseTeam())
-      .getDistance();
+  getSnapPosition() {
+    const x = new DistanceCalculator()
+      .subtractByTeam(this._los.x, MAP_POINTS.YARD * 5, Room.game.offenseTeamId)
+      .calculate();
+
+    return {
+      x,
+      y: 0,
+    };
   }
 
-  moveFieldMarkers() {
-    const lineToGain = new DistanceCalculator([
-      this._los.x,
-      MAP_POINTS.YARD * this._yards,
-    ])
-      .addByTeam(game.getOffenseTeam())
-      .getDistance();
+  sendDownAndDistance() {}
 
-    const maybehideLineToGain = () => {
-      const lineToGainIsAfterEndzone =
-        lineToGain <= MAP_POINTS.RED_ENDZONE ||
-        lineToGain >= MAP_POINTS.BLUE_ENDZONE;
+  setPlayers() {}
 
-      if (lineToGainIsAfterEndzone) return true;
-      if (play === null) return false;
-      return play.getState("kickOff") || play.getState("punt");
-    };
+  setBallAndFieldMarkersPlayEnd() {}
 
-    console.log(maybehideLineToGain());
+  resetAfterDown() {
+    this.sendDownAndDistance();
+    this.setPlayers();
+    // Sets the players too
+    Room.game.endPlay();
+    this.setBallAndFieldMarkersPlayEnd();
+  }
 
-    const lineToGainX = maybehideLineToGain() ? MAP_POINTS.HIDDEN : lineToGain;
-
+  private _moveLOSMarkers() {
     client.setDiscProperties(DISC_IDS.LOS_TOP, {
       x: this._los.x,
     });
     client.setDiscProperties(DISC_IDS.LOS_BOT, {
       x: this._los.x,
     });
+  }
+
+  private _moveLineToGainMarkers() {
+    const lineToGainPoint = new DistanceCalculator()
+      .addByTeam(
+        this._los.x,
+        MAP_POINTS.YARD * this._yards,
+        Room.game.offenseTeamId
+      )
+      .calculate();
+
+    const maybehideLineToGain = () => {
+      // Hide line to gain if any of the following occurs:
+      // 1. Line to gain is in the endzone
+      // 2. During a punt or kickoff
+
+      // If we reset the play, always show it
+      if (Room.game.play === null) return false;
+      const lineToGainIsAfterEndzone =
+        lineToGainPoint <= MAP_POINTS.RED_ENDZONE ||
+        lineToGainPoint >= MAP_POINTS.BLUE_ENDZONE;
+
+      if (lineToGainIsAfterEndzone) return true;
+      return (
+        Room.game.down.getState("kickOff") || Room.game.down.getState("punt")
+      );
+    };
+
+    const lineToGainX = maybehideLineToGain()
+      ? MAP_POINTS.HIDDEN
+      : lineToGainPoint;
 
     client.setDiscProperties(DISC_IDS.LTG_TOP, {
       x: lineToGainX,
@@ -105,7 +137,11 @@ export default class Down extends WithStateStore<DownState> {
       x: lineToGainX,
       y: MAP_POINTS.BOT_SIDELINE,
     });
+  }
 
+  moveFieldMarkers() {
+    this._moveLOSMarkers();
+    this._moveLineToGainMarkers();
     return this;
   }
 }

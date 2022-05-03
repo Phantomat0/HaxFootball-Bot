@@ -1,15 +1,24 @@
-import Room from "..";
+import Room, { client } from "..";
 import { PlayerObject } from "../HBClient";
 import Snap from "../plays/Snap";
+import Ball from "../structures/Ball";
 
 export default function onChat(player: PlayerObject, message: string) {
   if (!Room.isBotOn) return;
   if (message === "hike") {
     console.log("SET PLAY YEP");
-    return Room.game.setPlay(new Snap(player));
+    return Room.game.setPlay(new Snap(0, player));
   }
   if (message === "lmao") {
     console.log(Room);
+  }
+
+  if (message === "set") {
+    Ball.setPosition({ x: 0, y: 0 });
+
+    client.getPlayerList().forEach((p) => {
+      client.setPlayerDiscProperties(p.id, { x: -150, y: 0 });
+    });
   }
 
   // if (message === "hike") {

@@ -1,22 +1,24 @@
-import BallContact from "../classes/BallContact";
 import { PLAY_STATES } from "../plays/BasePlay";
-import Ball from "../structures/Ball";
-import DistanceCalculator from "../structures/DistanceCalculator";
-import { MAP__AREAS } from "../utils/map";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
 import Room from "..";
 import MapReferee from "../structures/MapReferee";
-import { PlayerObject } from "../HBClient";
-import PlayerContact from "../classes/PlayerContact";
+import GameReferee from "../structures/GameReferee";
 import { checkBallCarrierContact, checkBallContact } from "./tickEvents";
 import Chat from "../roomStructures/Chat";
+import { PlayableTeamId } from "../HBClient";
 
 const eventListeners: EventListener[] = [
   {
-    // Pass Incompletes, Punts/Kickoffs Out Of Bounds
-    name: "Ball Out Of Bounds",
+    // Pass Incompletes, Punts/Kickoffs Out Of Bounds, Interceptions
+    name: "Ball Position",
     runWhen: ["ballSnapped", "punt", "kickOff"],
-    stopWhen: ["ballCaught", "ballRan", "puntCaught", "kickOffCaught"],
+    stopWhen: [
+      "ballCaught",
+      "ballRan",
+      "puntCaught",
+      "kickOffCaught",
+      "interceptionRuling",
+    ],
     run: () => {
       const ballOutOfBounds = MapReferee.checkIfBallOutOfBounds(); // This returns either null or the ballPosition,
       if (ballOutOfBounds)
@@ -53,58 +55,69 @@ const eventListeners: EventListener[] = [
       "fieldGoalBlitzed",
       "puntCaught",
       "kickOffCaught",
+      "interceptionRuling",
     ],
     run: () => {
       const ballContact = checkBallContact();
-      if (ballContact !== null)
-        return Room.getPlay().handleBallContact(ballContact);
+      if (ballContact) return Room.getPlay().handleBallContact(ballContact);
     },
   },
   {
     // Player Out Of Bounds and Player Touchdowns
     name: "BallCarrier Position Tracker",
-    runWhen: ["ballSnapped", "fieldGoal", "puntCaught", "kickOffCaught"],
+    runWhen: [
+      "ballSnapped",
+      "fieldGoal",
+      "puntCaught",
+      "kickOffCaught",
+      "interceptionPlayerEndPosition",
+    ],
     stopWhen: ["fieldGoalKicked"],
     run: function () {
       const ballCarrier = Room.getPlay().getBallCarrier();
 
+      const { position } = getPlayerDiscProperties(ballCarrier.id);
+
       const ballCarrierOutOfBounds =
-        MapReferee.checkIfPlayerOutOfBounds(ballCarrier);
+        MapReferee.checkIfPlayerOutOfBounds(position);
 
       if (ballCarrierOutOfBounds)
         return Room.getPlay().handleBallCarrierOutOfBounds(
           ballCarrierOutOfBounds
         );
 
-      const isTouchdown = MapReferee.checkIfTouchdown(ballCarrier);
+      const isTouchdown = GameReferee.checkIfTouchdown(
+        position,
+        ballCarrier.team as PlayableTeamId
+      );
       if (isTouchdown) return Room.getPlay().handleTouchdown();
     },
   },
   {
-    // Tackles, Sacks, Fumbles
+    // Tackles, Sacks, Fumbles, Interception Tackles
     name: "BallCarrier Player Contact Defense",
     runWhen: ["ballSnapped", "fieldGoal", "puntCaught", "kickOffCaught"],
-    stopWhen: ["ballIntercepted"],
+    stopWhen: ["interceptionPlayerEndPosition"],
     run: () => {
       // Here we get the defensive team, and use as an argument to the function
       const defensePlayers = Room!.game!.players.getDefense();
       if (defensePlayers.length === 0) return;
       const playerContact = checkBallCarrierContact(defensePlayers);
       if (playerContact)
-        return Room.getPlay().onPlayerContactDefense(playerContact);
+        return Room.getPlay().handleBallCarrierContactDefense(playerContact);
     },
   },
   {
     // Runs
     name: "BallCarrier Player Contact Same Team",
     runWhen: ["ballSnapped", "fieldGoal"],
-    stopWhen: ["ballRan", "ballCaught", "ballIntercepted"],
+    stopWhen: ["ballRan", "ballCaught", "ballDeflected"],
     run: () => {
       // Here we get the offensive team, filter out the QB, and use as an argument to the function
       const offensePlayersNoQb = Room.game.players.getOffenseNoQb();
       const playerContact = checkBallCarrierContact(offensePlayersNoQb);
       if (playerContact)
-        return Room.getPlay().onPlayerContactOffense(playerContact);
+        return Room.getPlay().handleBallCarrierContactOffense(playerContact);
     },
   },
   {
@@ -206,8 +219,10 @@ interface EventListener {
 
 const checkIfRunListener = (listenerObj: EventListener) =>
   listenerObj.runWhen.some(
-    (state) => state === "always" || Room.getPlay().readStateUnsafe(state)
+    (state) => state === "always" || Room.getPlay().checkIfStateExists(state)
   );
 
 const checkIfStopListener = (listenerObj: EventListener) =>
-  listenerObj.stopWhen.some((state) => Room.getPlay().readStateUnsafe(state));
+  listenerObj.stopWhen.some((state) =>
+    Room.getPlay().checkIfStateExists(state)
+  );
