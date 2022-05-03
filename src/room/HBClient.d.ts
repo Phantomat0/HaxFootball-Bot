@@ -2,6 +2,18 @@ export type HBRecording = string;
 
 type TeamId = 0 | 1 | 2;
 
+type DefaultStadiums =
+  | "Classic"
+  | "Easy"
+  | "Small"
+  | "Big"
+  | "Rounded"
+  | "Hockey"
+  | "BigHockey"
+  | "BigEasy"
+  | "BigRounded"
+  | "Huge";
+
 type PlayableTeamId = 1 | 2;
 
 export interface ScoresObject {
@@ -36,6 +48,22 @@ interface DiscPropertiesObject {
   color: number;
   cMask: number;
   cGroup: number;
+}
+
+export interface CollisionFlags {
+  all: 63;
+  ball: 1;
+  blue: 4;
+  blueKO: 16;
+  c0: 268435456;
+  c1: 536870912;
+  c2: 1073741824;
+  c3: -2147483648;
+  kick: 64;
+  red: 2;
+  redKO: 8;
+  score: 128;
+  wall: 32;
 }
 
 /**
@@ -74,9 +102,6 @@ export interface HBClientConfig {
    * If set to true the room player list will be empty, the playerName setting will be ignored.
    */
   noPlayer?: boolean;
-  /**
-   * Object filled with the collision flags constants that compose the cMask and cGroup disc properties.
-   */
 }
 
 /**
@@ -121,7 +146,10 @@ interface FullPlayerObject extends PlayerObject {
 }
 
 export default interface HBClient {
-  readonly CollisionFlags: object;
+  /**
+   * Object filled with the collision flags constants that compose the cMask and cGroup disc properties.
+   */
+  readonly CollisionFlags: CollisionFlags;
   /**
    * Changes the admin status of the specified player.
    */
