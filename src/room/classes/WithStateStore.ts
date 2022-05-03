@@ -1,3 +1,5 @@
+import Chat from "../roomStructures/Chat";
+
 export default class WithStateStore<T extends string> {
   private _stateStore: { [key in T]: any } = {} as { [key in T]: any };
 
@@ -5,6 +7,7 @@ export default class WithStateStore<T extends string> {
    * Set state
    */
   setState(state: T, value: any = true) {
+    Chat.send(`StateChange: ${state}`);
     this._stateStore[state] = value;
   }
 
@@ -17,10 +20,10 @@ export default class WithStateStore<T extends string> {
   }
 
   /**
-   * Get state without using the provided state types for this store
+   * Checks if the state is plotted, regardless of value
    */
-  getStateUnsafe(state: string) {
-    return this._stateStore[state];
+  checkIfStateExists(state: string) {
+    return this._stateStore.hasOwnProperty(state);
   }
 
   /**
@@ -28,5 +31,12 @@ export default class WithStateStore<T extends string> {
    */
   clearState() {
     this._stateStore = {} as { [key in T]: any };
+  }
+
+  /**
+   * Reads all state
+   */
+  readAllState() {
+    return this._stateStore;
   }
 }
