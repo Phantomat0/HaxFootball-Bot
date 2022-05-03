@@ -17,31 +17,11 @@ class DistanceConverter {
   }
 }
 
-type CalculationName =
-  | "calcDifference2D"
-  | "calcDifference3D"
-  | "calcNetDifferenceByTeam"
-  | "calcNetDifferenceByTeam"
-  | "subtractByTeam"
-  | "addByTeam";
-
 export default class DistanceCalculator {
   private _calculation: number;
-  private _log: string[];
 
   constructor(initialCalculation = 0) {
     this._calculation = initialCalculation;
-  }
-
-  /**
-   * Used in debugging so we dont accidentally use the wrong order of calculations
-   */
-  private _logCalculationName(name: string) {
-    // const [lastCalculationName = null] = this._log
-    // if (lastCalculationName) {
-    //   if (lastCalculationName === "") return
-    // }
-    // this._log.unshift(name)
   }
 
   /**
@@ -56,6 +36,9 @@ export default class DistanceCalculator {
    * Calculates the distance between two points
    */
   calcDifference3D(p1: Position, p2: Position): this {
+    const d1 = p1.x - p2.x;
+    const d2 = p1.y - p2.y;
+    this._calculation = Math.hypot(d1, d2);
     return this;
   }
 
@@ -130,7 +113,7 @@ export default class DistanceCalculator {
 
     const teamsEndzone = MapReferee.getTeamEndzone(teamId);
 
-    const { distance: oneYardLinePoint } = new DistanceCalculator()
+    const oneYardLinePoint = new DistanceCalculator()
       .addByTeam(teamsEndzone, MAP_POINTS.YARD, teamId)
       .calculate();
 
