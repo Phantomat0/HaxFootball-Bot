@@ -30,7 +30,14 @@ export default class WithStateStore<
   /**
    * Checks if the state is plotted, regardless of value
    */
-  checkIfStateExists(state: R): boolean {
+  stateExists<K extends keyof T>(state: K): boolean {
+    return this._stateStore.hasOwnProperty(state);
+  }
+
+  /**
+   * Checks if the state is plotted, regardless of value, but does not use the classes native storage
+   */
+  stateExistsUnsafe(state: R): boolean {
     return this._stateStore.hasOwnProperty(state);
   }
 

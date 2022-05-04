@@ -4,9 +4,12 @@ import DistanceCalculator from "../structures/DistanceCalculator";
 import { DISC_IDS, MAP_POINTS } from "../utils/map";
 import WithStateStore from "./WithStateStore";
 
-type DownState = "kickOff" | "punt";
+interface DownStore {
+  kickOff: true;
+  punt: true;
+}
 
-export default class Down extends WithStateStore<DownState> {
+export default class Down extends WithStateStore<DownStore, keyof DownStore> {
   static CONFIG = {
     DEFAULT_YARDS_TO_GET: 20,
   };

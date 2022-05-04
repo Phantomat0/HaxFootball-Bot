@@ -6,13 +6,12 @@ import { PlayableTeamId, Position } from "../HBClient";
 import Chat from "../roomStructures/Chat";
 import Ball from "../structures/Ball";
 import DistanceCalculator from "../structures/DistanceCalculator";
-import MapReferee from "../structures/MapReferee";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import { flattenPlayer } from "../utils/haxUtils";
-import { MAP_POINTS } from "../utils/map";
 import FieldGoal from "./FieldGoal";
 import KickOff from "./Kickoff";
 import { FieldGoalStore } from "./play_events/FieldGoal.events";
+import { KickOffStore } from "./play_events/KickOff.events";
 import { PuntStore } from "./play_events/Punt.events";
 import { SnapStore } from "./play_events/Snap.events";
 import Punt from "./Punt";
@@ -26,11 +25,13 @@ interface EndPlayData {
   addDown: boolean;
 }
 
-export type PlayStorages = SnapStore & FieldGoalStore & PuntStore & "always";
+type PlayStorages = SnapStore & FieldGoalStore & PuntStore & KickOffStore;
+
+export type PlayStorageKeys = keyof PlayStorages;
 
 export default abstract class BasePlay<T> extends WithStateStore<
   T,
-  PlayStorages
+  PlayStorageKeys
 > {
   protected _isLivePlay: boolean = false;
   protected _ballCarrier: ReturnType<typeof flattenPlayer> | null = null;

@@ -1,14 +1,16 @@
 import { client, TEAMS } from "..";
-import { PlayableTeamId } from "../HBClient";
+import { PlayableTeamId, Position } from "../HBClient";
 import { PLAY_TYPES } from "../plays/BasePlay";
 import Chat from "../roomStructures/Chat";
 import PlayerRecorder from "../structures/PlayerRecorder";
 import Down from "./Down";
 import WithStateStore from "./WithStateStore";
 
-type GAME_STATES = "kickOffPosition";
+interface GameStore {
+  kickOffPosition: Position;
+}
 
-export default class Game extends WithStateStore<GAME_STATES> {
+export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   score: {
     red: number;
     blue: number;

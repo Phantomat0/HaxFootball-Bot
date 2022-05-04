@@ -1,10 +1,5 @@
 import Punt from "./Punt";
 
-export type KICK_OFF_PLAY_STATES =
-  | "kickOff"
-  | "kickOffCaught"
-  | "kickOffKicked";
-
 export default class KickOff extends Punt {
   // constructor(time: number) {
   //   super(time);

@@ -1,4 +1,4 @@
-import { PLAY_STATES } from "../plays/BasePlay";
+import { PlayStorageKeys } from "../plays/BasePlay";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
 import Room from "..";
 import MapReferee from "../structures/MapReferee";
@@ -124,7 +124,7 @@ const eventListeners: EventListener[] = [
     // Early Blitz Penalty
     name: "Defense Position",
     runWhen: ["ballSnapped", "fieldGoal"],
-    stopWhen: ["blitzed", "ballRan", "ballPassed", "fieldGoalKicked"],
+    stopWhen: ["lineBlitzed", "ballRan", "ballPassed", "fieldGoalKicked"],
     run: () => {
       // const { defensePlayers } = game.getOffenseDefensePlayers();
       // const defensiveTeam = game.getDefenseTeam();
@@ -151,7 +151,7 @@ const eventListeners: EventListener[] = [
     // Early LOS Cross Penalty
     name: "Quarterback and Kicker Position",
     runWhen: [], //"snap", "fieldGoal"
-    stopWhen: ["ballRan", "ballPassed", "fieldGoalKicked", "blitzed"],
+    stopWhen: ["ballRan", "ballPassed", "fieldGoalKicked", "lineBlitzed"],
     run: () => {
       // const { id, team } = play.getBallCarrier(); // This is really either the QB, or the kicker
       // const {
@@ -212,17 +212,15 @@ export default function onGameTick() {
 
 interface EventListener {
   name: string;
-  runWhen: PLAY_STATES[];
-  stopWhen: PLAY_STATES[];
+  runWhen: (PlayStorageKeys | "always")[];
+  stopWhen: Exclude<PlayStorageKeys, "always">[];
   run: () => void;
 }
 
 const checkIfRunListener = (listenerObj: EventListener) =>
   listenerObj.runWhen.some(
-    (state) => state === "always" || Room.getPlay().checkIfStateExists(state)
+    (state) => state === "always" || Room.getPlay().stateExistsUnsafe(state)
   );
 
 const checkIfStopListener = (listenerObj: EventListener) =>
-  listenerObj.stopWhen.some((state) =>
-    Room.getPlay().checkIfStateExists(state)
-  );
+  listenerObj.stopWhen.some((state) => Room.getPlay().stateExistsUnsafe(state));

@@ -204,7 +204,7 @@ export default class Punt extends PuntEvents {
         team
       );
 
-    this.setState("catchPosition", adjustedPlayerPosition.x);
+    this.setState("catchPosition", adjustedPlayerPosition);
     this.setState("puntCaught");
 
     // sendPlayMessage({
@@ -250,10 +250,10 @@ export default class Punt extends PuntEvents {
   handleBallContactOffense(ballContactObj: BallContact) {
     const { type, player, playerPosition } = ballContactObj;
 
-    if (type === "touch" && this.getState("puntKicked") === false) return;
+    if (type === "touch" && this.stateExists("puntKicked")) return;
 
     // Initial kick
-    if (type === "kick" && this.getState("puntKicked") === false) {
+    if (type === "kick" && this.stateExists("puntKicked")) {
       this.setState("puntKicked");
       this._checkOffsideOffenseAndHandle();
       this.releaseInvisibleWallForDefense();
