@@ -103,6 +103,9 @@ export default class Snap extends SnapEvents {
   protected _handleBallContactDuringInterception(ballContactObj: BallContact) {
     // If anyone but the intercepting player touches the ball, reset play
     const interceptingPlayer = this.getState("interceptingPlayer");
+
+    if (!interceptingPlayer) throw Error("No intercepting player found");
+
     if (interceptingPlayer.id !== ballContactObj.player.id) {
       Chat.send("Someone else touched");
       return this._setLivePlay(false);
@@ -110,6 +113,9 @@ export default class Snap extends SnapEvents {
 
     // Ok now we know the contacts are from the intercepting player, lets check for the kick time
     const firstTouchTime = this.getState("interceptFirstTouchTime");
+
+    if (!firstTouchTime) throw Error("No first touch time");
+
     const differenceFromFirstTouchToTimeNow =
       Room.game.getTime() - firstTouchTime;
 
@@ -148,7 +154,7 @@ export default class Snap extends SnapEvents {
     Chat.send("Successful Int!");
 
     this.setState("interceptionRuling");
-    this.setState("interceptionSuccessful");
+    this.setState("ballIntercepted");
 
     const endPosition = this.getState("interceptionPlayerEndPosition");
 
@@ -160,11 +166,11 @@ export default class Snap extends SnapEvents {
     this._setLivePlay(false);
   }
 
-  _handleInterceptionOutOfBounds(ballCarrierPosition: Position) {
+  _handleInterceptionBallCarrierOutOfBounds(ballCarrierPosition: Position) {
     // If there was a ruling on if the int was good or not and it was successful, handle the tackle
     if (
       this.getState("interceptionRuling") &&
-      this.getState("interceptionSuccessful")
+      this.setState("ballIntercepted")
     ) {
       Chat.send("OUT OF BOUNDS DURING ITN");
       this._setLivePlay(false);
@@ -181,10 +187,7 @@ export default class Snap extends SnapEvents {
 
   _handleInterceptionTackle(playerContactObj: PlayerContact) {
     // If there was a ruling on if the int was good or not and it was successful, handle the tackle
-    if (
-      this.getState("interceptionRuling") &&
-      this.getState("interceptionSuccessful")
-    )
+    if (this.getState("interceptionRuling") && this.getState("ballIntercepted"))
       return this._handleTackle(playerContactObj);
 
     // If there hasn't been a ruling yet on the int, save the tackle position

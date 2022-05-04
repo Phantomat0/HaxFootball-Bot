@@ -3,13 +3,14 @@ import PlayerContact from "../../classes/PlayerContact";
 import { Position } from "../../HBClient";
 import BasePlay from "../BasePlay";
 
-export type PUNT_PLAY_STATES =
-  | "punt"
-  | "puntCaught"
-  | "puntKicked"
-  | "catchPosition";
+export interface PuntStore {
+  punt: true;
+  puntCaught: true;
+  puntKicked: true;
+  catchPosition: Position;
+}
 
-export default class PuntEvents extends BasePlay<PUNT_PLAY_STATES> {
+export default class PuntEvents extends BasePlay<PuntStore> {
   validateBeforePlayBegins() {
     return {
       valid: true,

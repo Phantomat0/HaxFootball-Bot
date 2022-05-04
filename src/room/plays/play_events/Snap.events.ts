@@ -1,28 +1,28 @@
 import Room from "../..";
 import BallContact from "../../classes/BallContact";
 import PlayerContact from "../../classes/PlayerContact";
-import { PlayableTeamId, Position } from "../../HBClient";
+import { PlayableTeamId, PlayerObject, Position } from "../../HBClient";
 import Chat from "../../roomStructures/Chat";
 import GameReferee from "../../structures/GameReferee";
 import MapReferee from "../../structures/MapReferee";
 import BasePlay from "../BasePlay";
 
-export type SNAP_PLAY_STATES =
-  | "ballSnapped"
-  | "ballPassed"
-  | "ballCaught"
-  | "ballDeflected"
-  | "ballRan"
-  | "ballBlitzed"
-  | "ballIntercepted"
-  | "blitzed"
-  | "interceptingPlayer"
-  | "interceptFirstTouchTime"
-  | "interceptionRuling"
-  | "interceptionSuccessful"
-  | "interceptionPlayerEndPosition";
+export interface SnapStore {
+  ballSnapped: true;
+  ballPassed: true;
+  ballCaught: true;
+  ballDeflected: true;
+  ballRan: true;
+  ballBlitzed: true;
+  lineBlitzed: true;
+  interceptingPlayer: PlayerObject;
+  ballIntercepted: true;
+  interceptFirstTouchTime: number;
+  interceptionRuling: boolean;
+  interceptionPlayerEndPosition: Position;
+}
 
-export default abstract class SnapEvents extends BasePlay<SNAP_PLAY_STATES> {
+export default abstract class SnapEvents extends BasePlay<SnapStore> {
   abstract getQuarterback(): any;
   protected abstract _handleCatch(ballContactObj: BallContact): any;
   protected abstract _handleRun(playerContactObj: PlayerContact): any;
@@ -41,7 +41,7 @@ export default abstract class SnapEvents extends BasePlay<SNAP_PLAY_STATES> {
     playerContactObj: PlayerContact
   ): any;
   protected abstract _handleTackle(playerContactObj: PlayerContact): any;
-  protected abstract _handleInterceptionOutOfBounds(
+  protected abstract _handleInterceptionBallCarrierOutOfBounds(
     ballCarrierPosition: Position
   );
 
@@ -89,7 +89,9 @@ export default abstract class SnapEvents extends BasePlay<SNAP_PLAY_STATES> {
   }
   handleBallCarrierOutOfBounds(ballCarrierPosition: Position) {
     if (this.getState("interceptingPlayer"))
-      return this._handleInterceptionOutOfBounds(ballCarrierPosition);
+      return this._handleInterceptionBallCarrierOutOfBounds(
+        ballCarrierPosition
+      );
     const isSafety = GameReferee.checkIfSafetyPlayer(
       ballCarrierPosition,
       Room.game.offenseTeamId

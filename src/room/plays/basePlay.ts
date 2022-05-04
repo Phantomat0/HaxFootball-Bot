@@ -11,10 +11,10 @@ import PreSetCalculators from "../structures/PreSetCalculators";
 import { flattenPlayer } from "../utils/haxUtils";
 import { MAP_POINTS } from "../utils/map";
 import FieldGoal from "./FieldGoal";
-import KickOff, { KICK_OFF_PLAY_STATES } from "./Kickoff";
-import { FG_PLAY_STATES } from "./play_events/FieldGoal.events";
-import { PUNT_PLAY_STATES } from "./play_events/Punt.events";
-import { SNAP_PLAY_STATES } from "./play_events/Snap.events";
+import KickOff from "./Kickoff";
+import { FieldGoalStore } from "./play_events/FieldGoal.events";
+import { PuntStore } from "./play_events/Punt.events";
+import { SnapStore } from "./play_events/Snap.events";
 import Punt from "./Punt";
 import Snap from "./Snap";
 
@@ -26,16 +26,12 @@ interface EndPlayData {
   addDown: boolean;
 }
 
-export type PLAY_STATES =
-  | SNAP_PLAY_STATES
-  | FG_PLAY_STATES
-  | KICK_OFF_PLAY_STATES
-  | PUNT_PLAY_STATES
-  | "always";
+export type PlayStorages = SnapStore & FieldGoalStore & PuntStore & "always";
 
-export default abstract class BasePlay<
-  T extends string
-> extends WithStateStore<T> {
+export default abstract class BasePlay<T> extends WithStateStore<
+  T,
+  PlayStorages
+> {
   protected _isLivePlay: boolean = false;
   protected _ballCarrier: ReturnType<typeof flattenPlayer> | null = null;
   protected _ballPositionOnSet: Position | null = null;
@@ -175,12 +171,12 @@ export default abstract class BasePlay<
     Chat.send("SAFETY!!!");
     Ball.score(Room.game.defenseTeamId);
 
-    const offenseEndZone = MapReferee.getTeamEndzone(Room.game.offenseTeamId);
-    const offenseTwentyYardLine = new DistanceCalculator()
-      .addByTeam(offenseEndZone, MAP_POINTS.YARD * 20, Room.game.offenseTeamId)
-      .calculate();
+    // const offenseEndZone = MapReferee.getTeamEndzone(Room.game.offenseTeamId);
+    // const offenseTwentyYardLine = new DistanceCalculator()
+    //   .addByTeam(offenseEndZone, MAP_POINTS.YARD * 20, Room.game.offenseTeamId)
+    //   .calculate();
 
-    Room.game.setState("kickOffPosition", offenseTwentyYardLine);
+    // Room.game.setState("kickOffPosition", offenseTwentyYardLine);
 
     // // ? Why is offense scoring? Because we need the defense to get the ball, so offense has to kickoff
     // this.scorePlay(2, game.getDefenseTeam(), game.getOffenseTeam());

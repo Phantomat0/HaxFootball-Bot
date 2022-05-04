@@ -3,12 +3,13 @@ import PlayerContact from "../../classes/PlayerContact";
 import { Position } from "../../HBClient";
 import BasePlay from "../BasePlay";
 
-export type FG_PLAY_STATES =
-  | "fieldGoal"
-  | "fieldGoalKicked"
-  | "fieldGoalBlitzed";
+export interface FieldGoalStore {
+  fieldGoal: true;
+  fieldGoalKicked: true;
+  fieldGoalBlitzed: true;
+}
 
-export default abstract class FieldGoalEvents extends BasePlay<FG_PLAY_STATES> {
+export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
   validateBeforePlayBegins() {
     return {
       valid: true,

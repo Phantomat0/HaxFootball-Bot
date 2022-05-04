@@ -1,12 +1,20 @@
 import Chat from "../roomStructures/Chat";
 
-export default class WithStateStore<T extends string> {
-  private _stateStore: { [key in T]: any } = {} as { [key in T]: any };
+interface StateStoreType {
+  [key: string]: any;
+}
+
+export default class WithStateStore<
+  T extends StateStoreType,
+  R extends string
+> {
+  private _stateStore: Partial<T>;
 
   /**
    * Set state
    */
-  setState(state: T, value: any = true) {
+  //@ts-ignore
+  setState<K extends keyof T>(state: K, value: T[K] = true) {
     Chat.send(`StateChange: ${state}`);
     this._stateStore[state] = value;
   }
@@ -15,14 +23,14 @@ export default class WithStateStore<T extends string> {
    * Get state
    * @returns state
    */
-  getState(state: T) {
+  getState<K extends keyof T>(state: K): T[K] | undefined {
     return this._stateStore[state];
   }
 
   /**
    * Checks if the state is plotted, regardless of value
    */
-  checkIfStateExists(state: string) {
+  checkIfStateExists(state: R): boolean {
     return this._stateStore.hasOwnProperty(state);
   }
 
@@ -30,7 +38,7 @@ export default class WithStateStore<T extends string> {
    * Clears all state keys
    */
   clearState() {
-    this._stateStore = {} as { [key in T]: any };
+    this._stateStore = {};
   }
 
   /**
