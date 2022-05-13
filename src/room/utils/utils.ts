@@ -173,3 +173,12 @@ export const containsNWord = (msg: string) => {
 
   return isOffensive;
 };
+
+export const sumObjectValues = (object: { [key: string | number]: number }) => {
+  const objKeys = Object.values(object);
+  return objKeys.reduce((acc, curr) => acc + curr);
+};
+
+export const isObject = (obj: any) => {
+  return obj != null && obj.constructor.name === "Object";
+};
