@@ -9,6 +9,14 @@ class GameReferee {
     return MapReferee.getEndZonePositionIsIn(ballPosition) === team;
   }
 
+  checkIfSack(
+    qbPosition: Position,
+    losX: number,
+    offenseTeamId: PlayableTeamId
+  ) {
+    return MapReferee.checkIfBehind(qbPosition.x, losX, offenseTeamId);
+  }
+
   checkIfSafetyPlayer = (
     rawPlayerPosition: Position,
     teamId: PlayableTeamId
@@ -74,6 +82,14 @@ class GameReferee {
       MAP_POINTS.BALL_RADIUS
     );
     return offenseTeamId === TEAMS.RED ? x > blueFG : x < redFG;
+  }
+
+  checkIfInterceptionWithinTime(intTime: number, timeNow: number) {
+    const INTERCEPTION_TIME_LIMIT = 5;
+
+    const differenceBetweenIntTimeAndTimeNow = intTime - timeNow;
+
+    return differenceBetweenIntTimeAndTimeNow < INTERCEPTION_TIME_LIMIT;
   }
 
   // Check for the ball position to be behind one of the endzones and between FG posts
