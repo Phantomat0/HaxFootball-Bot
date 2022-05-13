@@ -6,6 +6,7 @@ import GameReferee from "../structures/GameReferee";
 import { checkBallCarrierContact, checkBallContact } from "./tickEvents";
 import Chat from "../roomStructures/Chat";
 import { PlayableTeamId } from "../HBClient";
+import Snap from "../plays/Snap";
 
 const eventListeners: EventListener[] = [
   {
@@ -65,16 +66,11 @@ const eventListeners: EventListener[] = [
   {
     // Player Out Of Bounds and Player Touchdowns
     name: "BallCarrier Position Tracker",
-    runWhen: [
-      "ballSnapped",
-      "fieldGoal",
-      "puntCaught",
-      "kickOffCaught",
-      "interceptionPlayerEndPosition",
-    ],
-    stopWhen: ["fieldGoalKicked"],
+    runWhen: ["ballSnapped", "fieldGoal", "puntCaught", "kickOffCaught"],
+    stopWhen: ["fieldGoalKicked", "interceptionPlayerEndPosition"],
     run: function () {
-      const ballCarrier = Room.getPlay().getBallCarrier();
+      const ballCarrier = Room.getPlay().getBallCarrierSafe();
+      if (!ballCarrier) return;
 
       const { position } = getPlayerDiscProperties(ballCarrier.id);
 
@@ -90,7 +86,7 @@ const eventListeners: EventListener[] = [
         position,
         ballCarrier.team as PlayableTeamId
       );
-      if (isTouchdown) return Room.getPlay().handleTouchdown();
+      if (isTouchdown) return Room.getPlay().handleTouchdown(position);
     },
   },
   {
@@ -109,7 +105,7 @@ const eventListeners: EventListener[] = [
   },
   {
     // Runs
-    name: "BallCarrier Player Contact Same Team",
+    name: "BallCarrier Player Contact Offense",
     runWhen: ["ballSnapped", "fieldGoal"],
     stopWhen: ["ballRan", "ballCaught", "ballDeflected"],
     run: () => {
@@ -187,6 +183,19 @@ const eventListeners: EventListener[] = [
       //    .calcDifference()
       //    .getDistance();
       //  if (dragAmount > MAX_DRAG_DISTANCE) return play.onKickDrag(dragAmount);
+    },
+  },
+  {
+    // Ball Moving
+    name: "Ball is Moving",
+    runWhen: ["interceptionAttemptKicked"],
+    stopWhen: ["interceptionRuling"],
+    run: () => {
+      // Check if the ball is moving, when it starts reaching a very low speed, call bad int
+      const ballIsMoving = MapReferee.checkIfBallIsMoving();
+      if (!ballIsMoving) {
+        return Room.getPlay<Snap>().handleUnsuccessfulInterception("Missed");
+      }
     },
   },
 ];
