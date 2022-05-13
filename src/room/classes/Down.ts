@@ -1,6 +1,11 @@
 import Room, { client } from "..";
 import { Position } from "../HBClient";
-import DistanceCalculator from "../structures/DistanceCalculator";
+import Chat from "../roomStructures/Chat";
+import Ball from "../structures/Ball";
+import DistanceCalculator, {
+  DistanceConverter,
+} from "../structures/DistanceCalculator";
+import DownAndDistanceFormatter from "../structures/DownAndDistanceFormatter";
 import { DISC_IDS, MAP_POINTS } from "../utils/map";
 import WithStateStore from "./WithStateStore";
 
@@ -21,8 +26,9 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
     x: 0,
     y: 0,
   };
-  private _currentDown: 1 | 2 | 3 | 4 = 1;
+  private _currentDown: 1 | 2 | 3 | 4 | 5 = 1;
   private _yards: number = Down.CONFIG.DEFAULT_YARDS_TO_GET;
+  private _redZonePenalties: 0 | 1 | 2 | 3 = 0;
 
   getLOS() {
     return this._los;
@@ -31,6 +37,10 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
   setLOS(x: Position["x"]) {
     this._los.x = x;
     return this;
+  }
+
+  getLOSYard() {
+    return DistanceConverter.toYardLine(this._los.x);
   }
 
   getYards() {
@@ -79,11 +89,59 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
     };
   }
 
-  sendDownAndDistance() {}
+  sendDownAndDistance() {
+    const down = DownAndDistanceFormatter.formatDown(this._currentDown);
+    const yardsOrGoal = DownAndDistanceFormatter.formatYardsToGain(
+      this._los.x,
+      this._yards
+    );
+    const redZonePenalties = DownAndDistanceFormatter.formatRedZonePenalties(
+      this._redZonePenalties
+    );
 
-  setPlayers() {}
+    const LOSHalf = DownAndDistanceFormatter.formatPositionToMapHalf(
+      this._los.x
+    );
 
-  setBallAndFieldMarkersPlayEnd() {}
+    const LOSYard = this.getLOSYard();
+
+    const formattedMessage = `${down} & ${yardsOrGoal} at ${LOSHalf}${LOSYard}${redZonePenalties}`;
+
+    Chat.send(formattedMessage);
+  }
+
+  setPlayers() {
+    const offensePlayers = Room.game.players.getOffense();
+    const defensePlayers = Room.game.players.getDefense();
+
+    // Set the players 7 yards behind the LOS
+    const offensePositionXSet = new DistanceCalculator()
+      .subtractByTeam(this._los.x, MAP_POINTS.YARD * 7, Room.game.offenseTeamId)
+      .calculate();
+
+    const defensePositionXSet = new DistanceCalculator()
+      .subtractByTeam(this._los.x, MAP_POINTS.YARD * 7, Room.game.defenseTeamId)
+      .calculate();
+
+    offensePlayers.forEach((player) => {
+      client.setPlayerDiscProperties(player.id, {
+        x: offensePositionXSet,
+      });
+    });
+
+    defensePlayers.forEach((player) => {
+      client.setPlayerDiscProperties(player.id, {
+        x: defensePositionXSet,
+      });
+    });
+  }
+
+  setBallAndFieldMarkersPlayEnd() {
+    this.moveFieldMarkers();
+    const snapPosition = this.getSnapPosition();
+    Ball.setPosition(snapPosition);
+    Ball.suppress();
+  }
 
   resetAfterDown() {
     this.sendDownAndDistance();
