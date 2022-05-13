@@ -2,8 +2,15 @@ import { Position } from "../HBClient";
 import { MAP_POINTS } from "./map";
 import { isInRectangleArea } from "./utils";
 
-interface MapSection {
-  name: "Top Corner" | "Bottom Corner" | "Middle" | "Deep";
+export type MapSectionName =
+  | "cornerTop"
+  | "cornerBottom"
+  | "middle"
+  | "deep"
+  | "behind";
+
+export interface MapSection {
+  name: MapSectionName;
   getRectangleArea: (losX: number) => {
     x1: number;
     y1: number;
@@ -15,7 +22,7 @@ interface MapSection {
 export default class MapSectionFinder {
   private _mapSectionsList: MapSection[] = [
     {
-      name: "Top Corner",
+      name: "cornerTop",
       getRectangleArea: function (losX: number) {
         const { YARD, TOP_SIDELINE, ABOVE_HASH } = MAP_POINTS;
 
@@ -31,7 +38,7 @@ export default class MapSectionFinder {
       },
     },
     {
-      name: "Bottom Corner",
+      name: "cornerBottom",
       getRectangleArea: function (losX: number) {
         const { YARD, BOT_SIDELINE, BELOW_HASH } = MAP_POINTS;
 
@@ -47,7 +54,7 @@ export default class MapSectionFinder {
       },
     },
     {
-      name: "Middle",
+      name: "middle",
       getRectangleArea: function (losX: number) {
         const { YARD, ABOVE_HASH, BELOW_HASH } = MAP_POINTS;
 
@@ -63,7 +70,7 @@ export default class MapSectionFinder {
       },
     },
     {
-      name: "Deep",
+      name: "deep",
       getRectangleArea: function (losX: number) {
         const { YARD, BOT_SIDELINE, TOP_SIDELINE, BLUE_SIDELINE } = MAP_POINTS;
 
@@ -79,12 +86,12 @@ export default class MapSectionFinder {
     },
   ];
 
-  getSectionName(position: Position, losX: number) {
+  getSectionName(positionToCheck: Position, losX: number): MapSectionName {
     const sectionObj = this._mapSectionsList.find((section) => {
       const rectangleArea = section.getRectangleArea(losX);
-      return isInRectangleArea(rectangleArea, position);
+      return isInRectangleArea(rectangleArea, positionToCheck);
     });
 
-    return sectionObj?.name ?? null;
+    return sectionObj?.name as unknown as MapSectionName;
   }
 }
