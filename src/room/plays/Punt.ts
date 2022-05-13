@@ -15,6 +15,8 @@ export default class Punt extends PuntEvents {
     super(time);
   }
 
+  handleTouchdown(position: Position): void {}
+
   getStartingPosition() {
     return this.getState("catchPosition");
   }
@@ -193,7 +195,7 @@ export default class Punt extends PuntEvents {
   }
 
   handleCatch(ballContactObj: BallContact) {
-    Room.game.swapOffense();
+    Room.game.swapOffenseAndUpdatePlayers();
 
     const { player, playerPosition } = ballContactObj;
     const { team } = player;

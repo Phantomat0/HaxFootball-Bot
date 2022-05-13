@@ -1,6 +1,8 @@
+import { Position } from "../HBClient";
 import Punt from "./Punt";
 
 export default class KickOff extends Punt {
+  handleTouchdown(position: Position): void {}
   // constructor(time: number) {
   //   super(time);
   // }

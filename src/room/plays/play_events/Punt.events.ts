@@ -10,7 +10,7 @@ export interface PuntStore {
   catchPosition: Position;
 }
 
-export default class PuntEvents extends BasePlay<PuntStore> {
+export default abstract class PuntEvents extends BasePlay<PuntStore> {
   validateBeforePlayBegins() {
     return {
       valid: true,

@@ -1,7 +1,7 @@
-import Room, { client } from "..";
+import Room from "..";
 import { PlayerObject } from "../HBClient";
 import Snap from "../plays/Snap";
-import Ball from "../structures/Ball";
+import Chat from "../roomStructures/Chat";
 
 export default function onChat(player: PlayerObject, message: string) {
   if (!Room.isBotOn) return;
@@ -10,14 +10,18 @@ export default function onChat(player: PlayerObject, message: string) {
     return Room.game.setPlay(new Snap(0, player));
   }
   if (message === "lmao") {
-    console.log(Room);
+    console.log(Room.game.play);
   }
 
-  if (message === "set") {
-    Ball.setPosition({ x: 0, y: 0 });
+  if (message === "reset") {
+    Room.game.down.resetAfterDown();
+  }
 
-    client.getPlayerList().forEach((p) => {
-      client.setPlayerDiscProperties(p.id, { x: -150, y: 0 });
+  if (message === "stats") {
+    Room.game.stats.statsCollection.find().forEach((player) => {
+      const playerStats = player.getStatsStringMini();
+
+      Chat.send(`${player.player.name} || ${playerStats}`);
     });
   }
 

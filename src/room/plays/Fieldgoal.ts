@@ -1,6 +1,8 @@
+import { Position } from "../HBClient";
 import FieldGoalEvents from "./play_events/FieldGoal.events";
 
 export default class FieldGoal extends FieldGoalEvents {
+  handleTouchdown(position: Position): void {}
   // _kicker: PlayerObject;
   // constructor(time: number, kicker: PlayerObject) {
   //   super(time);
