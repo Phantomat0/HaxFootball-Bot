@@ -8,7 +8,7 @@ export default class WithStateStore<
   T extends StateStoreType,
   R extends string
 > {
-  private _stateStore: Partial<T>;
+  private _stateStore: Partial<T> = {};
 
   /**
    * Set state
@@ -23,8 +23,8 @@ export default class WithStateStore<
    * Get state
    * @returns state
    */
-  getState<K extends keyof T>(state: K): T[K] | undefined {
-    return this._stateStore[state];
+  getState<K extends keyof T>(state: K): T[K] {
+    return this._stateStore[state] as unknown as T[K];
   }
 
   /**
