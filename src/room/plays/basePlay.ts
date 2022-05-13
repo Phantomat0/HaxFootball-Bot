@@ -8,6 +8,7 @@ import Ball from "../structures/Ball";
 import DistanceCalculator from "../structures/DistanceCalculator";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import { flattenPlayer } from "../utils/haxUtils";
+import MapSectionFinder from "../utils/MapSectionFinder";
 import FieldGoal from "./FieldGoal";
 import KickOff from "./Kickoff";
 import { FieldGoalStore } from "./play_events/FieldGoal.events";
@@ -19,15 +20,9 @@ import Snap from "./Snap";
 
 export type PLAY_TYPES = Snap | FieldGoal | KickOff | Punt;
 
-interface EndPlayData {
-  netYards?: number;
-  endPosition?: Position | null;
-  addDown: boolean;
-}
-
 type PlayStorages = SnapStore & FieldGoalStore & PuntStore & KickOffStore;
 
-export type PlayStorageKeys = keyof PlayStorages;
+export type PlayStorageKeys = keyof PlayStorages | "twoPointAttempt";
 
 export default abstract class BasePlay<T> extends WithStateStore<
   T,
@@ -45,7 +40,7 @@ export default abstract class BasePlay<T> extends WithStateStore<
     this._startingPosition = Room.game.down.getLOS();
   }
 
-  setBallCarrier(player: ReturnType<typeof flattenPlayer>) {
+  setBallCarrier(player: ReturnType<typeof flattenPlayer> | null) {
     this._ballCarrier = player;
     return this;
   }
@@ -98,57 +93,64 @@ export default abstract class BasePlay<T> extends WithStateStore<
     // Dont swap offense, we swap offense on the kickoff
   }
 
-  endPlay({ netYards = 0, endPosition = null, addDown = true }: EndPlayData) {
-    // console.log(netYards, endPosition, addDown);
-    // // const isKickOffOrPunt = this.getState("punt") || this.getState("kickOff")
-    // const updateDown = () => {
-    //   console.log("UPDATE DOWN RAN");
-    //   // Dont update the down if nothing happened, like off a pass deflection or on a punt and kickoff
-    //   if (endPosition === null) return;
-    //   const addYardsAndStartNewDownIfNecessary = () => {
-    //     down.setLOS(endPosition);
-    //     down.subtractYards(netYards);
-    //     const currentYardsToGet = down.getYards();
-    //     if (currentYardsToGet <= 0) {
-    //       Chat.send("FIRST DOWN!");
-    //       down.startNew();
-    //     } else if (play.getState("fieldGoal")) {
-    //       // This endplay only runs when there is a running play on the field goal
-    //       Chat.send(`${ICONS.Loudspeaker} Turnover on downs FIELD GOAL!`);
-    //       game.swapOffense();
-    //       down.startNew();
-    //     }
-    //   };
-    //   addYardsAndStartNewDownIfNecessary();
-    // };
-    // const enforceDown = () => {
-    //   const currentDown = down.getDown();
-    //   // if (currentDown === 4) {
-    //   //   Chat.send(`4th down, GFI or PUNT`);
-    //   // }
-    //   if (currentDown === 5) {
-    //     Chat.send(`${ICONS.Loudspeaker} Turnover on downs!`);
-    //     game.swapOffense();
-    //     down.startNew();
-    //   }
-    // };
-    // game.setLivePlay(false);
-    // if (addDown) {
-    //   down.addDown();
-    // }
-    // updateDown();
-    // enforceDown();
-    // this.resetAfterDown();
-  }
+  // endPlay({ netYards = 0, endPosition = null, addDown = true }: EndPlayData) {
+  //   // console.log(netYards, endPosition, addDown);
+  //   // // const isKickOffOrPunt = this.getState("punt") || this.getState("kickOff")
+  //   // const updateDown = () => {
+  //   //   console.log("UPDATE DOWN RAN");
+  //   //   // Dont update the down if nothing happened, like off a pass deflection or on a punt and kickoff
+  //   //   if (endPosition === null) return;
+  //   //   const addYardsAndStartNewDownIfNecessary = () => {
+  //   //     down.setLOS(endPosition);
+  //   //     down.subtractYards(netYards);
+  //   //     const currentYardsToGet = down.getYards();
+  //   //     if (currentYardsToGet <= 0) {
+  //   //       Chat.send("FIRST DOWN!");
+  //   //       down.startNew();
+  //   //     } else if (play.getState("fieldGoal")) {
+  //   //       // This endplay only runs when there is a running play on the field goal
+  //   //       Chat.send(`${ICONS.Loudspeaker} Turnover on downs FIELD GOAL!`);
+  //   //       game.swapOffense();
+  //   //       down.startNew();
+  //   //     }
+  //   //   };
+  //   //   addYardsAndStartNewDownIfNecessary();
+  //   // };
+  //   // const enforceDown = () => {
+  //   //   const currentDown = down.getDown();
+  //   //   // if (currentDown === 4) {
+  //   //   //   Chat.send(`4th down, GFI or PUNT`);
+  //   //   // }
+  //   //   if (currentDown === 5) {
+  //   //     Chat.send(`${ICONS.Loudspeaker} Turnover on downs!`);
+  //   //     game.swapOffense();
+  //   //     down.startNew();
+  //   //   }
+  //   // };
+  //   // game.setLivePlay(false);
+  //   // if (addDown) {
+  //   //   down.addDown();
+  //   // }
+  //   // updateDown();
+  //   // enforceDown();
+  //   // this.resetAfterDown();
+  // }
 
   /**
    * Returns information about the play when the offense made a play i.e catch, run, qb run etc
    */
-  getPlayDataOffense(rawEndPosition: Position, offenseTeam: PlayableTeamId) {
+  protected _getPlayDataOffense(rawEndPosition: Position) {
+    const offenseTeam = Room.game.offenseTeamId;
     // Adjust the rawPlayerPosition
     const newEndPosition = PreSetCalculators.adjustPlayerPositionFrontAfterPlay(
       rawEndPosition,
       offenseTeam
+    );
+
+    const losX = Room.game.down.getLOS().x;
+    const mapSection = new MapSectionFinder().getSectionName(
+      newEndPosition,
+      losX
     );
 
     // Calculate data with it
@@ -158,12 +160,14 @@ export default abstract class BasePlay<T> extends WithStateStore<
         newEndPosition.x,
         offenseTeam
       )
+      .roundToYardByTeam(offenseTeam)
       .calculateAndConvert();
 
     return {
       netYards,
       endYard,
       endPosition: newEndPosition,
+      mapSection,
     };
   }
 
@@ -186,37 +190,6 @@ export default abstract class BasePlay<T> extends WithStateStore<
     // down.setState("safetyKickOff", offenseTwentyYardLine);
   }
 
-  handleTouchdown() {
-    // First we need to get the type of touchdown, then handle
-    // const { name, team } = this.getBallCarrier();
-    // if (this.getState("twoPoint") === false) {
-    //   Chat.send("yup");
-    //   down.setState("canTwoPoint");
-    // }
-    // // Get what kind of touchdown for stats
-    // const endzone = getOpposingTeamEndzone(team);
-    // const { netYards } = this.getPlayData({ x: endzone }, team);
-    // sendPlayMessage({
-    //   type: PLAY_TYPES.TOUCHDOWN,
-    //   playerName: name,
-    //   netYards: netYards,
-    // });
-    // game.setLivePlay(false);
-    // return this.getState("twoPoint")
-    //   ? this.scorePlay(2, game.getOffenseTeam())
-    //   : this.scorePlay(7, game.getOffenseTeam());
-  }
-
-  /**
-   * Handles a regular touchdown
-   */
-  // private _handleRegularTouchdown() {}
-
-  // /**
-  //  * Handles a touchdown after a two point conversion
-  //  */
-  // private _handleTwoPointTouchdown() {}
-
   /* ABSTRACT */
 
   // protected abstract _handleBallContactOffense(
@@ -237,4 +210,5 @@ export default abstract class BasePlay<T> extends WithStateStore<
   abstract handleBallCarrierContactOffense(playerContact: PlayerContact): void;
   abstract handleBallCarrierContactDefense(playerContact: PlayerContact): void;
   abstract handleBallContact(ballContactObj: BallContact): void;
+  abstract handleTouchdown(position: Position): void;
 }

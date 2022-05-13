@@ -3,23 +3,30 @@ import BallContact from "../../classes/BallContact";
 import PlayerContact from "../../classes/PlayerContact";
 import { PlayableTeamId, PlayerObject, Position } from "../../HBClient";
 import Chat from "../../roomStructures/Chat";
+import Ball from "../../structures/Ball";
 import GameReferee from "../../structures/GameReferee";
 import MapReferee from "../../structures/MapReferee";
+import { MapSectionName } from "../../utils/MapSectionFinder";
 import BasePlay from "../BasePlay";
+import { BadIntReasons } from "../Snap";
 
 export interface SnapStore {
   ballSnapped: true;
   ballPassed: true;
   ballCaught: true;
+  catchPosition: Position;
   ballDeflected: true;
   ballRan: true;
   ballBlitzed: true;
   lineBlitzed: true;
+  interceptionAttempt: true;
+  interceptionAttemptKicked: true;
   interceptingPlayer: PlayerObject;
   ballIntercepted: true;
   interceptFirstTouchTime: number;
   interceptionRuling: boolean;
   interceptionPlayerEndPosition: Position;
+  interceptionTackler: PlayerObject;
 }
 
 export default abstract class SnapEvents extends BasePlay<SnapStore> {
@@ -41,9 +48,19 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     playerContactObj: PlayerContact
   ): any;
   protected abstract _handleTackle(playerContactObj: PlayerContact): any;
+  protected abstract _handleBallContactDuringInterception(
+    ballContactObj: BallContact
+  ): any;
   protected abstract _handleInterceptionBallCarrierOutOfBounds(
     ballCarrierPosition: Position
-  );
+  ): any;
+
+  abstract handleUnsuccessfulInterception(message: BadIntReasons): any;
+  protected abstract _getStatInfo(endPosition: Position): {
+    quarterback: PlayerObject;
+    mapSection: MapSectionName;
+  };
+  protected abstract endPlay(endPlayData: any): any;
 
   validateBeforePlayBegins(): {
     valid: boolean;
@@ -64,31 +81,34 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
   run() {
     Room.game.updateStaticPlayers();
     this._setLivePlay(true);
+    Ball.release();
     this.setState("ballSnapped");
   }
 
   handleBallOutOfBounds(ballPosition: Position) {
+    // Check if this was a result of an int attempt
+    if (this.stateExists("interceptionAttempt")) {
+      const isSuccessfulInt =
+        GameReferee.checkIfInterceptionSuccessful(ballPosition);
+
+      if (isSuccessfulInt) return this._handleSuccessfulInterception();
+
+      return this.handleUnsuccessfulInterception("Ball out of bounds");
+    }
+
+    const { mapSection } = this._getStatInfo(ballPosition);
+
+    Room.game.stats.updatePlayerStat(this.getQuarterback().id, {
+      passAttempts: {
+        [mapSection]: 1,
+      },
+    });
+
     Chat.send(`Ball went out of bounds!`);
-
-    // First, check if there was an int, there was an int accempt and it was succesfful
-    const isInt =
-      this.getState("interceptingPlayer") &&
-      GameReferee.checkIfInterceptionSuccessful(ballPosition);
-
-    if (isInt) return this._handleSuccessfulInterception();
-
-    const isSafety = GameReferee.checkIfSafetyBall(
-      ballPosition,
-      Room.game.offenseTeamId
-    );
-    if (isSafety) return super.handleSafety();
-
-    this._setLivePlay(false);
-
-    // resetBall();
+    return this.endPlay({});
   }
   handleBallCarrierOutOfBounds(ballCarrierPosition: Position) {
-    if (this.getState("interceptingPlayer"))
+    if (this.stateExists("interceptionAttempt"))
       return this._handleInterceptionBallCarrierOutOfBounds(
         ballCarrierPosition
       );
@@ -99,9 +119,38 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
 
     if (isSafety) return super.handleSafety();
 
-    Chat.send("Out of bounds");
+    const { endPosition, netYards, endYard } =
+      this._getPlayDataOffense(ballCarrierPosition);
 
-    this._setLivePlay(false);
+    Chat.send(
+      `${this.getBallCarrier().name} went out of bounds at the ${endYard}`
+    );
+
+    // If the QB went out of bounds, or ball was ran add rushing stats
+    if (
+      this.getQuarterback().id === this._ballCarrier?.id ||
+      this.stateExists("ballRan")
+    ) {
+      Room.game.stats.updatePlayerStat(this._ballCarrier?.id!, {
+        rushingAttempts: 1,
+        rushingYards: netYards,
+      });
+    } else {
+      const catchPosition = this.getState("catchPosition");
+
+      const { mapSection } = this._getStatInfo(catchPosition);
+
+      Room.game.stats.updatePlayerStat(this._ballCarrier?.id!, {
+        receptions: { [mapSection]: 1 },
+        receivingYards: { [mapSection]: netYards },
+      });
+
+      Room.game.stats.updatePlayerStat(this.getQuarterback().id, {
+        passYards: { [mapSection]: netYards },
+      });
+    }
+
+    this.endPlay({ endPosition, netYards });
   }
 
   handleBallCarrierContactOffense(playerContact: PlayerContact) {
@@ -124,7 +173,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
 
     Chat.send("Illegal Run");
 
-    this._setLivePlay(false);
+    this.endPlay({});
 
     // handlePenalty({
     //   type: PENALTY_TYPES.ILLEGAL_RUN,
@@ -139,42 +188,28 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       return this._handleInterceptionTackle(playerContact);
 
     this._handleTackle(playerContact);
-
-    // const { player, playerPosition, ballCarrierPosition } = playerContact;
-    // const { team, name } = this.getBallCarrier();
-    // const { netYards, endPosition, endYard, mapSection } = super.getPlayData(
-    //   ballCarrierPosition,
-    //   team
-    // );
-    // const isSack = checkIfBehind(endPosition, down.getLOS(), team);
-    // const isSafety = checkIfSafetyPlayer(ballCarrierPosition, team);
-    // if (isSafety) return super.handleSafety();
-    // this.endPlay({ netYards: netYards, endPosition: endPosition });
   }
 
   /**
    * Determines whether the ball contact was offense or defense and handles
    */
   handleBallContact(ballContactObj: BallContact) {
-    console.log("WE GOT BALL CONTACT", ballContactObj.type);
-
-    console.log(this.readAllState());
     // Normally if any of these states were true, our eventlistener wouldnt run
     // but handleBallContact can also be run from our onPlayerBallKick
     if (
-      this.getState("ballCaught") ||
-      this.getState("ballRan") ||
-      this.getState("ballBlitzed")
+      this.stateExists("ballCaught") ||
+      this.stateExists("ballRan") ||
+      this.stateExists("ballBlitzed")
     )
       return;
 
-    console.log("WE GOT HERE");
+    // Handle any contact during an int seperately
+    if (this.stateExists("interceptionAttempt"))
+      return this._handleBallContactDuringInterception(ballContactObj);
 
     const {
       player: { team },
     } = ballContactObj;
-
-    console.log(team);
 
     return team === Room.game.offenseTeamId
       ? this._handleBallContactOffense(ballContactObj)
