@@ -1,6 +1,6 @@
 export default class Collection<K, V> extends Map<K, V> {
-  _filter(options: Partial<V>): V[] {
-    const values = this.fetch();
+  private _filter(options: Partial<V>): V[] {
+    const values = this.find();
 
     return values.filter((dataObj) => {
       return Object.entries(options).every(([key, value]) => {
@@ -22,12 +22,12 @@ export default class Collection<K, V> extends Map<K, V> {
     });
   }
 
-  fetch(options: Partial<V> | null = null): V[] {
+  find(options: Partial<V> | null = null): V[] {
     if (options === null) return Array.from(this.values());
     return this._filter(options);
   }
 
-  fetchOne(options: Partial<V>): V | null {
+  findOne(options: Partial<V>): V | null {
     const [firstResult = null] = this._filter(options);
     return firstResult;
   }
