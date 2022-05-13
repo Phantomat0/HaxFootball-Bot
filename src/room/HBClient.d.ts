@@ -50,20 +50,79 @@ interface DiscPropertiesObject {
   cGroup: number;
 }
 
+/**
+ * Collision flags for map collisions
+ */
 export interface CollisionFlags {
-  all: 63;
+  /**
+   * The default collision group of the ball.
+   */
   ball: 1;
+
+  /**
+   * The red team collision flag. This layer is automatically added to players of the red team.
+   */
+  red: 2;
+
+  /**
+   * The blue team collision flag. This layer is automatically added to players of the blue team.
+   */
   blue: 4;
+
+  /**
+   * The red KO collision flag. This layer represents kickoff barriers that become active during kickOff for the red team.
+   */
+  redKO: 8;
+
+  /**
+   * The blue KO collision flag. This layer represents kickoff barriers that become active during kickOff for the blue team.
+   */
   blueKO: 16;
+
+  /**
+   * The default collision group for vertexes segments and planes.
+   */
+  wall: 32;
+
+  /**
+   * Represents a set including ball, red, blue, redKO, blueKO and wall collision flags.
+   */
+  all: 63;
+
+  /**
+   * The kick collision flag. Objects with this flag in their cGroup will become kickable by the players.
+   */
+  kick: 64;
+
+  /**
+   * The score collision flag.Objects with this flag in their cGroup will score goals if they cross a goal line.
+   */
+  score: 128;
+
   c0: 268435456;
   c1: 536870912;
   c2: 1073741824;
   c3: -2147483648;
-  kick: 64;
-  red: 2;
-  redKO: 8;
-  score: 128;
-  wall: 32;
+}
+
+/**
+ * The Geo interface.
+ */
+export interface GeoLocation {
+  /**
+   * The country code.
+   */
+  code: string;
+
+  /**
+   * The latitude.
+   */
+  lat: number;
+
+  /**
+   * The longitude.
+   */
+  lon: number;
 }
 
 /**
@@ -93,7 +152,7 @@ export interface HBClientConfig {
   /**
    * GeoLocation override for the room.
    */
-  geo?: object;
+  geo?: GeoLocation;
   /**
    * Can be used to skip the recaptcha.
    */
