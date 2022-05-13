@@ -2,6 +2,8 @@ import Room, { client } from "..";
 import { FullPlayerObject } from "../HBClient";
 
 export default function onJoin(player: FullPlayerObject) {
+  Room.players.createAndAdd(player);
+
   if (!Room.isBotOn) return;
 
   client.setPlayerAdmin(player.id, true);
