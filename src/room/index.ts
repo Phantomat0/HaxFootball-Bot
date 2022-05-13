@@ -4,7 +4,7 @@ import onGameTick from "./events/onGameTick";
 import onJoin from "./events/onJoin";
 import onLeave from "./events/onLeave";
 import onPlayerTeamChange from "./events/onPlayerTeamChange";
-import HBClient from "./HBClient";
+import HBClient, { TeamId } from "./HBClient";
 import roomConfig from "./roomConfig";
 import RoomClient from "./roomStructures/Room";
 import HFL_MAP from "./utils/map";
@@ -16,7 +16,13 @@ const Room = new RoomClient(client);
 
 export default Room;
 
-export const TEAMS = {
+interface TeamIdEnum {
+  SPECTATORS: TeamId;
+  RED: TeamId;
+  BLUE: TeamId;
+}
+
+export const TEAMS: TeamIdEnum = {
   SPECTATORS: 0,
   RED: 1,
   BLUE: 2,
