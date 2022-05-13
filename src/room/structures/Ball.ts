@@ -1,9 +1,9 @@
 import { PlayableTeamId, Position } from "../HBClient";
 import { DISC_IDS, MAP_POINTS } from "../utils/map";
-import { client } from "..";
+import { client, TEAMS } from "..";
 
 class Ball {
-  IMMOVABLE_INV_MASS: 0.000001;
+  private IMMOVABLE_INV_MASS: number = 0.00001;
 
   getPosition() {
     return client.getBallPosition();
@@ -30,6 +30,7 @@ class Ball {
   }
 
   suppress() {
+    console.log("SUPPRESS");
     client.setDiscProperties(DISC_IDS.BALL, {
       invMass: this.IMMOVABLE_INV_MASS,
       xspeed: 0,
@@ -47,10 +48,12 @@ class Ball {
     return this;
   }
 
-  score(teamId: PlayableTeamId) {
+  score(teamEndzoneToScore: PlayableTeamId) {
     const x =
-      teamId === 2 ? MAP_POINTS.BLUE_SCORE_LINE : MAP_POINTS.RED_SCORE_LINE;
-    client.setDiscProperties(0, {
+      teamEndzoneToScore === TEAMS.BLUE
+        ? MAP_POINTS.BLUE_SCORE_LINE
+        : MAP_POINTS.RED_SCORE_LINE;
+    client.setDiscProperties(DISC_IDS.BALL, {
       x: x,
       y: -200,
       xspeed: 0,
