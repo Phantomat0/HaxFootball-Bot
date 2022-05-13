@@ -1,8 +1,10 @@
 import { client, TEAMS } from "..";
 import { PlayableTeamId, Position } from "../HBClient";
 import { PLAY_TYPES } from "../plays/BasePlay";
+import Snap from "../plays/Snap";
 import Chat from "../roomStructures/Chat";
 import PlayerRecorder from "../structures/PlayerRecorder";
+import PlayerStatManager from "../structures/PlayerStatManager";
 import Down from "./Down";
 import WithStateStore from "./WithStateStore";
 
@@ -22,6 +24,7 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   play: PLAY_TYPES | null = null;
   down: Down = new Down();
   players: PlayerRecorder = new PlayerRecorder();
+  stats: PlayerStatManager = new PlayerStatManager();
 
   updateStaticPlayers() {
     this.players.updateStaticPlayerList(
@@ -41,7 +44,15 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     this.offenseTeamId = teamId;
   }
 
-  swapOffense() {
+  private _getQuarterbackIdToUpdateStaticPlayers() {
+    if (this.play && this.play instanceof Snap) {
+      return this.play.getQuarterback().id;
+    }
+
+    return 0;
+  }
+
+  swapOffenseAndUpdatePlayers() {
     if (this.offenseTeamId === 1) {
       console.log("change it to 2");
       this.setOffenseTeam(2);
@@ -49,6 +60,10 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
       console.log("change it to 1");
       this.setOffenseTeam(1);
     }
+
+    const quarterBackId = this._getQuarterbackIdToUpdateStaticPlayers();
+    // Also update static players
+    this.players.updateStaticPlayerList(this.offenseTeamId, quarterBackId);
 
     Chat.send(`Teams swapped! ${this.offenseTeamId} is now on offense`);
   }
@@ -58,7 +73,6 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     message?: string;
     sendToPlayer?: boolean;
   } {
-    //@ts-ignore
     const verificationDetails = play?.validateBeforePlayBegins();
 
     console.log(verificationDetails);
@@ -69,7 +83,6 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
 
     this.play = play;
 
-    //@ts-ignore
     this.play.run();
 
     return {
