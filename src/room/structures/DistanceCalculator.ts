@@ -7,7 +7,7 @@ import MapReferee from "./MapReferee";
 // -775 ================== 0 ================== 775
 // ====================== 775 ====================
 
-class DistanceConverter {
+export class DistanceConverter {
   static toYardLine(distance: number) {
     return (MAP_POINTS.HALF_FIELD - Math.abs(distance)) / MAP_POINTS.YARD;
   }
@@ -159,10 +159,12 @@ export default class DistanceCalculator {
    * Returns the final calculation
    */
   calculate() {
+    console.log(this._calculation);
     return this._calculation;
   }
 
   calculateAndConvert() {
+    console.log(this._calculation);
     return {
       distance: this._calculation,
       yards: DistanceConverter.toYard(this._calculation),
