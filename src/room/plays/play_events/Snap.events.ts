@@ -60,7 +60,6 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     quarterback: PlayerObject;
     mapSection: MapSectionName;
   };
-  protected abstract endPlay(endPlayData: any): any;
 
   validateBeforePlayBegins(): {
     valid: boolean;

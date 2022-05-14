@@ -29,6 +29,7 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
   private _currentDown: 1 | 2 | 3 | 4 | 5 = 1;
   private _yards: number = Down.CONFIG.DEFAULT_YARDS_TO_GET;
   private _redZonePenalties: 0 | 1 | 2 | 3 = 0;
+  _MAX_REZONE_PENALTIES: number = 3;
 
   getLOS() {
     return this._los;
@@ -87,6 +88,14 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
       x,
       y: 0,
     };
+  }
+
+  incrementRedZonePenalties() {
+    this._redZonePenalties++;
+  }
+
+  hasReachedMaxRedzonePenalties() {
+    return this._redZonePenalties === this._MAX_REZONE_PENALTIES;
   }
 
   sendDownAndDistance() {

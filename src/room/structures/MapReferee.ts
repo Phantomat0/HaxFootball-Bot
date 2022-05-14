@@ -68,8 +68,13 @@ class MapReferee {
   //   return this._checkIfInEndzone(x);
   // };
 
+  /**
+   * Returns the endzone the x position is in, or null if not in redzone
+   */
   checkIfInRedzone(x: Position["x"]) {
-    return x >= MAP_POINTS.BLUE_REDZONE || x <= MAP_POINTS.RED_REDZONE;
+    if (x >= MAP_POINTS.BLUE_REDZONE) return TEAMS.BLUE;
+    if (x <= MAP_POINTS.RED_REDZONE) return TEAMS.RED;
+    return null;
   }
 
   checkIfBehind(x1: Position["x"], x2: Position["x"], team: PlayableTeamId) {

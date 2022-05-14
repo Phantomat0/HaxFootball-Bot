@@ -7,9 +7,7 @@ import Ball from "../structures/Ball";
 import GameReferee from "../structures/GameReferee";
 import MapReferee from "../structures/MapReferee";
 import PreSetCalculators from "../structures/PreSetCalculators";
-import ICONS from "../utils/Icons";
 import MapSectionFinder, { MapSectionName } from "../utils/MapSectionFinder";
-import { RequiredKeys } from "../utils/types";
 import SnapEvents from "./play_events/Snap.events";
 
 // CASES
@@ -22,13 +20,6 @@ import SnapEvents from "./play_events/Snap.events";
 // 7. Illegal blitz defebse
 // 8. Ball blitzed defense
 
-interface EndPlayData {
-  netYards?: number;
-  endPosition?: Position | null;
-  addDown?: boolean;
-  resetDown?: boolean;
-}
-
 export type BadIntReasons =
   | "Blocked by offense"
   | "Illegally touched by defense"
@@ -36,16 +27,6 @@ export type BadIntReasons =
   | "Drag on kick"
   | "Out of bounds during attempt"
   | "Ball out of bounds";
-
-// interface InterceptionEndPlayData {}
-
-interface SnapEndPlay {
-  penalty: RequiredKeys<EndPlayData, "endPosition" | "addDown">;
-  tackle: EndPlayData;
-  deflection: EndPlayData;
-  outOfBounds: EndPlayData;
-  badInt: EndPlayData;
-}
 
 export default class Snap extends SnapEvents {
   private _quarterback: PlayerObject;
@@ -393,59 +374,6 @@ export default class Snap extends SnapEvents {
     );
   }
 
-  endPlay<T extends keyof SnapEndPlay>({
-    netYards = 0,
-    endPosition = null,
-    addDown = true,
-    resetDown = false,
-  }: SnapEndPlay[T]) {
-    console.log(netYards, endPosition, addDown);
-
-    // const isKickOffOrPunt = this.getState("punt") || this.getState("kickOff");
-    const updateDown = () => {
-      console.log("UPDATE DOWN RAN");
-      // Dont update the down if nothing happened, like off a pass deflection, punt, or kickoff
-      if (endPosition === null) return;
-
-      const addYardsAndStartNewDownIfNecessary = () => {
-        Room.game.down.setLOS(endPosition.x);
-        Room.game.down.subtractYards(netYards);
-
-        const currentYardsToGet = Room.game.down.getYards();
-        if (currentYardsToGet <= 0 || resetDown) {
-          Chat.send("FIRST DOWN!");
-          Room.game.down.startNew();
-        }
-        // else if (this.getState("fieldGoal")) {
-        //   // This endplay only runs when there is a running play on the field goal
-        //   Chat.send(`${ICONS.Loudspeaker} Turnover on downs FIELD GOAL!`);
-        //   game.swapOffense();
-        //   down.startNew();
-      };
-      addYardsAndStartNewDownIfNecessary();
-    };
-    const enforceDown = () => {
-      const currentDown = Room.game.down.getDown();
-      // if (currentDown === 4) {
-      //   Chat.send(`4th down, GFI or PUNT`);
-      // }
-      if (currentDown === 5) {
-        Chat.send(`${ICONS.Loudspeaker} Turnover on downs!`);
-        Room.game.swapOffenseAndUpdatePlayers();
-        Room.game.down.startNew();
-      }
-    };
-    this._setLivePlay(false);
-
-    if (addDown && resetDown === false) {
-      Room.game.down.addDown();
-    }
-
-    updateDown();
-    enforceDown();
-    Room.game.down.resetAfterDown();
-  }
-
   // /**
   //  * Handles a touchdown after a two point conversion
   //  */
@@ -497,7 +425,7 @@ export default class Snap extends SnapEvents {
   /**
    * Handles an auto touchdown after three redzone penalties
    */
-  // private _handleAutoTouchdown() {}
+  _handleAutoTouchdown() {}
 
   handleTouchdown(position: Position) {
     // First we need to get the type of touchdown, then handle

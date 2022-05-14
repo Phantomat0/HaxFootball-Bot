@@ -6,8 +6,14 @@ import { PlayableTeamId, Position } from "../HBClient";
 import Chat from "../roomStructures/Chat";
 import Ball from "../structures/Ball";
 import DistanceCalculator from "../structures/DistanceCalculator";
+import MapReferee from "../structures/MapReferee";
+import PenaltyData, {
+  PenaltyName,
+  PENALTY_TYPES,
+} from "../structures/PenaltyData";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import { flattenPlayer } from "../utils/haxUtils";
+import ICONS from "../utils/Icons";
 import MapSectionFinder from "../utils/MapSectionFinder";
 import FieldGoal from "./FieldGoal";
 import KickOff from "./Kickoff";
@@ -23,6 +29,13 @@ export type PLAY_TYPES = Snap | FieldGoal | KickOff | Punt;
 type PlayStorages = SnapStore & FieldGoalStore & PuntStore & KickOffStore;
 
 export type PlayStorageKeys = keyof PlayStorages | "twoPointAttempt";
+
+interface EndPlayData {
+  netYards?: number;
+  endPosition?: Position | null;
+  addDown?: boolean;
+  resetDown?: boolean;
+}
 
 export default abstract class BasePlay<T> extends WithStateStore<
   T,
@@ -62,6 +75,10 @@ export default abstract class BasePlay<T> extends WithStateStore<
   protected _setLivePlay(bool: boolean) {
     Chat.send(`SET LIVE PLAY TO: ${bool}`);
     this._isLivePlay = bool;
+  }
+
+  getMaskPlay<T extends PLAY_TYPES>() {
+    return this as unknown as T;
   }
 
   getBallPositionOnSet() {
@@ -188,6 +205,107 @@ export default abstract class BasePlay<T> extends WithStateStore<
 
     // // Score the play first, so we can create a new down
     // down.setState("safetyKickOff", offenseTwentyYardLine);
+  }
+
+  handlePenalty<T extends PenaltyName>(
+    penaltyName: PenaltyName,
+    penaltyData: PENALTY_TYPES[T]
+  ) {
+    const losX = Room.game.down.getLOS().x;
+
+    const isInDefenseRedzone =
+      MapReferee.checkIfInRedzone(losX) === Room.game.defenseTeamId;
+
+    const {
+      penaltyYards,
+      addDown,
+      hasOwnHandler,
+      isRedZonePenaltyOnDefense,
+      newEndLosX,
+    } = new PenaltyData<T>().getData(
+      penaltyName,
+      isInDefenseRedzone,
+      losX,
+      Room.game.offenseTeamId,
+      penaltyData
+    );
+
+    // Add the penalty stat and yards to the player's stats
+    if (penaltyData?.player) {
+      Room.game.stats.updatePlayerStat(penaltyData.player.id!, {
+        penalties: 1,
+        penaltyYards: Math.abs(penaltyYards),
+      });
+    }
+
+    if (hasOwnHandler) return;
+
+    if (isRedZonePenaltyOnDefense) {
+      Room.game.down.incrementRedZonePenalties();
+
+      const isAutoTouchdown = Room.game.down.hasReachedMaxRedzonePenalties();
+
+      if (isAutoTouchdown)
+        return this.getMaskPlay<Snap>()._handleAutoTouchdown();
+    }
+
+    console.log(addDown, newEndLosX);
+  }
+
+  endPlay({
+    netYards = 0,
+    endPosition = null,
+    addDown = true,
+    resetDown = false,
+  }: EndPlayData) {
+    console.log(netYards, endPosition, addDown);
+
+    // const isKickOffOrPunt = this.getState("punt") || this.getState("kickOff");
+    const updateDown = () => {
+      console.log("UPDATE DOWN RAN");
+      // Dont update the down if nothing happened, like off a pass deflection, punt, or kickoff
+      if (!endPosition) return;
+
+      const addYardsAndStartNewDownIfNecessary = () => {
+        Room.game.down.setLOS(endPosition.x);
+        Room.game.down.subtractYards(netYards);
+
+        const currentYardsToGet = Room.game.down.getYards();
+        if (currentYardsToGet <= 0 || resetDown) {
+          Chat.send("FIRST DOWN!");
+          Room.game.down.startNew();
+        }
+
+        if (this.stateExistsUnsafe("fieldGoal")) {
+          // This endplay only runs when there is a running play on the field goal
+          Chat.send(`${ICONS.Loudspeaker} Turnover on downs FIELD GOAL!`);
+          Room.game.swapOffenseAndUpdatePlayers();
+          Room.game.down.startNew();
+        }
+      };
+      addYardsAndStartNewDownIfNecessary();
+    };
+    const enforceDown = () => {
+      const currentDown = Room.game.down.getDown();
+      // if (currentDown === 4) {
+      //   Chat.send(`4th down, GFI or PUNT`);
+      // }
+      if (currentDown === 5) {
+        Chat.send(`${ICONS.Loudspeaker} Turnover on downs!`);
+        Room.game.swapOffenseAndUpdatePlayers();
+        Room.game.down.startNew();
+      }
+    };
+
+    this._setLivePlay(false);
+
+    if (addDown && resetDown === false) {
+      Room.game.down.addDown();
+    }
+
+    updateDown();
+    enforceDown();
+    Room.game.down.resetAfterDown();
   }
 
   /* ABSTRACT */
