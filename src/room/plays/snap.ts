@@ -1,12 +1,13 @@
 import Room from "..";
 import BallContact from "../classes/BallContact";
 import PlayerContact from "../classes/PlayerContact";
-import { PlayerObject, Position } from "../HBClient";
+import { PlayerObject, PlayerObjFlat, Position } from "../HBClient";
 import Chat from "../roomStructures/Chat";
 import Ball from "../structures/Ball";
 import GameReferee from "../structures/GameReferee";
 import MapReferee from "../structures/MapReferee";
 import PreSetCalculators from "../structures/PreSetCalculators";
+import ICONS from "../utils/Icons";
 import MapSectionFinder, { MapSectionName } from "../utils/MapSectionFinder";
 import SnapEvents from "./play_events/Snap.events";
 
@@ -30,17 +31,40 @@ export type BadIntReasons =
 
 export default class Snap extends SnapEvents {
   private _quarterback: PlayerObject;
+  private _blitzClock: NodeJS.Timer | null;
+  private _blitzClockTime: number = 0;
+  private readonly BLITZ_TIME_SECONDS: number = 12;
   constructor(time: number, quarterback: PlayerObject) {
     super(time);
     this._quarterback = quarterback;
     this._ballCarrier = quarterback;
   }
 
+  private _blitzTimer() {
+    if (this._blitzClockTime >= this.BLITZ_TIME_SECONDS) {
+      console.log(this._blitzClockTime, this.BLITZ_TIME_SECONDS);
+      // Chat.send("BLITZ");
+      this.setState("canBlitz");
+      return this._stopBlitzClock();
+    }
+    console.log(this);
+    console.log(this._blitzClockTime, this.BLITZ_TIME_SECONDS);
+    // Chat.send(`${this._blitzClockTime}`);
+    this._blitzClockTime++;
+  }
+
   getQuarterback() {
     return this._quarterback;
   }
 
-  protected _updateStats() {}
+  protected _startBlitzClock() {
+    this._blitzClock = setInterval(this._blitzTimer.bind(this), 1000);
+  }
+
+  private _stopBlitzClock() {
+    if (this._blitzClock === null) return;
+    clearInterval(this._blitzClock);
+  }
 
   protected _getStatInfo(endPosition: Position): {
     quarterback: PlayerObject;
@@ -103,9 +127,7 @@ export default class Snap extends SnapEvents {
   }
 
   protected _handleIllegalTouch(ballContactObj: BallContact) {
-    Chat.send("ILLEGAL TOUCH");
-
-    this._setLivePlay(false);
+    this._handlePenalty("illegalTouch", ballContactObj.player);
   }
 
   protected _handleBallContactQuarterback(ballContactObj: BallContact) {
@@ -136,7 +158,7 @@ export default class Snap extends SnapEvents {
     if (isQBContact) return this._handleBallContactQuarterback(ballContactObj);
 
     // Receiver touched but there wasnt a pass yet
-    const touchButNoQbPass = this.getState("ballPassed") === null;
+    const touchButNoQbPass = this.stateExists("ballPassed") === false;
     if (touchButNoQbPass) return this._handleIllegalTouch(ballContactObj);
 
     // Has to be a catch
@@ -262,7 +284,7 @@ export default class Snap extends SnapEvents {
 
     Chat.send("we have a tackle position");
 
-    return this.endPlay({ endPosition, resetDown: true });
+    return this.endPlay({ newLosX: endPosition.x, resetDown: true });
   }
 
   protected _handleInterceptionBallCarrierOutOfBounds(
@@ -283,7 +305,7 @@ export default class Snap extends SnapEvents {
 
       Chat.send("Stepped out of bounds during an int");
       return this.endPlay({
-        endPosition: endPosition,
+        newLosX: endPosition.x,
         resetDown: true,
       });
     }
@@ -298,20 +320,20 @@ export default class Snap extends SnapEvents {
     );
 
     Chat.send(
-      `${playerContact.player} tackled the ball carrier at the ${endYard}`
+      `${playerContact.player.name} tackled the ball carrier at the ${endYard}`
     );
 
     Room.game.stats.updatePlayerStat(playerContact.player.id, {
       tackles: 1,
     });
 
-    // CHECK FOR SACK OKAY!
-
-    const isSack = GameReferee.checkIfSack(
-      playerContact.ballCarrierPosition,
-      Room.game.down.getLOS().x,
-      Room.game.offenseTeamId
-    );
+    // Check for sack
+    const isSack =
+      GameReferee.checkIfSack(
+        playerContact.ballCarrierPosition,
+        Room.game.down.getLOS().x,
+        Room.game.offenseTeamId
+      ) && this.stateExists("ballRan") === false;
 
     // No sacks on interceptions
     if (isSack && this.stateExists("ballIntercepted") === false) {
@@ -350,14 +372,14 @@ export default class Snap extends SnapEvents {
     // Allows us to reset the down
     if (this.stateExists("ballIntercepted")) {
       return this.endPlay({
-        endPosition,
+        newLosX: endPosition.x,
         netYards,
         resetDown: true,
       });
     }
 
     this.endPlay({
-      endPosition,
+      newLosX: endPosition.x,
       netYards,
     });
   }
@@ -387,7 +409,7 @@ export default class Snap extends SnapEvents {
    */
   private _handleRegularTouchdown(endPosition: Position) {
     const { netYards } = this._getPlayDataOffense(endPosition);
-    Chat.send("TOUCHDOWN");
+    Chat.send(`${ICONS.Football} TOUCHDOWN!`);
     // Determine what kind of touchdown we have here
     // If the ball has been ran or if the qb ran the ball
     if (
@@ -415,8 +437,6 @@ export default class Snap extends SnapEvents {
       });
     }
 
-    this._setLivePlay(false);
-
     Room.game.addScore(Room.game.offenseTeamId, 7);
     Ball.score(Room.game.defenseTeamId);
     // Can set the state "canTwoPoint" probs here
@@ -428,6 +448,7 @@ export default class Snap extends SnapEvents {
   _handleAutoTouchdown() {}
 
   handleTouchdown(position: Position) {
+    this._setLivePlay(false);
     // First we need to get the type of touchdown, then handle
     if (this.stateExistsUnsafe("twoPointAttempt"))
       return this._handleTwoPointTouchdown();
@@ -451,29 +472,19 @@ export default class Snap extends SnapEvents {
     //   : this.scorePlay(7, game.getOffenseTeam());
   }
 
-  // onKickDrag(dragAmount) {
-  //   handlePenalty({
-  //     type: PENALTY_TYPES.SNAP_DRAG,
-  //     playerName: this._quarterback.name,
-  //   });
-  // }
+  onKickDrag(player: PlayerObjFlat) {
+    this._handlePenalty("snapDrag", player);
+  }
 
-  // handleIllegalCrossOffense() {
-  //   handlePenalty({
-  //     type: PENALTY_TYPES.ILLEGAL_LOS_CROSS,
-  //     playerName: this._quarterback.name,
-  //   });
-  // }
+  handleIllegalCrossOffense(player: PlayerObjFlat) {
+    this._handlePenalty("illegalLosCross", player);
+  }
 
-  // #handleIllegalTouch(playerName) {
-  //   handlePenalty({ type: PENALTY_TYPES.ILLEGAL_PASS, playerName: playerName });
-  // }
+  handleIllegalBlitz(player: PlayerObject) {
+    this._handlePenalty("illegalBlitz", player, { time: this._blitzClockTime });
+  }
 
-  // handleAutoTouchdown() {
-  //   // After three redzone penalties
-
-  //   Chat.send(`AUTO TOUCHDOWN!`);
-
-  //   this.scorePlay(7, game.getOffenseTeam());
-  // }
+  destroy() {
+    this._stopBlitzClock();
+  }
 }
