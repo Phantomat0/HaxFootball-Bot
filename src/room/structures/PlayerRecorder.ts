@@ -1,6 +1,7 @@
 import { client } from "..";
-import { PlayableTeamId, PlayerObject } from "../HBClient";
+import { PlayableTeamId, PlayerObject, Position } from "../HBClient";
 import Collection from "../utils/Collection";
+import { getPlayerDiscProperties } from "../utils/haxUtils";
 import { partition } from "../utils/utils";
 
 interface PlayerSubstitution {
@@ -14,12 +15,26 @@ type PlayerRecord = Pick<PlayerObject, "id" | "name" | "team"> & {
 
 export default class PlayerRecorder {
   _players: Collection<PlayerObject["id"], PlayerRecord>;
-  _playersStatic: {
+  private _playersStatic: {
     fielded: PlayerObject[];
     offense: PlayerObject[];
     defense: PlayerObject[];
     offenseNoQb: PlayerObject[];
   };
+  playerPositionsMap = new Map<
+    PlayerObject["id"],
+    { team: PlayerObject["team"]; position: Position }
+  >();
+
+  savePlayerPositions() {
+    this._playersStatic.fielded.forEach((player) => {
+      const { position } = getPlayerDiscProperties(player.id);
+      this.playerPositionsMap.set(player.id, {
+        team: player.team,
+        position: position,
+      });
+    });
+  }
 
   updateStaticPlayerList(offensiveTeam: PlayableTeamId, quarterbackId: number) {
     const players = client.getPlayerList();
@@ -31,15 +46,7 @@ export default class PlayerRecorder {
       (player) => player.team === offensiveTeam
     );
 
-    console.log(offense, defense);
-
-    console.log("OFFENSE TEAM", offensiveTeam);
-
-    console.log("QB", quarterbackId);
-
     const offenseNoQb = offense.filter((player) => player.id !== quarterbackId);
-
-    console.log(offenseNoQb);
 
     this._playersStatic = {
       fielded: fielded,
