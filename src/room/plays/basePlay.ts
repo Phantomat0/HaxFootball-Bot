@@ -82,6 +82,10 @@ export default abstract class BasePlay<T> extends WithStateStore<
     this._isLivePlay = bool;
   }
 
+  terminatePlayDuringError() {
+    this._setLivePlay(false);
+  }
+
   getMaskPlay<T extends PLAY_TYPES>() {
     return this as unknown as T;
   }

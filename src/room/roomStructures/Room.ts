@@ -24,8 +24,4 @@ export default class RoomClient {
     if (!this.game.play) throw new Error("Game Error: Play is not defined");
     return this.game.play as T;
   }
-
-  getPlayers() {
-    return this.client.getPlayerList();
-  }
 }

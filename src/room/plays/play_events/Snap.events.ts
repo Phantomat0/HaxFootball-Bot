@@ -169,8 +169,6 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     sendToPlayer?: boolean;
   } {
     Room.game.updateStaticPlayers();
-    console.log(Room.game.players.getDefense());
-    console.log(Room.game.players.getOffense());
 
     const playerIsOnOffense = player.team === Room.game.offenseTeamId;
     const playAlreadyInProgess = Boolean(Room.game.play);
@@ -191,6 +189,8 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       };
 
     // Check for penalties
+
+    Room.game.players.savePlayerPositions();
 
     const {
       valid,
