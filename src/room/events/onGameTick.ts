@@ -7,6 +7,9 @@ import { checkBallCarrierContact, checkBallContact } from "./tickEvents";
 import Chat from "../roomStructures/Chat";
 import { PlayableTeamId } from "../HBClient";
 import Snap from "../plays/Snap";
+import Ball from "../structures/Ball";
+import PreSetCalculators from "../structures/PreSetCalculators";
+import FieldGoal from "../plays/FieldGoal";
 
 const eventListeners: EventListener[] = [
   {
@@ -120,44 +123,62 @@ const eventListeners: EventListener[] = [
     // Early Blitz Penalty
     name: "Defense Position",
     runWhen: ["ballSnapped", "fieldGoal"],
-    stopWhen: ["lineBlitzed", "ballRan", "ballPassed", "fieldGoalKicked"],
+    stopWhen: [
+      "lineBlitzed",
+      "ballRan",
+      "ballPassed",
+      "fieldGoalKicked",
+      "fieldGoalBlitzed",
+    ],
     run: () => {
-      // const { defensePlayers } = game.getOffenseDefensePlayers();
-      // const defensiveTeam = game.getDefenseTeam();
-      // const offsidePlayer = getOffSidePlayerNoAdjust(
-      //   defensePlayers,
-      //   defensiveTeam
-      // );
-      // if (offsidePlayer) {
-      //   // Check if can blitz
-      //   const canBlitz = play.getState("canBlitz");
-      //   if (canBlitz) {
-      //     play.setState("blitzed");
-      //   } else {
-      //     return handlePenalty({
-      //       type: PENALTY_TYPES.ILLEGAL_BLITZ,
-      //       playerName: offsidePlayer.name,
-      //     });
-      //   }
-      // }
-      // // Check if a blue player is offside
+      const defensePlayers = Room.game.players.getDefense();
+      const defensiveTeam = Room.game.defenseTeamId;
+      const offsidePlayer = MapReferee.findTeamPlayerOffsideNoAdjust(
+        defensePlayers,
+        defensiveTeam,
+        Room.game.down.getLOS().x
+      );
+
+      if (!offsidePlayer) return;
+
+      // Check if they were able to blitz
+
+      const canBlitzOnSnap = Room.getPlay().stateExistsUnsafe("canBlitz");
+      const isFieldGoal = Room.getPlay().stateExistsUnsafe("fieldGoal");
+
+      if (isFieldGoal)
+        return Room.getPlay<FieldGoal>().setState("fieldGoalBlitzed");
+      if (canBlitzOnSnap) return Room.getPlay<Snap>().setState("lineBlitzed");
+
+      // If wasnt allowed to blitz, call penalty
+      return Room.getPlay<Snap>().handleIllegalBlitz(offsidePlayer);
     },
   },
   {
-    // Early LOS Cross Penalty
+    // Early LOS Cross Penalty for Snap and FieldGoal
     name: "Quarterback and Kicker Position",
-    runWhen: [], //"snap", "fieldGoal"
+    runWhen: ["ballSnapped", "fieldGoal"],
     stopWhen: ["ballRan", "ballPassed", "fieldGoalKicked", "lineBlitzed"],
     run: () => {
-      // const { id, team } = play.getBallCarrier(); // This is really either the QB, or the kicker
-      // const {
-      //   position: { x },
-      // } = getPlayerDiscProperties(id);
-      // const qbPosition = new DistanceCalculator([x, MAP.PLAYER_RADIUS])
-      //   .addByTeam(team)
-      //   .getDistance();
-      // const isBehindLOS = checkIfBehind(qbPosition, down.getLOS(), team);
-      // if (!isBehindLOS) return play.handleIllegalCrossOffense();
+      const qbOrKicker = Room.getPlay().getBallCarrier(); // This is really either the QB, or the kicker
+
+      const { id, team } = qbOrKicker;
+
+      const { position } = getPlayerDiscProperties(id);
+
+      const qbAdjustedPosition = PreSetCalculators.adjustPlayerPositionFront(
+        position,
+        team as PlayableTeamId
+      );
+
+      const isBehindLOS = MapReferee.checkIfBehind(
+        qbAdjustedPosition.x,
+        Room.game.down.getLOS().x,
+        team as PlayableTeamId
+      );
+
+      if (!isBehindLOS)
+        return Room.getPlay<Snap>().handleIllegalCrossOffense(qbOrKicker);
     },
   },
   {
@@ -175,14 +196,15 @@ const eventListeners: EventListener[] = [
     ],
     run: () => {
       // Each Play has a this.MAX_DRAG_DISTANCE
-      //  const MAX_DRAG_DISTANCE = 10;
-      //  const dragAmount = new DistanceCalculator([
-      //    play.getBallPositionOnSet(),
-      //    ball.getPosition(),
-      //  ])
-      //    .calcDifference()
-      //    .getDistance();
-      //  if (dragAmount > MAX_DRAG_DISTANCE) return play.onKickDrag(dragAmount);
+      const MAX_DRAG_DISTANCE = 15;
+
+      const ballDragged = MapReferee.checkIfBallDragged(
+        Room.getPlay().getBallPositionOnSet(),
+        Ball.getPosition(),
+        MAX_DRAG_DISTANCE
+      );
+      if (ballDragged)
+        return Room.getPlay().onKickDrag(Room.getPlay().getBallCarrier());
     },
   },
   {
