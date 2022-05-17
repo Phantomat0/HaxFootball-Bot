@@ -29,9 +29,10 @@ export default class MapSectionFinder {
         const fifteenYardsInFrontOfLOS = losX + YARD * 15;
         const fifteenYardsBehindLOS = losX - YARD * 15;
 
+        // Have to adjust
         return {
           x1: fifteenYardsBehindLOS,
-          y1: TOP_SIDELINE,
+          y1: TOP_SIDELINE - 1000,
           x2: fifteenYardsInFrontOfLOS,
           y2: ABOVE_HASH,
         };
@@ -49,7 +50,7 @@ export default class MapSectionFinder {
           x1: fifteenYardsBehindLOS,
           y1: BELOW_HASH,
           x2: fifteenYardsInFrontOfLOS,
-          y2: BOT_SIDELINE,
+          y2: BOT_SIDELINE + 1000,
         };
       },
     },
@@ -72,15 +73,17 @@ export default class MapSectionFinder {
     {
       name: "deep",
       getRectangleArea: function (losX: number) {
-        const { YARD, BOT_SIDELINE, TOP_SIDELINE, BLUE_SIDELINE } = MAP_POINTS;
+        const { YARD, BOT_SIDELINE, TOP_SIDELINE } = MAP_POINTS;
 
         const fifteenYardsInFrontOfLOS = losX + YARD * 15;
 
+        const unlimitedYardsInFrontOfLOS = losX + YARD * 100;
+
         return {
           x1: fifteenYardsInFrontOfLOS,
-          y1: TOP_SIDELINE,
-          x2: BLUE_SIDELINE,
-          y2: BOT_SIDELINE,
+          y1: TOP_SIDELINE - 1000,
+          x2: unlimitedYardsInFrontOfLOS,
+          y2: BOT_SIDELINE + 1000,
         };
       },
     },
