@@ -204,6 +204,8 @@ interface FullPlayerObject extends PlayerObject {
   conn: string;
 }
 
+export type PlayerObjFlat = Pick<PlayerObject, "name" | "id" | "team">;
+
 export default interface HBClient {
   /**
    * Object filled with the collision flags constants that compose the cMask and cGroup disc properties.
