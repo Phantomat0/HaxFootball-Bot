@@ -159,12 +159,10 @@ export default class DistanceCalculator {
    * Returns the final calculation
    */
   calculate() {
-    console.log(this._calculation);
     return this._calculation;
   }
 
   calculateAndConvert() {
-    console.log(this._calculation);
     return {
       distance: this._calculation,
       yards: DistanceConverter.toYard(this._calculation),

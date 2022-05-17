@@ -30,7 +30,6 @@ class Ball {
   }
 
   suppress() {
-    console.log("SUPPRESS");
     client.setDiscProperties(DISC_IDS.BALL, {
       invMass: this.IMMOVABLE_INV_MASS,
       xspeed: 0,

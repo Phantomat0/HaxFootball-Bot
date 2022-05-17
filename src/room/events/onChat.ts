@@ -6,8 +6,7 @@ import Chat from "../roomStructures/Chat";
 export default function onChat(player: PlayerObject, message: string) {
   if (!Room.isBotOn) return;
   if (message === "hike") {
-    console.log("SET PLAY YEP");
-    return Room.game.setPlay(new Snap(0, player));
+    return Room.game.setPlay(new Snap(0, player), player);
   }
   if (message === "lmao") {
     console.log(Room.game.play);
