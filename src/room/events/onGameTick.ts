@@ -236,8 +236,7 @@ export default function onGameTick() {
   } catch (error) {
     console.trace(error);
     Chat.send(error.message);
-    // game.hardReset();
-    // Some kind of reset goes here
+    Room.game.down.hardReset();
   }
 }
 
