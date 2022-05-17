@@ -20,6 +20,22 @@ export const getRandomInt = (max: number): number => {
   return Math.floor(Math.random() * max);
 };
 
+export const getRandomIntInRange = (min: number, max: number) => {
+  // find diff
+  let difference = max - min;
+
+  // generate random number
+  let rand = Math.random();
+
+  // multiply with difference
+  rand = Math.floor(rand * difference);
+
+  // add with min value
+  rand = rand + min;
+
+  return rand;
+};
+
 export const leftpad = (val: number): string => {
   return val < 10 ? `0${val}` : `${val}`;
 };
