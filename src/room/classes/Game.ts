@@ -26,6 +26,7 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   down: Down = new Down();
   players: PlayerRecorder = new PlayerRecorder();
   stats: PlayerStatManager = new PlayerStatManager();
+  private _canStartSnapPlay: boolean = true;
 
   updateStaticPlayers() {
     this.players.updateStaticPlayerList(
@@ -69,7 +70,20 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     Chat.send(`Teams swapped! ${this.offenseTeamId} is now on offense`);
   }
 
+  startSnapDelay() {
+    this._canStartSnapPlay = false;
+    setTimeout(() => {
+      this._canStartSnapPlay = true;
+    }, 2000);
+  }
+
   setPlay(play: PLAY_TYPES, player: PlayerObject) {
+    if (play instanceof Snap && this._canStartSnapPlay === false) {
+      Chat.send("Please wait a second before snapping the ball");
+
+      return false;
+    }
+
     const verificationDetails = play?.validateBeforePlayBegins(player);
 
     if (!verificationDetails.valid) {
