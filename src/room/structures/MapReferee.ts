@@ -1,7 +1,9 @@
 import { TEAMS } from "..";
-import { PlayableTeamId, Position } from "../HBClient";
+import { PlayableTeamId, PlayerObject, Position } from "../HBClient";
+import { getPlayerDiscProperties } from "../utils/haxUtils";
 import { MAP_POINTS } from "../utils/map";
 import Ball from "./Ball";
+import DistanceCalculator from "./DistanceCalculator";
 import PreSetCalculators from "./PreSetCalculators";
 
 /**
@@ -16,6 +18,43 @@ class MapReferee {
     return (
       y < topSideLine || y > botSideLine || x < redSideLine || x > blueSideLine
     );
+  }
+
+  /**
+   * Finds a player that is offside
+   */
+  findTeamPlayerOffside(
+    players: PlayerObject[],
+    team: PlayableTeamId,
+    losX: Position["x"]
+  ) {
+    const offsidePlayer = players.find((player) => {
+      const { position } = getPlayerDiscProperties(player.id);
+      const { x } = PreSetCalculators.adjustPlayerPositionFront(position, team);
+      const isOnside = this.checkIfBehind(x, losX, team);
+      return !isOnside;
+    });
+
+    return offsidePlayer;
+  }
+
+  /**
+   * Returns an offside player from a team, without adjusting player position
+   */
+  findTeamPlayerOffsideNoAdjust(
+    players: PlayerObject[],
+    team: PlayableTeamId,
+    losX: Position["x"]
+  ) {
+    const offsidePlayer = players.find((player) => {
+      const {
+        position: { x },
+      } = getPlayerDiscProperties(player.id);
+      const isOnside = this.checkIfBehind(x, losX, team);
+      return !isOnside;
+    });
+
+    return offsidePlayer;
   }
 
   getEndZonePositionIsIn = (position: Position) => {
@@ -55,6 +94,18 @@ class MapReferee {
     );
     return isOutOfBounds ? ballPosition : null;
   };
+
+  checkIfBallDragged(
+    ballPositionOnSet: Position,
+    ballPosition: Position,
+    maxDragDistance: number
+  ) {
+    const dragAmount = new DistanceCalculator()
+      .calcDifference3D(ballPositionOnSet, ballPosition)
+      .calculate();
+
+    return dragAmount > maxDragDistance;
+  }
 
   // // Also returns the endzone the player is in
   // checkIfPlayerInEndZone = (
