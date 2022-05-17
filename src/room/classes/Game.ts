@@ -1,10 +1,11 @@
 import { client, TEAMS } from "..";
-import { PlayableTeamId, Position } from "../HBClient";
+import { PlayableTeamId, PlayerObject, Position } from "../HBClient";
 import { PLAY_TYPES } from "../plays/BasePlay";
 import Snap from "../plays/Snap";
 import Chat from "../roomStructures/Chat";
 import PlayerRecorder from "../structures/PlayerRecorder";
 import PlayerStatManager from "../structures/PlayerStatManager";
+import ICONS from "../utils/Icons";
 import Down from "./Down";
 import WithStateStore from "./WithStateStore";
 
@@ -68,18 +69,15 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     Chat.send(`Teams swapped! ${this.offenseTeamId} is now on offense`);
   }
 
-  setPlay(play: PLAY_TYPES): {
-    valid: boolean;
-    message?: string;
-    sendToPlayer?: boolean;
-  } {
-    const verificationDetails = play?.validateBeforePlayBegins();
+  setPlay(play: PLAY_TYPES, player: PlayerObject) {
+    const verificationDetails = play?.validateBeforePlayBegins(player);
 
-    console.log(verificationDetails);
-
-    if (!verificationDetails.valid) return verificationDetails;
-
-    console.log("WE GOT HERE");
+    if (!verificationDetails.valid) {
+      if (verificationDetails.message && verificationDetails.sendToPlayer) {
+        Chat.send(verificationDetails.message);
+      }
+      return false;
+    }
 
     this.play = play;
 
@@ -91,6 +89,8 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   }
 
   endPlay() {
+    // Play might be null because play could be ended before it even starts like off a snap penalty
+    this.play?.destroy();
     this.play = null;
   }
 
@@ -110,5 +110,9 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     return client.getScores().time ?? 0;
   }
 
-  sendScoreBoard() {}
+  sendScoreBoard() {
+    Chat.send(
+      `${ICONS.RedSquare} ${this.score.red} -  ${this.score.blue} ${ICONS.BlueSquare}`
+    );
+  }
 }
