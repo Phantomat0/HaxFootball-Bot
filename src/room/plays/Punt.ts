@@ -159,7 +159,7 @@ export default class Punt extends PuntEvents {
     // this.endPlay({ endPosition: endPosition });
   }
 
-  onKickDrag(dragAmount: number) {
+  onKickDrag() {
     // Chat.send("DRAG ON KICK" + dragAmount);
     // const { name } = getClosestPlayerToBall();
     // handlePenalty({ type: PENALTY_TYPES.PUNT_DRAG, playerName: name });
@@ -301,4 +301,6 @@ export default class Punt extends PuntEvents {
     // // We dont adddown on kickoffs or punts
     // super.endPlay({ netYards, endPosition, addDown: false });
   }
+
+  destroy(): void {}
 }
