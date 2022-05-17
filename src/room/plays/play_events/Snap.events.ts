@@ -6,9 +6,109 @@ import Chat from "../../roomStructures/Chat";
 import Ball from "../../structures/Ball";
 import GameReferee from "../../structures/GameReferee";
 import MapReferee from "../../structures/MapReferee";
+import {
+  AdditionalPenaltyData,
+  PenaltyName,
+} from "../../structures/PenaltyDataGetter";
+import { getPlayerDiscProperties } from "../../utils/haxUtils";
+import { MAP_POINTS } from "../../utils/map";
 import { MapSectionName } from "../../utils/MapSectionFinder";
 import BasePlay from "../BasePlay";
 import { BadIntReasons } from "../Snap";
+
+class SnapValidatorPenalty<T extends PenaltyName> {
+  penaltyName: T;
+  player: PlayerObject;
+  penaltyData: AdditionalPenaltyData;
+
+  constructor(
+    penaltyName: T,
+    player: PlayerObject,
+    penaltyData: AdditionalPenaltyData = {}
+  ) {
+    this.penaltyName = penaltyName;
+    this.player = player;
+    this.penaltyData = penaltyData;
+  }
+}
+
+class SnapValidator {
+  private _player: PlayerObject;
+  private _playerPosition: Position;
+
+  constructor(player: PlayerObject) {
+    this._player = player;
+    this._playerPosition = getPlayerDiscProperties(this._player.id)?.position;
+  }
+
+  private _checkSnapOutOfBounds(): never | void {
+    const isOutOfBounds = MapReferee.checkIfPlayerOutOfBounds(
+      this._playerPosition
+    );
+
+    if (isOutOfBounds)
+      throw new SnapValidatorPenalty("snapOutOfBounds", this._player);
+  }
+
+  private _checkSnapWithinHashes(): never | void {
+    const isWithinHash = MapReferee.checkIfWithinHash(
+      this._playerPosition,
+      MAP_POINTS.PLAYER_RADIUS
+    );
+
+    if (!isWithinHash)
+      throw new SnapValidatorPenalty("snapOutOfHashes", this._player);
+  }
+
+  private _checkOffsideOffense(): never | void {
+    const offsidePlayer = MapReferee.findTeamPlayerOffside(
+      Room.game.players.getOffense(),
+      Room.game.offenseTeamId,
+      Room.game.down.getLOS().x
+    );
+
+    if (offsidePlayer)
+      throw new SnapValidatorPenalty("offsidesOffense", offsidePlayer);
+  }
+
+  private _checkOffsideDefense(): never | void {
+    const offsidePlayer = MapReferee.findTeamPlayerOffside(
+      Room.game.players.getDefense(),
+      Room.game.defenseTeamId,
+      Room.game.down.getLOS().x
+    );
+
+    if (offsidePlayer)
+      throw new SnapValidatorPenalty("offsidesDefense", offsidePlayer);
+  }
+
+  validate() {
+    try {
+      this._checkSnapWithinHashes();
+      this._checkSnapOutOfBounds();
+      this._checkOffsideOffense();
+      this._checkOffsideDefense();
+    } catch (e) {
+      if (e instanceof SnapValidatorPenalty) {
+        const { penaltyName, player, penaltyData } =
+          e as SnapValidatorPenalty<any>;
+
+        return {
+          valid: false,
+          penaltyName: penaltyName,
+          player: player,
+          penaltyData: penaltyData,
+        };
+      }
+
+      console.log(e);
+    }
+
+    return {
+      valid: true,
+    };
+  }
+}
 
 export interface SnapStore {
   ballSnapped: true;
@@ -17,6 +117,7 @@ export interface SnapStore {
   catchPosition: Position;
   ballDeflected: true;
   ballRan: true;
+  canBlitz: true;
   ballBlitzed: true;
   lineBlitzed: true;
   interceptionAttempt: true;
@@ -60,8 +161,9 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     quarterback: PlayerObject;
     mapSection: MapSectionName;
   };
+  protected abstract _startBlitzClock(): void;
 
-  validateBeforePlayBegins(): {
+  validateBeforePlayBegins(player: PlayerObject): {
     valid: boolean;
     message?: string;
     sendToPlayer?: boolean;
@@ -69,16 +171,54 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     Room.game.updateStaticPlayers();
     console.log(Room.game.players.getDefense());
     console.log(Room.game.players.getOffense());
+
+    const playerIsOnOffense = player.team === Room.game.offenseTeamId;
+    const playAlreadyInProgess = Boolean(Room.game.play);
+
     // Check if they can even run the command
-    return {
-      valid: true,
-    };
+    if (playAlreadyInProgess)
+      return {
+        valid: false,
+        message: "There is already a play in progress",
+        sendToPlayer: true,
+      };
+
+    if (!playerIsOnOffense)
+      return {
+        valid: false,
+        message: "You are not on offense",
+        sendToPlayer: true,
+      };
 
     // Check for penalties
+
+    const {
+      valid,
+      penaltyName,
+      player: penaltiedPlayer,
+      penaltyData,
+    } = new SnapValidator(player).validate();
+
+    if (valid)
+      return {
+        valid: true,
+      };
+
+    // Otherwise lets handle the penalty
+
+    this._handlePenalty(penaltyName!, penaltiedPlayer!, penaltyData);
+
+    // Dont send a penalty message to the player, since we are sending it globally already
+    return {
+      valid: false,
+      sendToPlayer: false,
+    };
   }
 
   run() {
     Room.game.updateStaticPlayers();
+    this.setBallPositionOnSet(Ball.getPosition());
+    this._startBlitzClock();
     this._setLivePlay(true);
     Ball.release();
     this.setState("ballSnapped");
@@ -149,7 +289,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       });
     }
 
-    this.endPlay({ endPosition, netYards });
+    this.endPlay({ newLosX: endPosition.x, netYards });
   }
 
   handleBallCarrierContactOffense(playerContact: PlayerContact) {
