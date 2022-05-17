@@ -38,7 +38,6 @@ interface IPlayerStat {
   forcedFumbles: number;
   interceptionsReceived: number;
   penalties: number;
-  penaltyYards: number;
 }
 
 export interface PlayerStatQuery {
@@ -62,7 +61,6 @@ export interface PlayerStatQuery {
   forcedFumbles: 1;
   interceptionsReceived: 1;
   penalties: 1;
-  penaltyYards: number;
 }
 
 export default class PlayerStats implements IPlayerStat {
@@ -114,7 +112,6 @@ export default class PlayerStats implements IPlayerStat {
 
   // Penalties
   penalties: number = 0;
-  penaltyYards: number = 0;
 
   private get totalReceptions() {
     return sumObjectValues(this.receptions);
