@@ -1,5 +1,5 @@
 import Room, { client } from "..";
-import { Position } from "../HBClient";
+import { PlayableTeamId, PlayerObject, Position } from "../HBClient";
 import Chat from "../roomStructures/Chat";
 import Ball from "../structures/Ball";
 import DistanceCalculator, {
@@ -7,6 +7,7 @@ import DistanceCalculator, {
 } from "../structures/DistanceCalculator";
 import DownAndDistanceFormatter from "../structures/DownAndDistanceFormatter";
 import { DISC_IDS, MAP_POINTS } from "../utils/map";
+import { getRandomIntInRange } from "../utils/utils";
 import WithStateStore from "./WithStateStore";
 
 interface DownStore {
@@ -120,28 +121,60 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
   }
 
   setPlayers() {
-    const offensePlayers = Room.game.players.getOffense();
-    const defensePlayers = Room.game.players.getDefense();
+    const fieldedPlayers = Room.game.players.getFielded();
 
-    // Set the players 7 yards behind the LOS
-    const offensePositionXSet = new DistanceCalculator()
-      .subtractByTeam(this._los.x, MAP_POINTS.YARD * 7, Room.game.offenseTeamId)
-      .calculate();
+    function setPlayerPositionRandom(this: Down, player: PlayerObject) {
+      const randomYCoordinate = getRandomIntInRange(
+        MAP_POINTS.TOP_HASH,
+        MAP_POINTS.BOT_HASH
+      );
 
-    const defensePositionXSet = new DistanceCalculator()
-      .subtractByTeam(this._los.x, MAP_POINTS.YARD * 7, Room.game.defenseTeamId)
-      .calculate();
+      const tenYardsBehindLosX = new DistanceCalculator()
+        .subtractByTeam(
+          this.getLOS().x,
+          MAP_POINTS.YARD * 10,
+          player.team as PlayableTeamId
+        )
+        .calculate();
 
-    offensePlayers.forEach((player) => {
-      client.setPlayerDiscProperties(player.id, {
-        x: offensePositionXSet,
-      });
-    });
+      const playerPositionToSet = {
+        x: tenYardsBehindLosX,
+        y: randomYCoordinate,
+      };
 
-    defensePlayers.forEach((player) => {
-      client.setPlayerDiscProperties(player.id, {
-        x: defensePositionXSet,
-      });
+      client.setPlayerDiscProperties(player.id, playerPositionToSet);
+    }
+
+    // Set the position of every fielded player
+    fieldedPlayers.forEach((player) => {
+      const hasSavedPosition = Room.game.players.playerPositionsMap.has(
+        player.id
+      );
+
+      // If we dont have a saved position, field him 10 yards behin LOS randomly between one of the hashes
+      if (!hasSavedPosition)
+        return setPlayerPositionRandom.bind(this, player)();
+
+      // Otherwise set him 7 yards behind LOS, but at the same y coordinate
+
+      const { position, team } = Room.game.players.playerPositionsMap.get(
+        player.id
+      )!;
+
+      const sevenYardsBehindLosX = new DistanceCalculator()
+        .subtractByTeam(
+          this.getLOS().x,
+          MAP_POINTS.YARD * 7,
+          team as PlayableTeamId
+        )
+        .calculate();
+
+      const playerPositionToSet = {
+        x: sevenYardsBehindLosX,
+        y: position.y,
+      };
+
+      client.setPlayerDiscProperties(player.id, playerPositionToSet);
     });
   }
 
@@ -152,12 +185,23 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
     Ball.suppress();
   }
 
+  hardReset() {
+    Room.game.play?.terminatePlayDuringError();
+    this.sendDownAndDistance();
+    this.setPlayers();
+    // Sets the players too
+    Room.game.endPlay();
+    this.setBallAndFieldMarkersPlayEnd();
+    Room.game.startSnapDelay();
+  }
+
   resetAfterDown() {
     this.sendDownAndDistance();
     this.setPlayers();
     // Sets the players too
     Room.game.endPlay();
     this.setBallAndFieldMarkersPlayEnd();
+    Room.game.startSnapDelay();
   }
 
   private _moveLOSMarkers() {
