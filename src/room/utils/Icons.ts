@@ -61,6 +61,6 @@ const ICONS = {
   OrangeTriangle: String.fromCodePoint(0x1f538),
   LargeBlueDiamond: String.fromCodePoint(0x1f537),
   LargeOrangeDiamond: String.fromCodePoint(0x1f536),
-};
+} as const;
 
 export default ICONS;
