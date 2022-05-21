@@ -48,14 +48,13 @@ export default abstract class BasePlay<T> extends WithStateStore<
 > {
   protected _isLivePlay: boolean = false;
   protected _ballCarrier: ReturnType<typeof flattenPlayer> | null = null;
-  protected _ballPositionOnSet: Position;
+  protected _ballPositionOnSet: Position | null = null;
   protected _startingPosition: Position;
   time: number;
 
   constructor(time: number) {
     super();
     this.time = Math.round(time);
-    this._startingPosition = Room.game.down.getLOS();
   }
 
   setBallCarrier(player: ReturnType<typeof flattenPlayer> | null) {
@@ -90,21 +89,42 @@ export default abstract class BasePlay<T> extends WithStateStore<
     return this as unknown as T;
   }
 
+  /**
+   * Sets the starting position to determine net yards
+   */
+  protected _setStartingPosition(position: Position) {
+    this._startingPosition = position;
+  }
+
+  /**
+   * Returns the saved position of the ball before the play began
+   */
   getBallPositionOnSet() {
     return this._ballPositionOnSet;
   }
 
+  /**
+   * Saves the position of the ball before the play begins
+   */
   setBallPositionOnSet(position: Position) {
+    console.log("WE SET THE BALL POSITION");
     this._ballPositionOnSet = position;
     return this;
   }
 
+  /**
+   * Moves the field markers in place and the ball
+   */
   positionBallAndFieldMarkers() {
     Ball.setPosition(Room.game.down.getSnapPosition());
     Room.game.down.moveFieldMarkers();
     return this;
   }
 
+  /**
+   * Scores the ball in one of two endzones, and updates a team's score by an amount
+   * @param teamEndZoneToScore The endzone to score the ball in, red is left, blue is right
+   */
   scorePlay(
     score: number,
     team: PlayableTeamId,
@@ -154,6 +174,9 @@ export default abstract class BasePlay<T> extends WithStateStore<
     };
   }
 
+  /**
+   * Handles a safety
+   */
   handleSafety() {
     this._setLivePlay(false);
     Chat.send("SAFETY!!!");
@@ -173,6 +196,9 @@ export default abstract class BasePlay<T> extends WithStateStore<
     // down.setState("safetyKickOff", offenseTwentyYardLine);
   }
 
+  /**
+   * Handles the penalty and ends the down
+   */
   protected _handlePenalty<T extends PenaltyName>(
     penaltyName: T,
     player: PlayerObjFlat,
@@ -224,6 +250,9 @@ export default abstract class BasePlay<T> extends WithStateStore<
     this.endPlay({ addDown, newLosX: newEndLosX, netYards: penaltyYards });
   }
 
+  /**
+   * Ends the play and handles updating the down and moving the LOS
+   */
   endPlay({
     netYards = 0,
     newLosX = null,
@@ -282,27 +311,79 @@ export default abstract class BasePlay<T> extends WithStateStore<
     Room.game.down.resetAfterDown();
   }
 
+  /**
+   * Handles a player touching the ball
+   */
+  handleBallContact(ballContactObj: BallContact) {
+    return ballContactObj.player.team === Room.game.offenseTeamId
+      ? this._handleBallContactOffense(ballContactObj)
+      : this._handleBallContactDefense(ballContactObj);
+  }
+
   /* ABSTRACT */
 
-  // protected abstract _handleBallContactOffense(
-  //   ballContactObj: BallContact
-  // ): void;
-  // protected abstract _handleBallContactDefense(
-  //   ballContactObj: BallContact
-  // ): void;
+  /**
+   * Validation before the game sets the play
+   * @return Throws a GameCommandError in the case of an error
+   */
+  abstract validateBeforePlayBegins(player: PlayerObject | null): void;
 
-  abstract validateBeforePlayBegins(player: PlayerObject): {
-    valid: boolean;
-    message?: string;
-    sendToPlayer?: boolean;
-  };
+  /**
+   * Prepares aspects such as player and ball position before the play is run
+   */
+  abstract prepare(): void;
+
+  /**
+   * Begins live play
+   */
   abstract run(): void;
+
+  /**
+   * Handled ball out of bounds
+   */
   abstract handleBallOutOfBounds(ballPosition: Position): void;
+
+  /**
+   * Handled ball carrier out of bounds
+   */
   abstract handleBallCarrierOutOfBounds(ballCarrierPosition: Position): void;
+
+  /**
+   * Handled offense touching ball carrier (runs)
+   */
   abstract handleBallCarrierContactOffense(playerContact: PlayerContact): void;
+
+  /**
+   * Handled defense touching ball carrier (tackles)
+   */
   abstract handleBallCarrierContactDefense(playerContact: PlayerContact): void;
-  abstract handleBallContact(ballContactObj: BallContact): void;
+
+  /**
+   * Handles an offensive player touching the ball
+   */
+  protected abstract _handleBallContactOffense(
+    ballContactObj: BallContact
+  ): void;
+
+  /**
+   * Handles a defensive player touching the ball
+   */
+  protected abstract _handleBallContactDefense(
+    ballContactObj: BallContact
+  ): void;
+
+  /**
+   * Handles a player scoring a touchdown
+   */
   abstract handleTouchdown(position: Position): void;
+
+  /**
+   * Handles a drag on a kick
+   */
   abstract onKickDrag(player: PlayerObjFlat): void;
-  abstract destroy(): void;
+
+  /**
+   * Cleans up any variables from the current play
+   */
+  abstract cleanUp(): void;
 }
