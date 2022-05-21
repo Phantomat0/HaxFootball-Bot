@@ -19,7 +19,6 @@ export default class PlayerRecorder {
     fielded: PlayerObject[];
     offense: PlayerObject[];
     defense: PlayerObject[];
-    offenseNoQb: PlayerObject[];
   };
   playerPositionsMap = new Map<
     PlayerObject["id"],
@@ -36,7 +35,7 @@ export default class PlayerRecorder {
     });
   }
 
-  updateStaticPlayerList(offensiveTeam: PlayableTeamId, quarterbackId: number) {
+  updateStaticPlayerList(offensiveTeam: PlayableTeamId) {
     const players = client.getPlayerList();
 
     const fielded = players.filter((player) => player.team !== 0);
@@ -46,13 +45,10 @@ export default class PlayerRecorder {
       (player) => player.team === offensiveTeam
     );
 
-    const offenseNoQb = offense.filter((player) => player.id !== quarterbackId);
-
     this._playersStatic = {
       fielded: fielded,
       offense: offense,
       defense: defense,
-      offenseNoQb: offenseNoQb,
     };
   }
 
@@ -73,10 +69,6 @@ export default class PlayerRecorder {
       offense: this._playersStatic.offense,
       defense: this._playersStatic.defense,
     };
-  }
-
-  getOffenseNoQb() {
-    return this._playersStatic.offenseNoQb;
   }
 
   /**

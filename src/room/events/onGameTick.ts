@@ -113,7 +113,11 @@ const eventListeners: EventListener[] = [
     stopWhen: ["ballRan", "ballCaught", "ballDeflected"],
     run: () => {
       // Here we get the offensive team, filter out the QB, and use as an argument to the function
-      const offensePlayersNoQb = Room.game.players.getOffenseNoQb();
+      const offensePlayersNoQb = Room.game.players
+        .getOffense()
+        .filter(
+          (player) => player.id !== Room.getPlay<Snap>().getQuarterback().id
+        );
       const playerContact = checkBallCarrierContact(offensePlayersNoQb);
       if (playerContact)
         return Room.getPlay().handleBallCarrierContactOffense(playerContact);
@@ -195,11 +199,14 @@ const eventListeners: EventListener[] = [
       "kickOffKicked",
     ],
     run: () => {
+      const ballPositionOnSet = Room.getPlay().getBallPositionOnSet();
+
+      if (!ballPositionOnSet) return;
       // Each Play has a this.MAX_DRAG_DISTANCE
       const MAX_DRAG_DISTANCE = 15;
 
       const ballDragged = MapReferee.checkIfBallDragged(
-        Room.getPlay().getBallPositionOnSet(),
+        ballPositionOnSet,
         Ball.getPosition(),
         MAX_DRAG_DISTANCE
       );
