@@ -1,5 +1,6 @@
 import { client } from "..";
 import { PlayerObject } from "../HBClient";
+import { leftpad } from "./utils";
 
 export const getPlayerDiscProperties = (id: number) => {
   // Flattened the native method because we only use speed and and position
@@ -21,4 +22,9 @@ export const flattenPlayer = ({ id, team, name }: PlayerObject) => {
     team,
     name,
   };
+};
+
+export const toClock = (secs: number) => {
+  const seconds = Math.floor(secs);
+  return `${Math.floor(seconds / 60)}:${leftpad(seconds % 60)}`;
 };
