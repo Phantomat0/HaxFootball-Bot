@@ -17,6 +17,10 @@ export default class Punt extends PuntEvents {
 
   handleTouchdown(position: Position): void {}
 
+  protected _handleBallContactDefense(ballContactObj: BallContact): void {}
+
+  protected _handleBallContactOffense(ballContactObj: BallContact): void {}
+
   getStartingPosition() {
     return this.getState("catchPosition");
   }
@@ -302,5 +306,5 @@ export default class Punt extends PuntEvents {
     // super.endPlay({ netYards, endPosition, addDown: false });
   }
 
-  destroy(): void {}
+  cleanUp(): void {}
 }

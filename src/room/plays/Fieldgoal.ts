@@ -1,12 +1,18 @@
+import BallContact from "../classes/BallContact";
 import { Position } from "../HBClient";
 import FieldGoalEvents from "./play_events/FieldGoal.events";
 
 export default class FieldGoal extends FieldGoalEvents {
   handleTouchdown(position: Position): void {}
 
+  protected _handleBallContactDefense(ballContactObj: BallContact): void {}
+
+  protected _handleBallContactOffense(ballContactObj: BallContact): void {}
+
   onKickDrag(): void {}
 
-  destroy(): void {}
+  cleanUp(): void {}
+
   // _kicker: PlayerObject;
   // constructor(time: number, kicker: PlayerObject) {
   //   super(time);

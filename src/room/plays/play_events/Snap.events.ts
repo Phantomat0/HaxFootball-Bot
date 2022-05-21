@@ -4,6 +4,7 @@ import PlayerContact from "../../classes/PlayerContact";
 import { PlayableTeamId, PlayerObject, Position } from "../../HBClient";
 import Chat from "../../roomStructures/Chat";
 import Ball from "../../structures/Ball";
+import { GameCommandError } from "../../structures/GameCommandHandler";
 import GameReferee from "../../structures/GameReferee";
 import MapReferee from "../../structures/MapReferee";
 import {
@@ -138,12 +139,6 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
   protected abstract _handleBallContactQuarterback(
     ballContactObj: BallContact
   ): any;
-  protected abstract _handleBallContactOffense(
-    ballContactObj: BallContact
-  ): any;
-  protected abstract _handleBallContactDefense(
-    ballContactObj: BallContact
-  ): any;
   protected abstract _handleSuccessfulInterception(): any;
   protected abstract _handleInterceptionTackle(
     playerContactObj: PlayerContact
@@ -163,32 +158,13 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
   };
   protected abstract _startBlitzClock(): void;
 
-  validateBeforePlayBegins(player: PlayerObject): {
-    valid: boolean;
-    message?: string;
-    sendToPlayer?: boolean;
-  } {
+  validateBeforePlayBegins(player: PlayerObject | null) {
+    if (Room.game.canStartSnapPlay === false)
+      throw new GameCommandError(
+        "Please wait a second before snapping the ball"
+      );
+
     Room.game.updateStaticPlayers();
-
-    const playerIsOnOffense = player.team === Room.game.offenseTeamId;
-    const playAlreadyInProgess = Boolean(Room.game.play);
-
-    // Check if they can even run the command
-    if (playAlreadyInProgess)
-      return {
-        valid: false,
-        message: "There is already a play in progress",
-        sendToPlayer: true,
-      };
-
-    if (!playerIsOnOffense)
-      return {
-        valid: false,
-        message: "You are not on offense",
-        sendToPlayer: true,
-      };
-
-    // Check for penalties
 
     Room.game.players.savePlayerPositions();
 
@@ -197,28 +173,20 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       penaltyName,
       player: penaltiedPlayer,
       penaltyData,
-    } = new SnapValidator(player).validate();
+    } = new SnapValidator(player as PlayerObject).validate();
 
-    if (valid)
-      return {
-        valid: true,
-      };
+    if (!valid)
+      return this._handlePenalty(penaltyName!, penaltiedPlayer!, penaltyData);
+  }
 
-    // Otherwise lets handle the penalty
-
-    this._handlePenalty(penaltyName!, penaltiedPlayer!, penaltyData);
-
-    // Dont send a penalty message to the player, since we are sending it globally already
-    return {
-      valid: false,
-      sendToPlayer: false,
-    };
+  prepare() {
+    Room.game.updateStaticPlayers();
+    this._setStartingPosition(Room.game.down.getLOS());
+    this.setBallPositionOnSet(Ball.getPosition());
+    this._startBlitzClock();
   }
 
   run() {
-    Room.game.updateStaticPlayers();
-    this.setBallPositionOnSet(Ball.getPosition());
-    this._startBlitzClock();
     this._setLivePlay(true);
     Ball.release();
     this.setState("ballSnapped");
@@ -346,12 +314,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     if (this.stateExists("interceptionAttempt"))
       return this._handleBallContactDuringInterception(ballContactObj);
 
-    const {
-      player: { team },
-    } = ballContactObj;
-
-    return team === Room.game.offenseTeamId
-      ? this._handleBallContactOffense(ballContactObj)
-      : this._handleBallContactDefense(ballContactObj);
+    // Run the native one
+    super.handleBallContact(ballContactObj);
   }
 }

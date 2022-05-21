@@ -11,16 +11,6 @@ import ICONS from "../utils/Icons";
 import MapSectionFinder, { MapSectionName } from "../utils/MapSectionFinder";
 import SnapEvents from "./play_events/Snap.events";
 
-// CASES
-// 1. Pass out of bounds
-// 2. Catch
-// 3. Pass Deflection
-// 4. Interception
-// 5. Run
-// 6. Illegal touch offense
-// 7. Illegal blitz defebse
-// 8. Ball blitzed defense
-
 export type BadIntReasons =
   | "Blocked by offense"
   | "Illegally touched by defense"
@@ -41,6 +31,8 @@ export default class Snap extends SnapEvents {
   }
 
   private _blitzTimer() {
+    this._blitzClockTime++;
+    Chat.send(`${this._blitzClockTime}`);
     if (this._blitzClockTime >= this.BLITZ_TIME_SECONDS) {
       console.log(this._blitzClockTime, this.BLITZ_TIME_SECONDS);
       // Chat.send("BLITZ");
@@ -50,7 +42,6 @@ export default class Snap extends SnapEvents {
     console.log(this);
     console.log(this._blitzClockTime, this.BLITZ_TIME_SECONDS);
     // Chat.send(`${this._blitzClockTime}`);
-    this._blitzClockTime++;
   }
 
   getQuarterback() {
@@ -484,7 +475,7 @@ export default class Snap extends SnapEvents {
     this._handlePenalty("illegalBlitz", player, { time: this._blitzClockTime });
   }
 
-  destroy() {
+  cleanUp() {
     this._stopBlitzClock();
   }
 }

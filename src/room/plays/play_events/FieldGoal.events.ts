@@ -17,6 +17,12 @@ export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
       sendToPlayer: true,
     };
   }
+  prepare() {
+    // Room.game.updateStaticPlayers();
+    // this.setBallPositionOnSet(Ball.getPosition());
+    // this._startBlitzClock();
+  }
+
   run() {}
   handleBallOutOfBounds(ballPosition: Position) {}
   handleBallCarrierOutOfBounds(ballCarrierPosition: Position) {}

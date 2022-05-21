@@ -5,6 +5,7 @@ import onJoin from "./events/onJoin";
 import onLeave from "./events/onLeave";
 import onPlayerTeamChange from "./events/onPlayerTeamChange";
 import HBClient, { TeamId } from "./HBClient";
+import KickOff from "./plays/Kickoff";
 import roomConfig from "./roomConfig";
 import RoomClient from "./roomStructures/Room";
 import HFL_MAP from "./utils/map";
@@ -30,12 +31,10 @@ export const TEAMS: TeamIdEnum = {
 
 client.setCustomStadium(HFL_MAP);
 
-// client.onGameStart = () => {
-//   if (!Room.isBotOn) return;
-//   game = new Game();
-//   down = new Down();
-//   kickOffInit();
-// };
+client.onGameStart = () => {
+  if (!Room.isBotOn) return;
+  Room.startNewGame();
+};
 
 // client.onGameStop = () => {
 //   if (!Room.isBotOn) return;
@@ -49,10 +48,11 @@ client.setCustomStadium(HFL_MAP);
 //   down.startNew();
 // };
 
-// client.onPositionsReset = () => {
-//   if (!Room.isBotOn) return;
-//   kickOffInit();
-// };
+client.onPositionsReset = () => {
+  if (!Room.isBotOn) return;
+  Room.game.down.startNew();
+  Room.game.setPlay(new KickOff(0), null);
+};
 
 client.onPlayerTeamChange = onPlayerTeamChange;
 
