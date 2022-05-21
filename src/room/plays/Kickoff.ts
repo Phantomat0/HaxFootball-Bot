@@ -1,10 +1,71 @@
+import Room from "..";
+import BallContact from "../classes/BallContact";
 import { Position } from "../HBClient";
-import Punt from "./Punt";
+import Chat from "../roomStructures/Chat";
+import MapReferee from "../structures/MapReferee";
+import PreSetCalculators from "../structures/PreSetCalculators";
+import KickOffEvents from "./play_events/KickOff.events";
 
-export default class KickOff extends Punt {
-  handleTouchdown(position: Position): void {}
+export default class KickOff extends KickOffEvents {
+  handleTouchdown(position: Position): void {
+    this._setLivePlay(false);
 
-  destroy(): void {}
+    Chat.send("TOUCHDOWN!!!!!");
+  }
+
+  protected _handleBallContactDefense(ballContactObj: BallContact): void {
+    // The defense doesn't really touch the ball at all lol
+  }
+
+  protected _handleBallContactOffense(ballContactObj: BallContact): void {
+    // We have to know if it was kicked off first
+    // Kicking team starts off as offense, switched to defense moment the ball is kicked
+
+    // Kicking team touches
+    if (this.stateExists("kickOffKicked") === false) {
+      if (ballContactObj.type === "kick") {
+        this.setState("kickOffKicked");
+        Room.game.swapOffenseAndUpdatePlayers();
+      }
+
+      return;
+    }
+
+    // Receiving team touches
+    this.handleCatch(ballContactObj);
+  }
+
+  handleCatch(ballContactObj: BallContact) {
+    Chat.send("Caught!");
+    this.setState("kickOffCaught");
+
+    // Check if caught out of bounds
+    const isOutOfBounds = MapReferee.checkIfPlayerOutOfBounds(
+      ballContactObj.playerPosition
+    );
+
+    const frontPlayerPosition =
+      PreSetCalculators.adjustPlayerPositionFrontAfterPlay(
+        ballContactObj.playerPosition,
+        ballContactObj.player.team
+      );
+
+    if (isOutOfBounds) {
+      Chat.send(`Kickoff caught out of bounds`);
+      return this.endPlay({ newLosX: frontPlayerPosition.x, resetDown: true });
+    }
+
+    this._setStartingPosition(frontPlayerPosition);
+    this.setBallCarrier(ballContactObj.player);
+  }
+
+  handleDownedByOwnteam(ballContactObj: BallContact) {
+    Chat.send("Downed by own team");
+
+    this.endPlay({ newLosX: ballContactObj.playerPosition.x, resetDown: true });
+  }
+
+  cleanUp(): void {}
   // constructor(time: number) {
   //   super(time);
   // }
