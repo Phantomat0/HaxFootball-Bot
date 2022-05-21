@@ -56,6 +56,10 @@ export default class Player {
     return adminLevel;
   }
 
+  get admin(): boolean {
+    return client.getPlayer(this.id).admin;
+  }
+
   /**
    * Returns the player's native player object
    */
