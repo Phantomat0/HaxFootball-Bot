@@ -91,6 +91,16 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
     };
   }
 
+  private _getLineToGainPoint() {
+    return new DistanceCalculator()
+      .addByTeam(
+        this._los.x,
+        MAP_POINTS.YARD * this._yards,
+        Room.game.offenseTeamId
+      )
+      .calculate();
+  }
+
   incrementRedZonePenalties() {
     this._redZonePenalties++;
   }
@@ -101,8 +111,11 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
 
   sendDownAndDistance() {
     const down = DownAndDistanceFormatter.formatDown(this._currentDown);
+
+    const lineToGainPoint = this._getLineToGainPoint();
+
     const yardsOrGoal = DownAndDistanceFormatter.formatYardsToGain(
-      this._los.x,
+      lineToGainPoint,
       this._yards
     );
     const redZonePenalties = DownAndDistanceFormatter.formatRedZonePenalties(
@@ -178,7 +191,25 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
     });
   }
 
+  // private _createInvisibleWallDefense() {
+  //   Chat.send("Set the invisible wall");
+  //   const defensePlayers = Room.game.players.getDefense();
+  //   console.log(defensePlayers);
+
+  //   console.log(Room.game.defenseTeamId);
+
+  //   defensePlayers.forEach((player) => {
+  //     const cf = client.CollisionFlags;
+  //     console.log(cf);
+  //     const cfTeam = Room.game.defenseTeamId === TEAMS.RED ? cf.red : cf.blue;
+
+  //     console.log(cfTeam);
+  //     client.setPlayerDiscProperties(player.id, { cGroup: cfTeam | cf.c0 });
+  //   });
+  // }
+
   setBallAndFieldMarkersPlayEnd() {
+    // this._createInvisibleWallDefense();
     this.moveFieldMarkers();
     const snapPosition = this.getSnapPosition();
     Ball.setPosition(snapPosition);
@@ -204,6 +235,10 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
     Room.game.startSnapDelay();
   }
 
+  resetAfterScore() {
+    Room.game.endPlay();
+  }
+
   private _moveLOSMarkers() {
     client.setDiscProperties(DISC_IDS.LOS_TOP, {
       x: this._los.x,
@@ -213,30 +248,26 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
     });
   }
 
-  private _moveLineToGainMarkers() {
-    const lineToGainPoint = new DistanceCalculator()
-      .addByTeam(
-        this._los.x,
-        MAP_POINTS.YARD * this._yards,
-        Room.game.offenseTeamId
-      )
-      .calculate();
+  private _moveLineToGainMarkers(options: { hideLineToGain?: true } = {}) {
+    const lineToGainPoint = this._getLineToGainPoint();
 
     const maybehideLineToGain = () => {
       // Hide line to gain if any of the following occurs:
       // 1. Line to gain is in the endzone
       // 2. During a punt or kickoff
 
+      if (options.hideLineToGain) return true;
+
       // If we reset the play, always show it
-      if (Room.game.play === null) return false;
       const lineToGainIsAfterEndzone =
-        lineToGainPoint <= MAP_POINTS.RED_ENDZONE ||
-        lineToGainPoint >= MAP_POINTS.BLUE_ENDZONE;
+        lineToGainPoint <= MAP_POINTS.RED_GOAL_LINE ||
+        lineToGainPoint >= MAP_POINTS.BLUE_GOAL_LINE;
 
       if (lineToGainIsAfterEndzone) return true;
-      return (
-        Room.game.down.getState("kickOff") || Room.game.down.getState("punt")
-      );
+
+      if (Room.game.play === null) return false;
+
+      return false;
     };
 
     const lineToGainX = maybehideLineToGain()
@@ -253,9 +284,9 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
     });
   }
 
-  moveFieldMarkers() {
+  moveFieldMarkers(options: { hideLineToGain?: true } = {}) {
     this._moveLOSMarkers();
-    this._moveLineToGainMarkers();
+    this._moveLineToGainMarkers(options);
     return this;
   }
 }

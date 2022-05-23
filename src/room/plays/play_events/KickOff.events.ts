@@ -4,14 +4,16 @@ import PlayerContact from "../../classes/PlayerContact";
 import { PlayerObject, PlayerObjFlat, Position } from "../../HBClient";
 import Chat from "../../roomStructures/Chat";
 import Ball from "../../structures/Ball";
-import DistanceCalculator from "../../structures/DistanceCalculator";
 import GameReferee from "../../structures/GameReferee";
+import MapReferee from "../../structures/MapReferee";
+import PreSetCalculators from "../../structures/PreSetCalculators";
 import BasePlay from "../BasePlay";
 
 export interface KickOffStore {
   kickOff: true;
   kickOffCaught: true;
   kickOffKicked: true;
+  KickOffKicker: PlayerObjFlat;
 }
 
 export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
@@ -23,19 +25,25 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
    * The kickoff position is either at the 50, or at the defenive team's 20 in the case of a safety
    */
   private _determineKickOffPosition(): Position {
-    const isKickOffAfterSafety = false;
+    const isKickOffAfterSafety = Room.game.stateExists("safetyKickoff");
 
-    if (isKickOffAfterSafety) return { x: -155, y: 0 };
+    const offenseTwentyYardLine = PreSetCalculators.getPositionOfTeamYard(
+      20,
+      Room.game.offenseTeamId
+    );
 
+    if (isKickOffAfterSafety) return { x: offenseTwentyYardLine, y: 0 };
+
+    // Otherwsie just set it at the 50
     return { x: 0, y: 0 };
   }
 
   prepare() {
     const kickOffPosition = this._determineKickOffPosition();
-
     Ball.setPosition(kickOffPosition);
     this.setBallPositionOnSet(kickOffPosition);
     Room.game.down.setLOS(kickOffPosition.x);
+    Room.game.down.moveFieldMarkers({ hideLineToGain: true });
   }
 
   run(): void {
@@ -92,14 +100,67 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
   }
 
   handleBallOutOfBounds(ballPosition: Position): void {
-    const { yardLine, distance } = new DistanceCalculator(ballPosition.x)
-      .roundToYardByTeam(Room.game.offenseTeamId)
-      .calculateAndConvert();
+    const kicker = this.getState("KickOffKicker");
 
-    Chat.send(`Ball went out of bounds at the ${yardLine}`);
+    // Check if its a safety or not, if its a safety its defense 40 yard line
+    const offenseFortyYardLine = PreSetCalculators.getPositionOfTeamYard(
+      40,
+      Room.game.offenseTeamId
+    );
 
-    this.endPlay({ newLosX: distance, resetDown: true });
+    const defenseFortyYardLine = PreSetCalculators.getPositionOfTeamYard(
+      40,
+      Room.game.defenseTeamId
+    );
+
+    const newLosX = Room.game.stateExists("safetyKickoff")
+      ? defenseFortyYardLine
+      : offenseFortyYardLine;
+
+    const penaltyType = Room.game.stateExists("safetyKickoff")
+      ? "kickOffOffsidesSafety"
+      : "kickOffOutOfBounds";
+
+    this._handlePenalty(penaltyType, kicker);
+
+    this.endPlay({ newLosX: newLosX, resetDown: true });
   }
 
-  onKickDrag(player: PlayerObjFlat): void {}
+  onKickDrag(player: PlayerObjFlat | null): void {
+    const fieldedPlayers = Room.game.players.getFielded();
+
+    // We have to get the closest player to the ball to determine the kicker, since it could be anyone
+    const playerClosestToBall = MapReferee.getClosestPlayerToBall(
+      Ball.getPosition(),
+      fieldedPlayers
+    );
+
+    // We swap offense since the swap happens on the kick, and we haven't kicked it yet
+    if (this.stateExists("kickOffKicked") === false) {
+      Room.game.swapOffenseAndUpdatePlayers();
+    }
+
+    const offenseFortyYardLine = PreSetCalculators.getPositionOfTeamYard(
+      40,
+      Room.game.offenseTeamId
+    );
+
+    const defenseFortyYardLine = PreSetCalculators.getPositionOfTeamYard(
+      40,
+      Room.game.defenseTeamId
+    );
+
+    // If its a safety, set it as the defense forty, otherwise its the offense forty
+    const newLosX = Room.game.stateExists("safetyKickoff")
+      ? defenseFortyYardLine
+      : offenseFortyYardLine;
+
+    const penaltyType = Room.game.stateExists("safetyKickoff")
+      ? "kickOffDragSafety"
+      : "kickOffDrag";
+
+    this._handlePenalty(penaltyType, playerClosestToBall);
+
+    this.endPlay({ newLosX: newLosX, resetDown: true });
+  }
 }
