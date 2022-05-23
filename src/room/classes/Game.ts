@@ -1,5 +1,5 @@
 import { client, TEAMS } from "..";
-import { PlayableTeamId, PlayerObject, Position } from "../HBClient";
+import { PlayableTeamId, PlayerObject } from "../HBClient";
 import { PLAY_TYPES } from "../plays/BasePlay";
 import Chat from "../roomStructures/Chat";
 import PlayerRecorder from "../structures/PlayerRecorder";
@@ -10,7 +10,9 @@ import Down from "./Down";
 import WithStateStore from "./WithStateStore";
 
 interface GameStore {
-  kickOffPosition: Position;
+  safetyKickoff: true;
+  canTwoPoint: boolean;
+  twoPointAttempt: boolean;
 }
 
 export default class Game extends WithStateStore<GameStore, keyof GameStore> {
@@ -55,16 +57,12 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
 
   swapOffenseAndUpdatePlayers() {
     if (this.offenseTeamId === 1) {
-      console.log("change it to 2");
       this.setOffenseTeam(2);
     } else {
-      console.log("change it to 1");
       this.setOffenseTeam(1);
     }
     // Also update static players
     this.players.updateStaticPlayerList(this.offenseTeamId);
-
-    Chat.send(`Teams swapped! ${this.offenseTeamId} is now on offense`);
   }
 
   startSnapDelay() {
