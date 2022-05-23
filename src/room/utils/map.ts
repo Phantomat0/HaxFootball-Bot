@@ -449,7 +449,7 @@ const HFL_MAP = `{
     "goalmarker" : { "vis" : true, "color" : "FFA500", "cMask" : [ ], "radius" : 3 },
     "losmarker" : { "vis" : true, "color" : "2c47f5", "cMask" : [ ], "radius" : 3 },
     "yardtogetmarker" : { "vis" : true, "color" : "b4eb34", "cMask" : [ ], "radius" : 3 },
-    "losline" : { "color" : "2c47f5" },
+    "losline" : { "vis" : true, "color" : "2c47f5" },
     "yardtogetline" : { "color" : "b4eb34" },
     "goal" : { "vis" : true, "color" : "FFA500" }
   
@@ -494,8 +494,8 @@ export const MAP_POINTS = {
   BOT_SIDELINE: 280,
   RED_SIDELINE: -930,
   BLUE_SIDELINE: 930,
-  RED_ENDZONE: -775,
-  BLUE_ENDZONE: 775,
+  RED_GOAL_LINE: -775,
+  BLUE_GOAL_LINE: 775,
   RED_REDZONE: -465,
   BLUE_REDZONE: 465,
   RED_SCORE_LINE: -1040,
