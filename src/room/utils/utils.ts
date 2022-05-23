@@ -20,6 +20,21 @@ export const getRandomInt = (max: number): number => {
   return Math.floor(Math.random() * max);
 };
 
+/**
+ * Constrains a number to be a MIN and a MAX
+ * @param value The value to be constrained
+ * @param min The min value, any value lower than this will default to min
+ * @param max The max value, any value greater than this will default to max
+ */
+export const limitNumberWithinRange = (
+  value: number,
+  min: number,
+  max: number
+) => {
+  if (min > max) throw Error(`Min ${min} is greater than Max ${max}`);
+  return Math.min(Math.max(value, min), max);
+};
+
 export const getRandomIntInRange = (min: number, max: number) => {
   // find diff
   let difference = max - min;
