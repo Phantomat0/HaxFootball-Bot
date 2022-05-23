@@ -24,24 +24,77 @@ class GameReferee {
   }
 
   /**
-   * Check if the player was tackled in their own endzone, adjusting the playerPosition
+   * Returns an object checking if there is a safety or touchback based on the two positions
+   * @param catchPosition The already adjusted catch position
    * @param rawPlayerPosition The raw player position, we will adjust to teamendzone
    */
-  checkIfSafetyPlayer = (
+  checkIfSafetyOrTouchbackPlayer = (
+    catchPosition: Position | null,
     rawPlayerPosition: Position,
     teamId: PlayableTeamId
-  ) => {
-    // Adjust the player position forward, but also for safeties we have to round to player nad ma
-    const adjustedPlayerPosition =
-      PreSetCalculators.adjustPlayerPositionFrontAfterPlay(
-        rawPlayerPosition,
+  ): {
+    isSafety: boolean;
+    isTouchback: boolean;
+  } => {
+    console.log("RAW PLAYER POS");
+    console.log({ rawPlayerPosition });
+    // Adjust the player position forward
+    const adjustedPlayerPosition = PreSetCalculators.adjustPlayerPositionFront(
+      rawPlayerPosition,
+      teamId
+    );
+
+    // Now lets round to the endzones
+    const roundedPlayerX =
+      PreSetCalculators.roundAdjustedEndDistanceAroundEndzone(
+        adjustedPlayerPosition.x,
         teamId
       );
 
-    const endZone = MapReferee.getEndZonePositionIsIn(adjustedPlayerPosition);
+    console.log({ adjustedPlayerPosition }, { roundedPlayerX });
+
+    const playEndedInEndzone = MapReferee.getEndZonePositionIsIn({
+      x: roundedPlayerX.distance,
+      y: adjustedPlayerPosition.y,
+    });
 
     // Now check that hes in the endzone, and that hes in his own endzone
-    return endZone && endZone === teamId;
+    const playEndedInOwnEndzone =
+      playEndedInEndzone && playEndedInEndzone === teamId;
+
+    console.log(playEndedInOwnEndzone);
+
+    // If the play didnt end in the endzone, neither are true
+    if (!playEndedInOwnEndzone)
+      return {
+        isSafety: false,
+        isTouchback: false,
+      };
+
+    // Now we know its either a touchback or a safety, just distinguish
+    // Safety - catchPosition was OUTSIDE of endzone
+    // Touchback - catchPosition was INSIDE endzone
+
+    const catchPositionInsideEndzone =
+      catchPosition === null
+        ? false
+        : Boolean(MapReferee.getEndZonePositionIsIn(catchPosition));
+
+    console.log(catchPosition);
+    console.log(catchPositionInsideEndzone);
+
+    // If we caught the ball in the endzone, its a touchback
+    if (catchPositionInsideEndzone)
+      return {
+        isSafety: false,
+        isTouchback: true,
+      };
+
+    // If not, ball was possessed outside of endzone and thus a safety
+    return {
+      isSafety: true,
+      isTouchback: false,
+    };
   };
 
   checkIfTouchbackBall(ballPosition: Position, teamId: PlayableTeamId) {
@@ -50,24 +103,6 @@ class GameReferee {
 
     // Check if it went out in our endzone
     return endZone === teamId;
-  }
-
-  /**
-   * Touchback occurs if the ball was never possessed outside of the endzone
-   */
-  checkIfTouchbackPlayer(
-    endPosition: Position,
-    catchPosition: Position,
-    teamId: PlayableTeamId
-  ) {
-    // If theres no catch position, just check endPosition
-    // if (catchPosition === null)
-    //   return Boolean(MapReferee.getEndZonePositionIsIn(endPosition));
-
-    return (
-      MapReferee.getEndZonePositionIsIn(endPosition) === teamId &&
-      Boolean(MapReferee.getEndZonePositionIsIn(catchPosition))
-    );
   }
 
   checkIfTouchdown(rawPlayerPosition: Position, teamId: PlayableTeamId) {
