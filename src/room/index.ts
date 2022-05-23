@@ -47,7 +47,7 @@ client.onGameStop = () => {
 // };
 
 client.onPositionsReset = () => {
-  if (!Room.isBotOn) return;
+  if (!Room.isBotOn || !Room.game) return;
   Room.game.down.startNew();
   Room.game.setState("canTwoPoint", false);
   Room.game.setState("twoPointAttempt", false);
