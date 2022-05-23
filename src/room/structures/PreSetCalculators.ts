@@ -1,6 +1,7 @@
+import { TEAMS } from "..";
 import { PlayableTeamId, Position } from "../HBClient";
 import { MAP_POINTS } from "../utils/map";
-import DistanceCalculator from "./DistanceCalculator";
+import DistanceCalculator, { DistanceConverter } from "./DistanceCalculator";
 
 export default class PreSetCalculators {
   static adjustPlayerPositionFront(position: Position, teamId: PlayableTeamId) {
@@ -38,6 +39,16 @@ export default class PreSetCalculators {
       x: newBallPositionX,
       y: ballPosition.y,
     };
+  }
+
+  static getPositionOfTeamYard(yard: number, team: PlayableTeamId) {
+    const MIDFIELD_YARD = 50;
+
+    const yardToDistance = DistanceConverter.yardToDistance(
+      MIDFIELD_YARD - yard
+    );
+
+    return team === TEAMS.BLUE ? yardToDistance : -yardToDistance;
   }
 
   static adjustMapCoordinatesForRadius = (objectRadius: number) => {
