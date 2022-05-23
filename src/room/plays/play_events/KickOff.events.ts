@@ -7,6 +7,7 @@ import Ball from "../../structures/Ball";
 import GameReferee from "../../structures/GameReferee";
 import MapReferee from "../../structures/MapReferee";
 import PreSetCalculators from "../../structures/PreSetCalculators";
+import ICONS from "../../utils/Icons";
 import BasePlay from "../BasePlay";
 
 export interface KickOffStore {
@@ -14,6 +15,8 @@ export interface KickOffStore {
   kickOffCaught: true;
   kickOffKicked: true;
   KickOffKicker: PlayerObjFlat;
+  catchPosition: Position;
+  safetyKickoff: true;
 }
 
 export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
@@ -25,7 +28,9 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
    * The kickoff position is either at the 50, or at the defenive team's 20 in the case of a safety
    */
   private _determineKickOffPosition(): Position {
-    const isKickOffAfterSafety = Room.game.stateExists("safetyKickoff");
+    const isKickOffAfterSafety = this.stateExists("safetyKickoff");
+
+    console.log({ isKickOffAfterSafety });
 
     const offenseTwentyYardLine = PreSetCalculators.getPositionOfTeamYard(
       20,
@@ -39,7 +44,14 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
   }
 
   prepare() {
+    const isSafetyKickoff = Room.game.stateExists("safetyKickoff");
+
+    if (isSafetyKickoff) {
+      this.setState("safetyKickoff");
+    }
     const kickOffPosition = this._determineKickOffPosition();
+
+    this._setStartingPosition(kickOffPosition);
     Ball.setPosition(kickOffPosition);
     this.setBallPositionOnSet(kickOffPosition);
     Room.game.down.setLOS(kickOffPosition.x);
@@ -47,21 +59,33 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
   }
 
   run(): void {
-    this._setLivePlay(true);
-    Ball.release();
+    // Set a timeout because we need to wait till the ball has been set
+    // Otherwise a drag penalty is called
+    setTimeout(() => {
+      this._setLivePlay(true);
+      Ball.release();
+    }, 1000);
     this.setState("kickOff");
   }
 
   handleBallCarrierContactDefense(playerContact: PlayerContact): void {
-    // Tackle
-
-    const { endPosition, netYards, endYard } = this._getPlayDataOffense(
+    const { endPosition, netYards, yardAndHalfStr } = this._getPlayDataOffense(
       playerContact.ballCarrierPosition
     );
 
-    Chat.send(
-      `${playerContact.player.name} tackled the ball carrier at the ${endYard}`
-    );
+    Chat.send(`${ICONS.HandFingersSpread} Tackle ${yardAndHalfStr}`);
+
+    const catchPosition = this.getState("catchPosition");
+
+    const { isSafety, isTouchback } =
+      GameReferee.checkIfSafetyOrTouchbackPlayer(
+        catchPosition,
+        endPosition,
+        Room.game.offenseTeamId
+      );
+
+    if (isSafety) return super.handleSafety();
+    if (isTouchback) return super.handleTouchback();
 
     this.endPlay({
       newLosX: endPosition.x,
@@ -75,18 +99,23 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
   }
 
   handleBallCarrierOutOfBounds(ballCarrierPosition: Position): void {
-    const isSafety = GameReferee.checkIfSafetyPlayer(
-      ballCarrierPosition,
-      Room.game.offenseTeamId
-    );
+    const catchPosition = this.getState("catchPosition");
+
+    const { isSafety, isTouchback } =
+      GameReferee.checkIfSafetyOrTouchbackPlayer(
+        catchPosition,
+        ballCarrierPosition,
+        Room.game.offenseTeamId
+      );
 
     if (isSafety) return super.handleSafety();
+    if (isTouchback) return super.handleTouchback();
 
-    const { endPosition, netYards, endYard } =
+    const { endPosition, netYards, yardAndHalfStr } =
       this._getPlayDataOffense(ballCarrierPosition);
 
     Chat.send(
-      `${this.getBallCarrier().name} went out of bounds at the ${endYard}`
+      `${this.getBallCarrier().name} went out of bounds ${yardAndHalfStr}`
     );
 
     console.log(this._startingPosition, endPosition, netYards);
@@ -113,11 +142,11 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
       Room.game.defenseTeamId
     );
 
-    const newLosX = Room.game.stateExists("safetyKickoff")
+    const newLosX = this.stateExists("safetyKickoff")
       ? defenseFortyYardLine
       : offenseFortyYardLine;
 
-    const penaltyType = Room.game.stateExists("safetyKickoff")
+    const penaltyType = this.stateExists("safetyKickoff")
       ? "kickOffOffsidesSafety"
       : "kickOffOutOfBounds";
 
@@ -151,11 +180,11 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
     );
 
     // If its a safety, set it as the defense forty, otherwise its the offense forty
-    const newLosX = Room.game.stateExists("safetyKickoff")
+    const newLosX = this.stateExists("safetyKickoff")
       ? defenseFortyYardLine
       : offenseFortyYardLine;
 
-    const penaltyType = Room.game.stateExists("safetyKickoff")
+    const penaltyType = this.stateExists("safetyKickoff")
       ? "kickOffDragSafety"
       : "kickOffDrag";
 

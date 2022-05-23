@@ -3,9 +3,11 @@ import BallContact from "../classes/BallContact";
 import { Position } from "../HBClient";
 import Chat from "../roomStructures/Chat";
 import DistanceCalculator from "../structures/DistanceCalculator";
+import GameReferee from "../structures/GameReferee";
 import MapReferee from "../structures/MapReferee";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
+import ICONS from "../utils/Icons";
 import { MAP_POINTS } from "../utils/map";
 import KickOffEvents from "./play_events/KickOff.events";
 
@@ -21,7 +23,25 @@ export default class KickOff extends KickOffEvents {
   }
 
   protected _handleBallContactDefense(ballContactObj: BallContact): void {
-    // The defense doesn't really touch the ball at all lol
+    const { yardAndHalfStr, endPosition } = this._getPlayDataOffense(
+      ballContactObj.playerPosition
+    );
+
+    // Ball downed by own team
+    Chat.send(`Ball downed by defense ${yardAndHalfStr}`);
+
+    // Check where the ball was downed at
+    // The catch position is the same as the endzone position
+    // Adjust it for defense, since they are the ones making contact
+    const { isTouchback } = GameReferee.checkIfSafetyOrTouchbackPlayer(
+      ballContactObj.playerPosition,
+      ballContactObj.playerPosition,
+      Room.game.offenseTeamId
+    );
+
+    if (isTouchback) return this.handleTouchback();
+
+    this.endPlay({ newLosX: endPosition.x, resetDown: true });
   }
 
   private _checkIfOffenseOffsidesOnKick() {
@@ -95,8 +115,18 @@ export default class KickOff extends KickOffEvents {
   }
 
   handleCatch(ballContactObj: BallContact) {
-    Chat.send("Caught!");
+    Chat.send(`${ICONS.Football} Ball Caught`);
     this.setState("kickOffCaught");
+
+    // Adjust the position and set it
+
+    const catchPosition = PreSetCalculators.adjustPlayerPositionFront(
+      ballContactObj.playerPosition,
+      Room.game.offenseTeamId
+    );
+
+    this.setState("catchPosition", catchPosition);
+    this._setStartingPosition(catchPosition);
 
     // Check if caught out of bounds
     const isOutOfBounds = MapReferee.checkIfPlayerOutOfBounds(
@@ -110,7 +140,7 @@ export default class KickOff extends KickOffEvents {
       );
 
     if (isOutOfBounds) {
-      Chat.send(`Kickoff caught out of bounds`);
+      Chat.send(`${ICONS.Pushpin} Caught out of bounds`);
       return this.endPlay({ newLosX: frontPlayerPosition.x, resetDown: true });
     }
 
@@ -118,15 +148,7 @@ export default class KickOff extends KickOffEvents {
     this.setBallCarrier(ballContactObj.player);
   }
 
-  handleDownedByOwnteam(ballContactObj: BallContact) {
-    Chat.send("Downed by own team");
-
-    this.endPlay({ newLosX: ballContactObj.playerPosition.x, resetDown: true });
-  }
-
-  cleanUp(): void {
-    Room.game.clearState();
-  }
+  cleanUp(): void {}
 
   // positionBallAndFieldMarkers() {
   //   // No snap distance for kickoffs, we always place on the LOS

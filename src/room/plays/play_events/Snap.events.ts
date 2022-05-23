@@ -4,7 +4,7 @@ import PlayerContact from "../../classes/PlayerContact";
 import { PlayableTeamId, PlayerObject, Position } from "../../HBClient";
 import Chat from "../../roomStructures/Chat";
 import Ball from "../../structures/Ball";
-import { GameCommandError } from "../../structures/GameCommandHandler";
+import { GameCommandError } from "../../commands/GameCommandHandler";
 import GameReferee from "../../structures/GameReferee";
 import MapReferee from "../../structures/MapReferee";
 import {
@@ -12,6 +12,7 @@ import {
   PenaltyName,
 } from "../../structures/PenaltyDataGetter";
 import { getPlayerDiscProperties } from "../../utils/haxUtils";
+import ICONS from "../../utils/Icons";
 import { MAP_POINTS } from "../../utils/map";
 import { MapSectionName } from "../../utils/MapSectionFinder";
 import BasePlay from "../BasePlay";
@@ -129,6 +130,7 @@ export interface SnapStore {
   interceptionRuling: boolean;
   interceptionPlayerEndPosition: Position;
   interceptionTackler: PlayerObject;
+  interceptionPlayerKickPosition: Position;
 }
 
 export default abstract class SnapEvents extends BasePlay<SnapStore> {
@@ -181,7 +183,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     }
   }
 
-  prepare() {
+  async prepare() {
     Room.game.updateStaticPlayers();
     this._setStartingPosition(Room.game.down.getLOS());
     this.setBallPositionOnSet(Ball.getPosition());
@@ -193,6 +195,10 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     this._setLivePlay(true);
     Ball.release();
     this.setState("ballSnapped");
+    Chat.sendMessageMaybeWithClock(
+      `${ICONS.GreenCircle} Ball is Hiked`,
+      this.time
+    );
   }
 
   handleBallOutOfBounds(ballPosition: Position) {
@@ -214,7 +220,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       },
     });
 
-    Chat.send(`Ball went out of bounds!`);
+    Chat.send(`${ICONS.DoNotEnter} Incomplete - Pass out of bounds!`);
     return this.endPlay({});
   }
   handleBallCarrierOutOfBounds(ballCarrierPosition: Position) {
@@ -222,18 +228,26 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       return this._handleInterceptionBallCarrierOutOfBounds(
         ballCarrierPosition
       );
-    const isSafety = GameReferee.checkIfSafetyPlayer(
+
+    const catchPosition = this.stateExists("catchPosition")
+      ? this.getState("catchPosition")
+      : null;
+
+    const { isSafety } = GameReferee.checkIfSafetyOrTouchbackPlayer(
+      catchPosition,
       ballCarrierPosition,
       Room.game.offenseTeamId
     );
 
     if (isSafety) return this.handleSafety();
 
-    const { endPosition, netYards, endYard } =
+    const { endPosition, netYards, yardAndHalfStr } =
       this._getPlayDataOffense(ballCarrierPosition);
 
     Chat.send(
-      `${this.getBallCarrier().name} went out of bounds at the ${endYard}`
+      `${ICONS.Pushpin} ${
+        this.getBallCarrier().name
+      } went out of bounds ${yardAndHalfStr}`
     );
 
     // If the QB went out of bounds, or ball was ran add rushing stats
@@ -281,20 +295,11 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     // If its a legal run, handle it, otherwise its a penalty
     if (isBehindQuarterBack) return this._handleRun(playerContact);
 
-    Chat.send("Illegal Run");
-
-    this.endPlay({});
-
-    // handlePenalty({
-    //   type: PENALTY_TYPES.ILLEGAL_RUN,
-    //   playerName: player.name,
-    // });
-
-    // Might need to adjust the player's position here, but for now, nahhh lmao
+    this._handlePenalty("illegalRun", player);
   }
 
   handleBallCarrierContactDefense(playerContact: PlayerContact) {
-    if (this.getState("interceptingPlayer"))
+    if (this.stateExists("interceptingPlayer"))
       return this._handleInterceptionTackle(playerContact);
 
     this._handleTackle(playerContact);

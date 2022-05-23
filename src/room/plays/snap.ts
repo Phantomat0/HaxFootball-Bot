@@ -34,14 +34,9 @@ export default class Snap extends SnapEvents {
     this._blitzClockTime++;
     Chat.send(`${this._blitzClockTime}`);
     if (this._blitzClockTime >= this.BLITZ_TIME_SECONDS) {
-      console.log(this._blitzClockTime, this.BLITZ_TIME_SECONDS);
-      // Chat.send("BLITZ");
       this.setState("canBlitz");
       return this._stopBlitzClock();
     }
-    console.log(this);
-    console.log(this._blitzClockTime, this.BLITZ_TIME_SECONDS);
-    // Chat.send(`${this._blitzClockTime}`);
   }
 
   getQuarterback() {
@@ -62,7 +57,12 @@ export default class Snap extends SnapEvents {
     mapSection: MapSectionName;
   } {
     const losX = Room.game.down.getLOS().x;
-    const mapSection = new MapSectionFinder().getSectionName(endPosition, losX);
+
+    const mapSection = new MapSectionFinder().getSectionName(
+      endPosition,
+      losX,
+      Room.game.offenseTeamId
+    );
     const quarterback = this.getQuarterback();
 
     return {
@@ -73,7 +73,6 @@ export default class Snap extends SnapEvents {
 
   protected _handleCatch(ballContactObj: BallContact) {
     const { player, playerPosition } = ballContactObj;
-    const { name } = player;
 
     const { mapSection, quarterback } = this._getStatInfo(playerPosition);
 
@@ -84,7 +83,7 @@ export default class Snap extends SnapEvents {
     const isOutOfBounds = MapReferee.checkIfPlayerOutOfBounds(playerPosition);
 
     if (isOutOfBounds) {
-      Chat.send(`Pass Incomplete, caught out of bounds`);
+      Chat.send(`${ICONS.DoNotEnter} Pass Incomplete, caught out of bounds`);
       return this.endPlay({});
     }
 
@@ -103,16 +102,14 @@ export default class Snap extends SnapEvents {
     });
 
     this.setState("ballCaught");
-    Chat.send(`Pass caught by ${name}`);
+    Chat.send(`${ICONS.Football} Pass caught!`);
     this.setBallCarrier(player);
   }
 
   protected _handleRun(playerContactObj: PlayerContact) {
     const { player } = playerContactObj;
 
-    Chat.send("RUN");
-
-    // sendPlayMessage({ type: PLAY_TYPES.RUN, playerName: player.name });
+    Chat.send(`${ICONS.Running} Ball Ran!`);
 
     this.setBallCarrier(player).setState("ballRan");
   }
@@ -125,7 +122,7 @@ export default class Snap extends SnapEvents {
     const { type } = ballContactObj;
 
     // QB tries to catch their own pass
-    const qbContactAfterPass = this.getState("ballPassed");
+    const qbContactAfterPass = this.stateExists("ballPassed");
     if (qbContactAfterPass) return;
 
     // QB touched the ball before the pass
@@ -138,7 +135,7 @@ export default class Snap extends SnapEvents {
   }
 
   protected _handleBallContactOffense(ballContactObj: BallContact) {
-    if (this.getState("ballDeflected"))
+    if (this.stateExists("ballDeflected"))
       return this._handleBallContactDuringInterception(ballContactObj);
 
     const { player } = ballContactObj;
@@ -159,7 +156,6 @@ export default class Snap extends SnapEvents {
   protected _handleBallContactDuringInterception(ballContactObj: BallContact) {
     // If anyone but the intercepting player touches the ball, reset play
     const interceptingPlayer = this.getState("interceptingPlayer");
-    if (!interceptingPlayer) throw Error("No intercepting player found");
 
     if (interceptingPlayer.id !== ballContactObj.player.id) {
       const touchedByOffenseOrDefense =
@@ -171,7 +167,6 @@ export default class Snap extends SnapEvents {
 
     // Ok now we know the contacts are from the intercepting player, lets check for the kick time
     const firstTouchTime = this.getState("interceptFirstTouchTime");
-    if (!firstTouchTime) throw Error("No first touch time");
 
     // Check if the int was kicked yet or not
     const intKicked = this.stateExists("interceptionAttemptKicked");
@@ -199,6 +194,11 @@ export default class Snap extends SnapEvents {
 
   protected _handleInterceptionKick(ballContactObj: BallContact) {
     this.setState("interceptionAttemptKicked");
+
+    this.setState(
+      "interceptionPlayerKickPosition",
+      ballContactObj.playerPosition
+    );
     Room.game.swapOffenseAndUpdatePlayers();
     this.setBallCarrier(ballContactObj.player);
   }
@@ -224,7 +224,7 @@ export default class Snap extends SnapEvents {
 
   protected _handleBallContactDefense(ballContactObj: BallContact) {
     // If the ball wasn't passed yet, ball must have been blitzed
-    if (!this.getState("ballPassed")) return this.setState("ballBlitzed");
+    if (!this.stateExists("ballPassed")) return this.setState("ballBlitzed");
 
     const { mapSection } = this._getStatInfo(ballContactObj.playerPosition);
 
@@ -236,7 +236,7 @@ export default class Snap extends SnapEvents {
       passAttempts: { [mapSection]: 1 },
     });
 
-    Chat.send("Deflection!");
+    Chat.send(`${ICONS.DoNotEnter} Incomplete - Pass Deflected`);
     this.setState("ballDeflected");
 
     this._handleInterceptionAttempt(ballContactObj);
@@ -254,7 +254,7 @@ export default class Snap extends SnapEvents {
   }
 
   protected _handleSuccessfulInterception() {
-    Chat.send("Successful Int!");
+    Chat.send(`${ICONS.Target} Pass Intercepted!`);
 
     const interceptingPlayer = this.getState("interceptingPlayer")!;
 
@@ -269,11 +269,21 @@ export default class Snap extends SnapEvents {
     this.setState("interceptionRuling");
     this.setState("ballIntercepted");
 
+    const endPositionExists = this.stateExists("interceptionPlayerEndPosition");
+
+    if (!endPositionExists) return;
+
     const endPosition = this.getState("interceptionPlayerEndPosition");
 
-    if (!endPosition) return;
+    const { isSafety, isTouchback } =
+      GameReferee.checkIfSafetyOrTouchbackPlayer(
+        this.getState("interceptionPlayerKickPosition"),
+        endPosition,
+        Room.game.offenseTeamId
+      );
 
-    Chat.send("we have a tackle position");
+    if (isSafety) return this.handleSafety();
+    if (isTouchback) return this.handleTouchback();
 
     return this.endPlay({ newLosX: endPosition.x, resetDown: true });
   }
@@ -286,15 +296,24 @@ export default class Snap extends SnapEvents {
     // If the ruling on the int is good
     // And there isnt a saved position yet for this play
     // Then its a regular ballcarrier out of bounds
-    if (this.getState("interceptionRuling")) {
-      const { endPosition, endYard } =
+    if (this.stateExists("interceptionRuling")) {
+      const { endPosition, yardAndHalfStr } =
         this._getPlayDataOffense(ballCarrierPosition);
 
       Chat.send(
-        `${this._ballCarrier?.name} stepped out of bounds at the ${endYard}`
+        `${this._ballCarrier?.name} stepped out of bounds ${yardAndHalfStr}`
       );
 
-      Chat.send("Stepped out of bounds during an int");
+      const { isSafety, isTouchback } =
+        GameReferee.checkIfSafetyOrTouchbackPlayer(
+          this.getState("interceptionPlayerKickPosition"),
+          ballCarrierPosition,
+          Room.game.offenseTeamId
+        );
+
+      if (isSafety) return this.handleSafety();
+      if (isTouchback) return this.handleTouchback();
+
       return this.endPlay({
         newLosX: endPosition.x,
         resetDown: true,
@@ -306,13 +325,11 @@ export default class Snap extends SnapEvents {
   }
 
   protected _handleTackle(playerContact: PlayerContact) {
-    const { endPosition, netYards, endYard } = this._getPlayDataOffense(
+    const { endPosition, netYards, yardAndHalfStr } = this._getPlayDataOffense(
       playerContact.ballCarrierPosition
     );
 
-    Chat.send(
-      `${playerContact.player.name} tackled the ball carrier at the ${endYard}`
-    );
+    Chat.send(`${ICONS.HandFingersSpread} Tackle ${yardAndHalfStr}`);
 
     Room.game.stats.updatePlayerStat(playerContact.player.id, {
       tackles: 1,
@@ -328,7 +345,9 @@ export default class Snap extends SnapEvents {
 
     // No sacks on interceptions
     if (isSack && this.stateExists("ballIntercepted") === false) {
-      Chat.send("SACK!");
+      Chat.send(
+        `${ICONS.HandFingersSpread} ${playerContact.player.name} with the SACK!`
+      );
 
       Room.game.stats.updatePlayerStat(playerContact.player.id, {
         sacks: 1,
@@ -369,8 +388,12 @@ export default class Snap extends SnapEvents {
       });
     }
 
-    // Alas, check for safety, but you need to adjust the position to front first
-    const isSafety = GameReferee.checkIfSafetyPlayer(
+    const catchPosition = this.stateExists("catchPosition")
+      ? this.getState("catchPosition")
+      : null;
+
+    const { isSafety } = GameReferee.checkIfSafetyOrTouchbackPlayer(
+      catchPosition,
       playerContact.ballCarrierPosition,
       Room.game.offenseTeamId
     );
@@ -385,7 +408,7 @@ export default class Snap extends SnapEvents {
 
   protected _handleInterceptionTackle(playerContactObj: PlayerContact) {
     // If there was a ruling on if the int was good or not and it was successful, handle the tackle
-    if (this.getState("interceptionRuling"))
+    if (this.stateExists("interceptionRuling"))
       return this._handleTackle(playerContactObj);
 
     // If there hasn't been a ruling yet on the int, save the tackle position
@@ -408,7 +431,7 @@ export default class Snap extends SnapEvents {
    */
   private _handleRegularTouchdown(endPosition: Position) {
     const { netYards } = this._getPlayDataOffense(endPosition);
-    Chat.send(`${ICONS.Football} TOUCHDOWN!`);
+    Chat.send(`${ICONS.Fire} TOUCHDOWN!`);
     // Determine what kind of touchdown we have here
     // If the ball has been ran or if the qb ran the ball
     if (
@@ -445,7 +468,7 @@ export default class Snap extends SnapEvents {
    * Handles an auto touchdown after three redzone penalties
    */
   handleAutoTouchdown() {
-    Chat.send("AUTO TD!");
+    Chat.send(`${ICONS.Fire} Automatic Touchdown! - 3/3 Penalties`);
     this.scorePlay(7, Room.game.offenseTeamId, Room.game.defenseTeamId);
   }
 
@@ -470,7 +493,6 @@ export default class Snap extends SnapEvents {
   }
 
   cleanUp() {
-    Chat.send("CLEANUP CALLED");
     this._stopBlitzClock();
   }
 }

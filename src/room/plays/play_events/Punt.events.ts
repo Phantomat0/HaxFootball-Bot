@@ -19,7 +19,7 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
     };
   }
 
-  prepare() {
+  async prepare() {
     // Room.game.updateStaticPlayers();
     // this.setBallPositionOnSet(Ball.getPosition());
     // this._startBlitzClock();

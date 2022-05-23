@@ -12,6 +12,7 @@ import Chat from "../roomStructures/Chat";
 import Ball from "../structures/Ball";
 import DistanceCalculator from "../structures/DistanceCalculator";
 import MapReferee from "../structures/MapReferee";
+import MessageFormatter from "../structures/MessageFormatter";
 import PenaltyDataGetter, {
   AdditionalPenaltyData,
 } from "../structures/PenaltyDataGetter";
@@ -19,7 +20,7 @@ import { PenaltyName } from "../structures/PenaltyDataGetter";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import { flattenPlayer, quickPause } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
-import MapSectionFinder from "../utils/MapSectionFinder";
+import MapSectionFinder, { MapSectionName } from "../utils/MapSectionFinder";
 import FieldGoal from "./FieldGoal";
 import KickOff from "./Kickoff";
 import { FieldGoalStore } from "./play_events/FieldGoal.events";
@@ -142,7 +143,13 @@ export default abstract class BasePlay<T> extends WithStateStore<
   /**
    * Returns information about the play when the offense made a play i.e catch, run, qb run etc
    */
-  protected _getPlayDataOffense(rawEndPosition: Position) {
+  protected _getPlayDataOffense(rawEndPosition: Position): {
+    netYards: number;
+    endYardLine: number;
+    endPosition: Position;
+    mapSection: MapSectionName;
+    yardAndHalfStr: string;
+  } {
     const offenseTeam = Room.game.offenseTeamId;
     // Adjust the rawPlayerPosition
     const newEndPosition = PreSetCalculators.adjustPlayerPositionFrontAfterPlay(
@@ -150,27 +157,42 @@ export default abstract class BasePlay<T> extends WithStateStore<
       offenseTeam
     );
 
+    const {
+      distance: endDistanceConstrainedAndRounded,
+      yardLine: endYardLine,
+    } = PreSetCalculators.roundAdjustedEndDistanceAroundEndzone(
+      newEndPosition.x,
+      offenseTeam
+    );
+
     const losX = Room.game.down.getLOS().x;
     const mapSection = new MapSectionFinder().getSectionName(
       newEndPosition,
-      losX
+      losX,
+      Room.game.offenseTeamId
     );
 
-    // Calculate data with it
-    const { yardLine: endYard, yards: netYards } = new DistanceCalculator()
+    // Calculate the yard difference
+    const { yards: netYards } = new DistanceCalculator()
       .calcNetDifferenceByTeam(
         this._startingPosition.x,
-        newEndPosition.x,
+        endDistanceConstrainedAndRounded,
         offenseTeam
       )
       .roundToYardByTeam(offenseTeam)
       .calculateAndConvert();
 
+    const yardAndHalfStr = MessageFormatter.formatYardMessage(
+      endYardLine,
+      endDistanceConstrainedAndRounded
+    );
+
     return {
       netYards,
-      endYard,
-      endPosition: newEndPosition,
+      endYardLine,
+      endPosition: { x: endDistanceConstrainedAndRounded, y: rawEndPosition.y },
       mapSection,
+      yardAndHalfStr,
     };
   }
 
@@ -179,12 +201,28 @@ export default abstract class BasePlay<T> extends WithStateStore<
    */
   handleSafety() {
     this._setLivePlay(false);
-    Chat.send("SAFETY!!!");
+    Chat.send(`${ICONS.Loudspeaker} Safety - kickoff from the 20 yard line`);
 
     Room.game.setState("safetyKickoff");
 
-    // ? Why is offense scoring? Because we need the defense to get the ball, so offense has to kickoff
-    this.scorePlay(2, Room.game.defenseTeamId, Room.game.offenseTeamId);
+    // ? Why is the defense scoring? Because we need the defense to get the ball, so offense has to kickoff
+    this.scorePlay(2, Room.game.defenseTeamId, Room.game.defenseTeamId);
+  }
+
+  /**
+   * Handles a touchback, only callable on punts or kickoffs
+   */
+  handleTouchback() {
+    Chat.send(
+      `${ICONS.Loudspeaker} Touchback - ball placed at the receiving team's 20 yard line.`
+    );
+
+    const offenseTwentyYardLine = PreSetCalculators.getPositionOfTeamYard(
+      20,
+      Room.game.offenseTeamId
+    );
+
+    this.endPlay({ newLosX: offenseTwentyYardLine, resetDown: true });
   }
 
   /**
@@ -263,7 +301,7 @@ export default abstract class BasePlay<T> extends WithStateStore<
         // First down
         if (currentYardsToGet <= 0 || resetDown) {
           if (resetDown === false) {
-            Chat.send("FIRST DOWN!");
+            Chat.send(`${ICONS.Star} First Down!`);
           }
           Room.game.down.startNew();
         }
@@ -319,7 +357,9 @@ export default abstract class BasePlay<T> extends WithStateStore<
   abstract validateBeforePlayBegins(player: PlayerObject | null): void;
 
   /**
-   * Prepares aspects such as player and ball position before the play is run
+   * Prepares aspects such as player and ball position before the play is run.
+   *
+   * Anything that deals with Game state must be dealt with here
    */
   abstract prepare(): void;
 

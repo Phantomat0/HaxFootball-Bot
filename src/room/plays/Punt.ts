@@ -174,27 +174,22 @@ export default class Punt extends PuntEvents {
     teamId: PlayableTeamId
   ) {
     // What if they down in the endzone? ITS A TOUCHBACK THEN
-
     // sendPlayMessage({
     //   type: PLAY_TYPES.KICK_DOWNED,
     // });
-
-    const endPositionX = new DistanceCalculator(playerPosition.x)
-      .roundToYardByTeam(teamId)
-      .calculate();
-
-    const adjustedEndPosition = {
-      x: endPositionX,
-      y: playerPosition.y,
-    };
-
-    const isTouchback = GameReferee.checkIfTouchbackPlayer(
-      adjustedEndPosition,
-      adjustedEndPosition,
-      teamId
-    );
-    if (isTouchback) return this.handleTouchback();
-
+    // const endPositionX = new DistanceCalculator(playerPosition.x)
+    //   .roundToYardByTeam(teamId)
+    //   .calculate();
+    // const adjustedEndPosition = {
+    //   x: endPositionX,
+    //   y: playerPosition.y,
+    // };
+    // const isTouchback = GameReferee.checkIfTouchbackPlayer(
+    //   adjustedEndPosition,
+    //   adjustedEndPosition,
+    //   teamId
+    // );
+    // if (isTouchback) return this.handleTouchback();
     // this.endPlay({ endPosition, swapOffense: true });
   }
 
