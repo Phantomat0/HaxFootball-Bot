@@ -1,19 +1,23 @@
 import { Position } from "../HBClient";
+import { toClock } from "../utils/haxUtils";
 import { plural } from "../utils/utils";
 import DownAndDistanceFormatter from "./DownAndDistanceFormatter";
 
-class MessageFormatter {
-  formatYardMessage(yard: number, x: Position["x"]) {
+export default class MessageFormatter {
+  static formatYardMessage(yard: number, x: Position["x"]) {
     const halfStr = DownAndDistanceFormatter.formatPositionToMapHalf(x);
     return yard <= 0 ? `in the endzone` : `at the ${halfStr}${yard}`;
   }
 
-  formatNetYardsMessage(netYards: number) {
+  static formatNetYardsMessage(netYards: number) {
     const yardMessage = plural(netYards, "yard", "yards");
     if (netYards > 0) return `+${yardMessage}`;
     if (netYards < 0) return `-${yardMessage}`;
     return `no gain`;
   }
-}
 
-export default new MessageFormatter();
+  static formatMessageMaybeWithClock(message: string, time: number) {
+    const WARNING_TIME = 10;
+    return `${message} ${time >= WARNING_TIME ? toClock(time) : ""}`;
+  }
+}
