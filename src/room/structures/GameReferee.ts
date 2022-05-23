@@ -5,10 +5,16 @@ import MapReferee from "./MapReferee";
 import PreSetCalculators from "./PreSetCalculators";
 
 class GameReferee {
+  /**
+   * Check if there is a safety when the ball goes out of bounds
+   */
   checkIfSafetyBall(ballPosition: Position, team: PlayableTeamId) {
     return MapReferee.getEndZonePositionIsIn(ballPosition) === team;
   }
 
+  /**
+   * Check if a tackle can be considered a tackle
+   */
   checkIfSack(
     qbPosition: Position,
     losX: number,
@@ -17,6 +23,10 @@ class GameReferee {
     return MapReferee.checkIfBehind(qbPosition.x, losX, offenseTeamId);
   }
 
+  /**
+   * Check if the player was tackled in their own endzone, adjusting the playerPosition
+   * @param rawPlayerPosition The raw player position, we will adjust to teamendzone
+   */
   checkIfSafetyPlayer = (
     rawPlayerPosition: Position,
     teamId: PlayableTeamId
@@ -31,7 +41,7 @@ class GameReferee {
     const endZone = MapReferee.getEndZonePositionIsIn(adjustedPlayerPosition);
 
     // Now check that hes in the endzone, and that hes in his own endzone
-    return endZone && endZone !== teamId;
+    return endZone && endZone === teamId;
   };
 
   checkIfTouchbackBall(ballPosition: Position, teamId: PlayableTeamId) {
