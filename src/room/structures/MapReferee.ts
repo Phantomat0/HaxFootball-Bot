@@ -58,10 +58,10 @@ class MapReferee {
   }
 
   getEndZonePositionIsIn = (position: Position) => {
-    const { RED_ENDZONE, BLUE_ENDZONE } = MAP_POINTS;
+    const { RED_GOAL_LINE, BLUE_GOAL_LINE } = MAP_POINTS;
 
-    if (position.x <= RED_ENDZONE) return 1;
-    if (position.x >= BLUE_ENDZONE) return 2;
+    if (position.x <= RED_GOAL_LINE) return 1;
+    if (position.x >= BLUE_GOAL_LINE) return 2;
     return null;
   };
 
@@ -149,11 +149,6 @@ class MapReferee {
 
     const satisfiesYAxis = this.checkIfBetweenY(position.y, topFG, botFG);
 
-    console.log(endzoneTeamId);
-    console.log(position.y, topFG, botFG);
-    console.log(satisfiesXAxis, satisfiesYAxis);
-    console.log(position.x, blueFG);
-
     return satisfiesXAxis && satisfiesYAxis;
   }
 
@@ -179,37 +174,36 @@ class MapReferee {
 
   getTeamEndzone(teamId: PlayableTeamId) {
     return teamId === TEAMS.RED
-      ? MAP_POINTS.RED_ENDZONE
-      : MAP_POINTS.BLUE_ENDZONE;
+      ? MAP_POINTS.RED_GOAL_LINE
+      : MAP_POINTS.BLUE_GOAL_LINE;
   }
 
   getOpposingTeamEndzone = (teamId: PlayableTeamId) => {
     return teamId === TEAMS.RED
-      ? MAP_POINTS.BLUE_ENDZONE
-      : MAP_POINTS.RED_ENDZONE;
+      ? MAP_POINTS.BLUE_GOAL_LINE
+      : MAP_POINTS.RED_GOAL_LINE;
   };
 
-  getClosestPlayerToBall = () => {
-    //   const ballPosition = Ball.getPosition();
-    //   const fieldedPlayers = Room.game.players.getFielded();
-    //   const distancesOfEachPlayerFromBall = fieldedPlayers.map((player) => {
-    //     const { position } = getPlayerDiscProperties(player.id);
-    //     const distanceToBall = new DistanceCalculator([position, ballPosition])
-    //       .calcDifference()
-    //       .getDistance();
-    //     return {
-    //       player: player,
-    //       distanceToBall: distanceToBall,
-    //     };
-    //   });
-    //   console.log(distancesOfEachPlayerFromBall);
-    //   const sortedLowestToHighest = distancesOfEachPlayerFromBall.sort((a, b) => {
-    //     return a.distanceToBall - b.distanceToBall;
-    //   });
-    //   console.log(sortedLowestToHighest);
-    //   const [obj] = sortedLowestToHighest;
-    //   const { player } = obj;
-    //   return player;
+  getClosestPlayerToBall = (
+    ballPosition: Position,
+    players: PlayerObject[]
+  ) => {
+    const distancesOfEachPlayerFromBall = players.map((player) => {
+      const { position } = getPlayerDiscProperties(player.id);
+      const distanceToBall = new DistanceCalculator()
+        .calcDifference3D(ballPosition, position)
+        .calculate();
+      return {
+        player: player,
+        distanceToBall: distanceToBall,
+      };
+    });
+    const sortedLowestToHighest = distancesOfEachPlayerFromBall.sort((a, b) => {
+      return a.distanceToBall - b.distanceToBall;
+    });
+    const [obj] = sortedLowestToHighest;
+    const { player } = obj;
+    return player;
   };
 }
 
