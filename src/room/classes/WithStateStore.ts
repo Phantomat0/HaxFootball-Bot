@@ -21,9 +21,14 @@ export default class WithStateStore<
 
   /**
    * Get state
-   * @returns state
+   * @returns state, throws an error if that state has not been defined yet
    */
   getState<K extends keyof T>(state: K): T[K] {
+    const stateValue = this._stateStore[state];
+    if (typeof stateValue === "undefined")
+      throw Error(
+        `State: ${state} was not found using the getState method. Only use getState when the state is defined, use stateExists to check if a state exists `
+      );
     return this._stateStore[state] as unknown as T[K];
   }
 
