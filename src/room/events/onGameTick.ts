@@ -231,8 +231,8 @@ const eventListeners: EventListener[] = [
 ];
 
 export default function onGameTick() {
-  // Check if bot is even on
-  if (!Room.isBotOn) return;
+  // Check if bot is even on or if we have a game
+  if (!Room.isBotOn || !Room.game) return;
 
   try {
     eventListeners.forEach((listenerObj) => {

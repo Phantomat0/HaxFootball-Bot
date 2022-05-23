@@ -4,5 +4,5 @@ import { PlayerObject } from "../HBClient";
 export default function onLeave(player: PlayerObject) {
   Room.players.delete(player);
 
-  if (!Room.isBotOn) return;
+  if (!Room.isBotOn || !Room.game) return;
 }
