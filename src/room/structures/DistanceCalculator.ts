@@ -1,6 +1,7 @@
 import { TEAMS } from "..";
 import { PlayableTeamId, Position } from "../HBClient";
 import { MAP_POINTS } from "../utils/map";
+import { limitNumberWithinRange } from "../utils/utils";
 import MapReferee from "./MapReferee";
 
 // ====================== -775 ====================
@@ -97,11 +98,14 @@ export default class DistanceCalculator {
    * Used when we dont care about distance after the endzone
    */
   constrainToEndzonePoints() {
-    const rounded =
-      this._calculation >= 0
-        ? Math.min(this._calculation, MAP_POINTS.BLUE_GOAL_LINE)
-        : Math.max(this._calculation, MAP_POINTS.RED_GOAL_LINE);
-    this._calculation = rounded;
+    const constrained = limitNumberWithinRange(
+      this._calculation,
+      MAP_POINTS.RED_GOAL_LINE,
+      MAP_POINTS.BLUE_GOAL_LINE
+    );
+
+    this._calculation = constrained;
+
     return this;
   }
 
@@ -131,6 +135,9 @@ export default class DistanceCalculator {
       teamsEndzone,
       teamId
     );
+
+    console.log("roundToTeamEndzone");
+    console.log(this._calculation);
 
     // If it is, change the calculation to the one yard line point, otherwise leave it be
     const isBetweenZeroAndOneYardLine =
