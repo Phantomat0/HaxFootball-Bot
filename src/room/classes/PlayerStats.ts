@@ -170,7 +170,6 @@ export default class PlayerStats implements IPlayerStat {
   }
 
   updateStats(statsQuery: Partial<PlayerStatQuery>) {
-    console.log(statsQuery);
     Object.entries(statsQuery).forEach((statQuery) => {
       const [statQueryKey, statQueryValue] = statQuery;
       // Check if the statQuery is a nested object
@@ -181,9 +180,6 @@ export default class PlayerStats implements IPlayerStat {
           (nestedStatQuery) => {
             const [nestedStatQueryKey, nestedStatQueryValue] = nestedStatQuery;
             this[`${statQueryKey}`][nestedStatQueryKey] += nestedStatQueryValue;
-            console.log(
-              `${statQueryKey} ${nestedStatQueryKey} ${nestedStatQueryValue}`
-            );
           }
         );
 

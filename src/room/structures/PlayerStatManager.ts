@@ -36,7 +36,6 @@ export default class PlayerStatManager {
     const playerProfile = Room.players.playerCollection.get(playerId);
     if (!playerProfile) throw Error("Player is not in the room anymore");
 
-    console.log(`STAT UPDATE: ${JSON.stringify(statQuery)}`);
     Chat.send(`STAT UPDATE: ${JSON.stringify(statQuery)}`);
 
     this.statsCollection.get(playerProfile.auth)?.updateStats(statQuery);

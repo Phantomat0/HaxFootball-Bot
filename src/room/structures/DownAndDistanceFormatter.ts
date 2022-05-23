@@ -21,9 +21,10 @@ class DownAndDistanceFormatter {
   }
 
   formatYardsToGain(lineToGainPoint: Position["x"], lineToGainYards: number) {
+    console.log(lineToGainPoint);
     if (
-      lineToGainPoint <= MAP_POINTS.RED_ENDZONE ||
-      lineToGainPoint >= MAP_POINTS.BLUE_ENDZONE
+      lineToGainPoint <= MAP_POINTS.RED_GOAL_LINE ||
+      lineToGainPoint >= MAP_POINTS.BLUE_GOAL_LINE
     )
       return "GOAL";
     return lineToGainYards;

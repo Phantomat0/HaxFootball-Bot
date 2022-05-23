@@ -40,7 +40,7 @@ const gameCommandsMap = new Map<string, GameCommand>([
       },
       run(player) {
         Room.game.setPlay(
-          new Snap(9, player.playerObject!),
+          new Snap(Room.game.getTime(), player.playerObject!),
           player.playerObject!
         );
       },

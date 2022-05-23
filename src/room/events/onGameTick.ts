@@ -19,6 +19,7 @@ const eventListeners: EventListener[] = [
     stopWhen: [
       "ballCaught",
       "ballRan",
+      "ballBlitzed",
       "puntCaught",
       "kickOffCaught",
       "interceptionRuling",
@@ -211,7 +212,7 @@ const eventListeners: EventListener[] = [
         MAX_DRAG_DISTANCE
       );
       if (ballDragged)
-        return Room.getPlay().onKickDrag(Room.getPlay().getBallCarrier());
+        return Room.getPlay().onKickDrag(Room.getPlay().getBallCarrierSafe());
     },
   },
   {
@@ -242,7 +243,7 @@ export default function onGameTick() {
     });
   } catch (error) {
     console.trace(error);
-    Chat.send(error.message);
+    Chat.sendBotError(error.message);
     Room.game.down.hardReset();
   }
 }
