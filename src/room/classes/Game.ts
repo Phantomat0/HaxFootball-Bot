@@ -1,5 +1,5 @@
 import { client, TEAMS } from "..";
-import { PlayableTeamId, PlayerObject } from "../HBClient";
+import { PlayableTeamId, PlayerObject, TeamId } from "../HBClient";
 import { PLAY_TYPES } from "../plays/BasePlay";
 import Chat from "../roomStructures/Chat";
 import PlayerRecorder from "../structures/PlayerRecorder";
@@ -27,6 +27,14 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     blue: 0,
   };
   offenseTeamId: PlayableTeamId = 1;
+
+  timeoutsUsed: {
+    red: number;
+    blue: number;
+  } = {
+    red: 0,
+    blue: 0,
+  };
 
   /**
    * The current play class, always starts off as a KickOff with time of 0
@@ -65,6 +73,12 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     this.players.updateStaticPlayerList(this.offenseTeamId);
   }
 
+  incrementTeamTimeout(teamId: PlayableTeamId) {
+    if (teamId === TEAMS.RED) return this.timeoutsUsed.red++;
+    if (teamId === TEAMS.BLUE) return this.timeoutsUsed.blue++;
+    return null;
+  }
+
   startSnapDelay() {
     this._canStartSnapPlay = false;
     setTimeout(() => {
@@ -80,7 +94,10 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     play?.validateBeforePlayBegins(player);
 
     this.play = play;
+
+    // Anything that deals with game state should be done in the prepare method
     this.play.prepare();
+    this.clearState();
     this.play.run();
   }
 
