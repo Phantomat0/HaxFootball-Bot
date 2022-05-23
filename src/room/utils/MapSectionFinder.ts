@@ -1,4 +1,5 @@
-import { Position } from "../HBClient";
+import { PlayableTeamId, Position } from "../HBClient";
+import DistanceCalculator from "../structures/DistanceCalculator";
 import { MAP_POINTS } from "./map";
 import { isInRectangleArea } from "./utils";
 
@@ -11,7 +12,12 @@ export type MapSectionName =
 
 export interface MapSection {
   name: MapSectionName;
-  getRectangleArea: (losX: number) => {
+  getRectangleArea: (
+    fifteenYardsBehindLOS: number,
+    fifteenYardsInFrontOfLOS: number,
+    losX: number,
+    offenseTeamId: PlayableTeamId
+  ) => {
     x1: number;
     y1: number;
     x2: number;
@@ -23,13 +29,11 @@ export default class MapSectionFinder {
   private _mapSectionsList: MapSection[] = [
     {
       name: "cornerTop",
-      getRectangleArea: function (losX: number) {
-        const { YARD, TOP_SIDELINE, ABOVE_HASH } = MAP_POINTS;
-
-        const fifteenYardsInFrontOfLOS = losX + YARD * 15;
-        const fifteenYardsBehindLOS = losX - YARD * 15;
-
-        // Have to adjust
+      getRectangleArea: function (
+        fifteenYardsBehindLOS,
+        fifteenYardsInFrontOfLOS
+      ) {
+        const { TOP_SIDELINE, ABOVE_HASH } = MAP_POINTS;
         return {
           x1: fifteenYardsBehindLOS,
           y1: TOP_SIDELINE - 1000,
@@ -40,11 +44,11 @@ export default class MapSectionFinder {
     },
     {
       name: "cornerBottom",
-      getRectangleArea: function (losX: number) {
-        const { YARD, BOT_SIDELINE, BELOW_HASH } = MAP_POINTS;
-
-        const fifteenYardsInFrontOfLOS = losX + YARD * 15;
-        const fifteenYardsBehindLOS = losX - YARD * 15;
+      getRectangleArea: function (
+        fifteenYardsBehindLOS,
+        fifteenYardsInFrontOfLOS
+      ) {
+        const { BOT_SIDELINE, BELOW_HASH } = MAP_POINTS;
 
         return {
           x1: fifteenYardsBehindLOS,
@@ -56,12 +60,11 @@ export default class MapSectionFinder {
     },
     {
       name: "middle",
-      getRectangleArea: function (losX: number) {
-        const { YARD, ABOVE_HASH, BELOW_HASH } = MAP_POINTS;
-
-        const fifteenYardsInFrontOfLOS = losX + YARD * 15;
-        const fifteenYardsBehindLOS = losX - YARD * 15;
-
+      getRectangleArea: function (
+        fifteenYardsBehindLOS,
+        fifteenYardsInFrontOfLOS
+      ) {
+        const { ABOVE_HASH, BELOW_HASH } = MAP_POINTS;
         return {
           x1: fifteenYardsBehindLOS,
           y1: ABOVE_HASH,
@@ -72,12 +75,17 @@ export default class MapSectionFinder {
     },
     {
       name: "deep",
-      getRectangleArea: function (losX: number) {
+      getRectangleArea: function (
+        fifteenYardsBehindLOS,
+        fifteenYardsInFrontOfLOS,
+        losX,
+        offenseTeamId: PlayableTeamId
+      ) {
         const { YARD, BOT_SIDELINE, TOP_SIDELINE } = MAP_POINTS;
 
-        const fifteenYardsInFrontOfLOS = losX + YARD * 15;
-
-        const unlimitedYardsInFrontOfLOS = losX + YARD * 100;
+        const unlimitedYardsInFrontOfLOS = new DistanceCalculator()
+          .addByTeam(losX, YARD * 100, offenseTeamId)
+          .calculate();
 
         return {
           x1: fifteenYardsInFrontOfLOS,
@@ -89,12 +97,30 @@ export default class MapSectionFinder {
     },
   ];
 
-  getSectionName(positionToCheck: Position, losX: number): MapSectionName {
+  getSectionName(
+    positionToCheck: Position,
+    losX: number,
+    offenseTeamId: PlayableTeamId
+  ): MapSectionName {
+    const { YARD } = MAP_POINTS;
+
+    const fifteenYardsInFrontOfLOS = new DistanceCalculator()
+      .addByTeam(losX, YARD * 15, offenseTeamId)
+      .calculate();
+    const fifteenYardsBehindLOS = new DistanceCalculator()
+      .subtractByTeam(losX, YARD * 15, offenseTeamId)
+      .calculate();
+
     const sectionObj = this._mapSectionsList.find((section) => {
-      const rectangleArea = section.getRectangleArea(losX);
+      const rectangleArea = section.getRectangleArea(
+        fifteenYardsInFrontOfLOS,
+        fifteenYardsBehindLOS,
+        losX,
+        offenseTeamId
+      );
       return isInRectangleArea(rectangleArea, positionToCheck);
     });
 
-    return sectionObj?.name as unknown as MapSectionName;
+    return sectionObj?.name ?? "behind";
   }
 }
