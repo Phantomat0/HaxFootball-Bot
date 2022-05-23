@@ -369,6 +369,14 @@ export default class Snap extends SnapEvents {
       });
     }
 
+    // Alas, check for safety, but you need to adjust the position to front first
+    const isSafety = GameReferee.checkIfSafetyPlayer(
+      playerContact.ballCarrierPosition,
+      Room.game.offenseTeamId
+    );
+
+    if (isSafety) return this.handleSafety();
+
     this.endPlay({
       newLosX: endPosition.x,
       netYards,
@@ -428,15 +436,18 @@ export default class Snap extends SnapEvents {
       });
     }
 
-    Room.game.addScore(Room.game.offenseTeamId, 7);
-    Ball.score(Room.game.defenseTeamId);
-    // Can set the state "canTwoPoint" probs here
+    this.scorePlay(7, Room.game.offenseTeamId, Room.game.defenseTeamId);
+    // Allow for a two point attempt
+    Room.game.setState("canTwoPoint");
   }
 
   /**
    * Handles an auto touchdown after three redzone penalties
    */
-  _handleAutoTouchdown() {}
+  handleAutoTouchdown() {
+    Chat.send("AUTO TD!");
+    this.scorePlay(7, Room.game.offenseTeamId, Room.game.defenseTeamId);
+  }
 
   handleTouchdown(position: Position) {
     this._setLivePlay(false);
@@ -444,27 +455,10 @@ export default class Snap extends SnapEvents {
     if (this.stateExistsUnsafe("twoPointAttempt"))
       return this._handleTwoPointTouchdown();
     return this._handleRegularTouchdown(position);
-    // const { name, team } = this.getBallCarrier();
-    // if (this.getState("twoPoint") === false) {
-    //   Chat.send("yup");
-    //   down.setState("canTwoPoint");
-    // }
-    // // Get what kind of touchdown for stats
-    // const endzone = getOpposingTeamEndzone(team);
-    // const { netYards } = this.getPlayData({ x: endzone }, team);
-    // sendPlayMessage({
-    //   type: PLAY_TYPES.TOUCHDOWN,
-    //   playerName: name,
-    //   netYards: netYards,
-    // });
-    // game.setLivePlay(false);
-    // return this.getState("twoPoint")
-    //   ? this.scorePlay(2, game.getOffenseTeam())
-    //   : this.scorePlay(7, game.getOffenseTeam());
   }
 
-  onKickDrag(player: PlayerObjFlat) {
-    this._handlePenalty("snapDrag", player);
+  onKickDrag(player: PlayerObjFlat | null) {
+    this._handlePenalty("snapDrag", player!);
   }
 
   handleIllegalCrossOffense(player: PlayerObjFlat) {
@@ -476,6 +470,7 @@ export default class Snap extends SnapEvents {
   }
 
   cleanUp() {
+    Chat.send("CLEANUP CALLED");
     this._stopBlitzClock();
   }
 }
