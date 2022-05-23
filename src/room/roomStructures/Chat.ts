@@ -1,5 +1,6 @@
 import { client } from "..";
 import { PlayerObject } from "../HBClient";
+import MessageFormatter from "../structures/MessageFormatter";
 import COLORS from "../utils/colors";
 import ICONS from "../utils/Icons";
 import { ValueOf } from "../utils/types";
@@ -97,6 +98,17 @@ class Chat {
    */
   send(msg: string, msgOptions: MessageOptions = {}) {
     this._sendMessage(msg, msgOptions);
+  }
+
+  /**
+   * Sends a message appending the gametime at the end if its over a certain time limit
+   */
+  sendMessageMaybeWithClock(message: string, time: number) {
+    const msgMaybeWithTime = MessageFormatter.formatMessageMaybeWithClock(
+      message,
+      time
+    );
+    this._sendMessage(msgMaybeWithTime, {});
   }
 
   sendSuccess(message: string, options: MessageOptions = {}) {
