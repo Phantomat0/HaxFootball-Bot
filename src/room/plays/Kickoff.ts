@@ -2,19 +2,57 @@ import Room from "..";
 import BallContact from "../classes/BallContact";
 import { Position } from "../HBClient";
 import Chat from "../roomStructures/Chat";
+import DistanceCalculator from "../structures/DistanceCalculator";
 import MapReferee from "../structures/MapReferee";
 import PreSetCalculators from "../structures/PreSetCalculators";
+import { getPlayerDiscProperties } from "../utils/haxUtils";
+import { MAP_POINTS } from "../utils/map";
 import KickOffEvents from "./play_events/KickOff.events";
 
 export default class KickOff extends KickOffEvents {
-  handleTouchdown(position: Position): void {
+  handleTouchdown(endPosition: Position): void {
+    const { netYards } = this._getPlayDataOffense(endPosition);
+
     this._setLivePlay(false);
 
-    Chat.send("TOUCHDOWN!!!!!");
+    Chat.send(`TOUCHDOWN!!!! ${netYards} yards!`);
+
+    this.scorePlay(7, Room.game.offenseTeamId, Room.game.defenseTeamId);
   }
 
   protected _handleBallContactDefense(ballContactObj: BallContact): void {
     // The defense doesn't really touch the ball at all lol
+  }
+
+  private _checkIfOffenseOffsidesOnKick() {
+    const losX = Room.game.down.getLOS().x;
+
+    const twoYardsInFrontOfLos = new DistanceCalculator()
+      .addByTeam(losX, MAP_POINTS.YARD * 2, Room.game.offenseTeamId)
+      .calculate();
+
+    const offensePlayers = Room.game.players.getOffense();
+
+    // Find a player that is offsides
+
+    const offSidePlayer = offensePlayers.find((player) => {
+      const { position } = getPlayerDiscProperties(player.id);
+
+      const isOnside = MapReferee.checkIfBehind(
+        position.x,
+        twoYardsInFrontOfLos,
+        Room.game.offenseTeamId
+      );
+
+      return isOnside === false;
+    });
+
+    const offsidePlayerExists = Boolean(offSidePlayer);
+
+    return {
+      isOffsides: offsidePlayerExists,
+      offsidesPlayer: offSidePlayer,
+    };
   }
 
   protected _handleBallContactOffense(ballContactObj: BallContact): void {
@@ -25,6 +63,27 @@ export default class KickOff extends KickOffEvents {
     if (this.stateExists("kickOffKicked") === false) {
       if (ballContactObj.type === "kick") {
         this.setState("kickOffKicked");
+        this.setState("KickOffKicker", ballContactObj.player);
+
+        // Before we swap, check for the penalty
+
+        const { isOffsides, offsidesPlayer } =
+          this._checkIfOffenseOffsidesOnKick();
+
+        if (isOffsides) {
+          // We have to check if its a safety or not
+
+          const isSafetyKickoff = Room.game.stateExists("safetyKickoff");
+
+          if (isSafetyKickoff)
+            return this._handlePenalty(
+              "kickOffOffsidesSafety",
+              offsidesPlayer!
+            );
+
+          return this._handlePenalty("kickOffOffsides", offsidesPlayer!);
+        }
+
         Room.game.swapOffenseAndUpdatePlayers();
       }
 
@@ -65,111 +124,10 @@ export default class KickOff extends KickOffEvents {
     this.endPlay({ newLosX: ballContactObj.playerPosition.x, resetDown: true });
   }
 
-  cleanUp(): void {}
-  // constructor(time: number) {
-  //   super(time);
-  // }
-  // putOffenseInPosition() {
-  //   return this;
-  // }
-  // putDefenseInPosition() {
-  //   return this;
-  // }
-  // createInvisibleWallForDefense() {
-  //   return this;
-  // }
-  // onKickDrag(dragAmount) {
-  //   Chat.send("DRAG ON KICK" + dragAmount);
-  //   // We have to get the closest player to the ball to determine the kicker, since it could be anyone
-  //   const { name } = getClosestPlayerToBall();
-  //   // Which forty yard line depends on if its a safety
-  //   const team = down.getState("safetyKickOff")
-  //     ? game.getOffenseTeam()
-  //     : game.getDefenseTeam();
-  //   const offenseOrDefenseEndZone = getTeamEndzone(team);
-  //   const offenseOrDefenseFortyYardLine = new DistanceCalculator([
-  //     offenseOrDefenseEndZone,
-  //     MAP.YARD * 40,
-  //   ])
-  //     .addByTeam(team)
-  //     .getDistance();
-  //   handlePenalty({
-  //     type: down.getState("safetyKickOff")
-  //       ? PENALTY_TYPES.KICKOFF_DRAG_SAFETY
-  //       : PENALTY_TYPES.KICKOFF_DRAG,
-  //     playerName: name,
-  //   });
-  //   this.endPlay({
-  //     endPosition: offenseOrDefenseFortyYardLine,
-  //     swapOffense: true,
-  //   });
-  // }
-  // onBallContact(ballContactObj) {
-  //   // We have to do this check AGAIN because playerOnkick is not an event listener, but a native listener
-  //   if (this.getState("kickOffCaught")) return;
-  //   super.onBallContact(ballContactObj);
-  // }
-  // onBallOutOfBounds(ballPosition) {
-  //   const { x } = ballPosition;
-  //   const team = game.getDefenseTeam();
-  //   const roundedX = new DistanceCalculator(x).roundByTeam(team);
-  //   sendPlayMessage({
-  //     type: PLAY_TYPES.KICK_OUT_OF_BOUNDS,
-  //     yard: roundedX.getYardLine(),
-  //     position: roundedX.getDistance(),
-  //   });
-  //   const determineWhichPenalty = () => {
-  //     if (down.getState("safetyKickOff")) {
-  //       handlePenalty({ type: PENALTY_TYPES.KICKOFF_OUT_OF_BOUNDS_SAFETY });
-  //     } else {
-  //       handlePenalty({ type: PENALTY_TYPES.KICKOFF_OUT_OF_BOUNDS });
-  //     }
-  //   };
-  //   const getPenaltyYardLinePosition = () => {
-  //     if (down.getState("safetyKickOff")) {
-  //       const opposingTeamFortyYardLinePosition = new DistanceCalculator([
-  //         MAP.KICKOFF,
-  //         MAP.YARD * 10,
-  //       ])
-  //         .addByTeam(team)
-  //         .getDistance();
-  //       return opposingTeamFortyYardLinePosition;
-  //     }
-  //     const teamFortyYardLinePosition = new DistanceCalculator([
-  //       MAP.KICKOFF,
-  //       MAP.YARD * 10,
-  //     ])
-  //       .subtractByTeam(team)
-  //       .getDistance();
-  //     return teamFortyYardLinePosition;
-  //   };
-  //   determineWhichPenalty();
-  //   this.endPlay({
-  //     endPosition: getPenaltyYardLinePosition(),
-  //     swapOffense: true,
-  //   });
-  // }
-  // handleCatch(ballContactObj) {
-  //   game.swapOffense();
-  //   const {
-  //     player,
-  //     playerPosition: { x },
-  //   } = ballContactObj;
-  //   const { name, team } = player;
-  //   const adjustedX = new DistanceCalculator([x, MAP.PLAYER_RADIUS])
-  //     .addByTeam(team)
-  //     .roundByTeam()
-  //     .roundToMap();
-  //   this.setState("catchPosition", adjustedX.getDistance());
-  //   this.setState("kickOffCaught");
-  //   sendPlayMessage({
-  //     type: PLAY_TYPES.KICK_CATCH,
-  //     playerName: name,
-  //     yard: adjustedX.getYardLine(),
-  //     position: adjustedX.getDistance(),
-  //   });
-  //   this.setBallCarrier(player);
-  // }
+  cleanUp(): void {
+    Room.game.clearState();
+  }
+
   // positionBallAndFieldMarkers() {
   //   // No snap distance for kickoffs, we always place on the LOS
   //   ball.setPosition({ x: down.getLOS() });

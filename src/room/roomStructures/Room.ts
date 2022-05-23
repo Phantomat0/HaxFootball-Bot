@@ -6,12 +6,19 @@ import PlayerManager from "./Players";
 
 export default class RoomClient {
   readonly client: HBClient;
-  game: Game;
+  private _game: Game | null;
   readonly players: PlayerManager = new PlayerManager();
   private _isBotOn: boolean = true;
 
   constructor(client: HBClient) {
     this.client = client;
+  }
+
+  /**
+   * Returs the game when we know its defined
+   */
+  get game() {
+    return this._game as Game;
   }
 
   get isBotOn() {
@@ -27,7 +34,11 @@ export default class RoomClient {
   }
 
   startNewGame() {
-    this.game = new Game();
+    this._game = new Game();
     this.game.setPlay(new KickOff(0), null);
+  }
+
+  endGame() {
+    this._game = null;
   }
 }

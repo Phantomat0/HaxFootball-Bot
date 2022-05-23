@@ -36,12 +36,10 @@ client.onGameStart = () => {
   Room.startNewGame();
 };
 
-// client.onGameStop = () => {
-//   if (!Room.isBotOn) return;
-//   game = null;
-//   down = null;
-//   play = null;
-// };
+client.onGameStop = () => {
+  if (!Room.isBotOn) return;
+  Room.endGame();
+};
 
 // client.onTeamGoal = () => {
 //   if (!Room.isBotOn) return;
@@ -51,7 +49,9 @@ client.onGameStart = () => {
 client.onPositionsReset = () => {
   if (!Room.isBotOn) return;
   Room.game.down.startNew();
-  Room.game.setPlay(new KickOff(0), null);
+  Room.game.setState("canTwoPoint", false);
+  Room.game.setState("twoPointAttempt", false);
+  Room.game.setPlay(new KickOff(Room.game.getTime()), null);
 };
 
 client.onPlayerTeamChange = onPlayerTeamChange;

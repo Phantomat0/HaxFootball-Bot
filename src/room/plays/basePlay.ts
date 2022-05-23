@@ -17,7 +17,7 @@ import PenaltyDataGetter, {
 } from "../structures/PenaltyDataGetter";
 import { PenaltyName } from "../structures/PenaltyDataGetter";
 import PreSetCalculators from "../structures/PreSetCalculators";
-import { flattenPlayer } from "../utils/haxUtils";
+import { flattenPlayer, quickPause } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
 import MapSectionFinder from "../utils/MapSectionFinder";
 import FieldGoal from "./FieldGoal";
@@ -107,7 +107,6 @@ export default abstract class BasePlay<T> extends WithStateStore<
    * Saves the position of the ball before the play begins
    */
   setBallPositionOnSet(position: Position) {
-    console.log("WE SET THE BALL POSITION");
     this._ballPositionOnSet = position;
     return this;
   }
@@ -135,6 +134,7 @@ export default abstract class BasePlay<T> extends WithStateStore<
     Room.game.addScore(team, score);
     Ball.score(teamEndZoneToScore);
     Room.game.sendScoreBoard();
+    Room.game.down.resetAfterScore();
 
     // Dont swap offense, we swap offense on the kickoff
   }
@@ -180,20 +180,11 @@ export default abstract class BasePlay<T> extends WithStateStore<
   handleSafety() {
     this._setLivePlay(false);
     Chat.send("SAFETY!!!");
-    Ball.score(Room.game.defenseTeamId);
 
-    // const offenseEndZone = MapReferee.getTeamEndzone(Room.game.offenseTeamId);
-    // const offenseTwentyYardLine = new DistanceCalculator()
-    //   .addByTeam(offenseEndZone, MAP_POINTS.YARD * 20, Room.game.offenseTeamId)
-    //   .calculate();
+    Room.game.setState("safetyKickoff");
 
-    // Room.game.setState("kickOffPosition", offenseTwentyYardLine);
-
-    // // ? Why is offense scoring? Because we need the defense to get the ball, so offense has to kickoff
-    // this.scorePlay(2, game.getDefenseTeam(), game.getOffenseTeam());
-
-    // // Score the play first, so we can create a new down
-    // down.setState("safetyKickOff", offenseTwentyYardLine);
+    // ? Why is offense scoring? Because we need the defense to get the ball, so offense has to kickoff
+    this.scorePlay(2, Room.game.defenseTeamId, Room.game.offenseTeamId);
   }
 
   /**
@@ -204,12 +195,12 @@ export default abstract class BasePlay<T> extends WithStateStore<
     player: PlayerObjFlat,
     penaltyData: AdditionalPenaltyData = {}
   ) {
+    quickPause();
+
     const losX = Room.game.down.getLOS().x;
 
     const isInDefenseRedzone =
       MapReferee.checkIfInRedzone(losX) === Room.game.defenseTeamId;
-
-    console.log({ isInDefenseRedzone });
 
     const {
       penaltyYards,
@@ -244,7 +235,7 @@ export default abstract class BasePlay<T> extends WithStateStore<
       const isAutoTouchdown = Room.game.down.hasReachedMaxRedzonePenalties();
 
       if (isAutoTouchdown)
-        return this.getMaskPlay<Snap>()._handleAutoTouchdown();
+        return this.getMaskPlay<Snap>().handleAutoTouchdown();
     }
 
     this.endPlay({ addDown, newLosX: newEndLosX, netYards: penaltyYards });
@@ -259,11 +250,7 @@ export default abstract class BasePlay<T> extends WithStateStore<
     addDown = true,
     resetDown = false,
   }: EndPlayData) {
-    console.log(netYards, newLosX, addDown);
-
-    // const isKickOffOrPunt = this.getState("punt") || this.getState("kickOff");
     const updateDown = () => {
-      console.log("UPDATE DOWN RAN");
       // Dont update the down if nothing happened, like off a pass deflection, punt, or kickoff
       if (newLosX === null) return;
 
@@ -275,10 +262,13 @@ export default abstract class BasePlay<T> extends WithStateStore<
 
         // First down
         if (currentYardsToGet <= 0 || resetDown) {
-          Chat.send("FIRST DOWN!");
+          if (resetDown === false) {
+            Chat.send("FIRST DOWN!");
+          }
           Room.game.down.startNew();
         }
 
+        // Maybe instead of doing this, u can just add anb option to EndPlayData like "turnover"
         // Turnover
         if (this.stateExistsUnsafe("fieldGoal")) {
           // This endplay only runs when there is a running play on the field goal
@@ -380,7 +370,7 @@ export default abstract class BasePlay<T> extends WithStateStore<
   /**
    * Handles a drag on a kick
    */
-  abstract onKickDrag(player: PlayerObjFlat): void;
+  abstract onKickDrag(player: PlayerObjFlat | null): void;
 
   /**
    * Cleans up any variables from the current play
