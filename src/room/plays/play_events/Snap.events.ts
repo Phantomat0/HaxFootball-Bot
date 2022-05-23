@@ -175,14 +175,17 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       penaltyData,
     } = new SnapValidator(player as PlayerObject).validate();
 
-    if (!valid)
-      return this._handlePenalty(penaltyName!, penaltiedPlayer!, penaltyData);
+    if (!valid) {
+      this._handlePenalty(penaltyName!, penaltiedPlayer!, penaltyData);
+      throw new GameCommandError("Penalty", false);
+    }
   }
 
   prepare() {
     Room.game.updateStaticPlayers();
     this._setStartingPosition(Room.game.down.getLOS());
     this.setBallPositionOnSet(Ball.getPosition());
+    Room.game.down.moveFieldMarkers();
     this._startBlitzClock();
   }
 
@@ -224,7 +227,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       Room.game.offenseTeamId
     );
 
-    if (isSafety) return super.handleSafety();
+    if (isSafety) return this.handleSafety();
 
     const { endPosition, netYards, endYard } =
       this._getPlayDataOffense(ballCarrierPosition);
