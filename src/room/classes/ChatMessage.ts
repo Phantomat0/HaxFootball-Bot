@@ -1,5 +1,5 @@
 import Chat, { MessageOptions } from "../roomStructures/Chat";
-import gameCommandsMap from "../structures/GameCommands";
+import gameCommandsMap from "../commands/GameCommands";
 import COLORS from "../utils/colors";
 import Player from "./Player";
 

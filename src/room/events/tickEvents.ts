@@ -52,8 +52,6 @@ export const checkBallCarrierContact = (playerArray: PlayerObject[]) => {
       .calculate();
 
     if (distanceToBallCarrier < TOUCHING_DISTANCE.PLAYER) {
-      console.log(playerArray);
-      console.log(player, ballCarrier);
       return new PlayerContact(
         player,
         playerPosition,

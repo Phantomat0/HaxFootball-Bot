@@ -1,7 +1,9 @@
 import ChatMessage from "../classes/ChatMessage";
 import Chat from "../roomStructures/Chat";
-import GameCommandHandler, { GameCommandError } from "./GameCommandHandler";
-import gameCommandsMap from "./GameCommands";
+import GameCommandHandler, {
+  GameCommandError,
+} from "../commands/GameCommandHandler";
+import gameCommandsMap from "../commands/GameCommands";
 
 export default class ChatHandler {
   static handleOffensiveMessage(chatObj: ChatMessage): false {

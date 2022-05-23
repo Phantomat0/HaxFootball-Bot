@@ -2,8 +2,6 @@ import { Position } from "../HBClient";
 import { MAP_POINTS } from "../utils/map";
 
 class DownAndDistanceFormatter {
-  formatLOSDistance() {}
-
   formatRedZonePenalties(currentRedZonePenalties: 0 | 1 | 2 | 3) {
     if (currentRedZonePenalties === 0) return ""; // If there are no redzone penalties
     return ` [${currentRedZonePenalties}/3]`;

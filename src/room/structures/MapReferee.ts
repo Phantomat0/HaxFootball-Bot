@@ -129,11 +129,11 @@ class MapReferee {
   }
 
   checkIfBehind(x1: Position["x"], x2: Position["x"], team: PlayableTeamId) {
-    return team === TEAMS.RED ? x1 < x2 : x1 > x2;
+    return team === TEAMS.RED ? x1 <= x2 : x1 >= x2;
   }
 
   checkIfInFront(x1: Position["x"], x2: Position["x"], team: PlayableTeamId) {
-    return team === TEAMS.RED ? x1 > x2 : x1 < x2;
+    return team === TEAMS.RED ? x1 >= x2 : x1 <= x2;
   }
 
   checkIfBallBetweenFGPosts(position: Position, endzoneTeamId: PlayableTeamId) {
