@@ -15,6 +15,10 @@ export class DistanceConverter {
   static toYard(distance: number) {
     return distance / MAP_POINTS.YARD;
   }
+
+  static yardToDistance(yard: number) {
+    return yard * MAP_POINTS.YARD;
+  }
 }
 
 export default class DistanceCalculator {
@@ -95,8 +99,8 @@ export default class DistanceCalculator {
   constrainToEndzonePoints() {
     const rounded =
       this._calculation >= 0
-        ? Math.min(this._calculation, MAP_POINTS.BLUE_ENDZONE)
-        : Math.max(this._calculation, MAP_POINTS.RED_ENDZONE);
+        ? Math.min(this._calculation, MAP_POINTS.BLUE_GOAL_LINE)
+        : Math.max(this._calculation, MAP_POINTS.RED_GOAL_LINE);
     this._calculation = rounded;
     return this;
   }
