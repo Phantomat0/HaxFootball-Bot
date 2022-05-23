@@ -18,6 +18,8 @@ export default class PreSetCalculators {
     position: Position,
     teamId: PlayableTeamId
   ) {
+    console.log("RAWWWWWWWWWWWWWWW POS");
+    console.log(position);
     const xPositionFront = new DistanceCalculator()
       .addByTeam(position.x, MAP_POINTS.PLAYER_RADIUS, teamId)
       .roundToYardByTeam(teamId)
@@ -78,4 +80,24 @@ export default class PreSetCalculators {
       botFG: BOTTOM_FG_POST - objectRadius,
     };
   };
+
+  /**
+   *
+   * @param adjustedEndDistance Distance already adjusted to player or ball
+   */
+  static roundAdjustedEndDistanceAroundEndzone(
+    adjustedEndDistance: number,
+    offenseTeamId: PlayableTeamId
+  ) {
+    // Adjust it so if its between and 0 and 1 yard line we always round up
+    // Round it to either 775 or -775
+    const endDistanceConstrainedAndRounded = new DistanceCalculator(
+      adjustedEndDistance
+    )
+      .roundToTeamEndzone(offenseTeamId)
+      .constrainToEndzonePoints()
+      .calculateAndConvert();
+
+    return endDistanceConstrainedAndRounded;
+  }
 }
