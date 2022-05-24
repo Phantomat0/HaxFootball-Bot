@@ -1,5 +1,5 @@
 import { client } from "..";
-import { PlayerObject } from "../HBClient";
+import { PlayerObject, TeamId } from "../HBClient";
 import { leftpad } from "./utils";
 
 export const getPlayerDiscProperties = (id: number) => {
@@ -27,4 +27,10 @@ export const flattenPlayer = ({ id, team, name }: PlayerObject) => {
 export const toClock = (secs: number) => {
   const seconds = Math.floor(secs);
   return `${Math.floor(seconds / 60)}:${leftpad(seconds % 60)}`;
+};
+
+export const getTeamStringFromId = (teamId: TeamId) => {
+  if (teamId === 0) return "Spectators";
+  if (teamId === 1) return "Red";
+  return "Blue";
 };
