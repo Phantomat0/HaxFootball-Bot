@@ -11,11 +11,6 @@ import Player from "./Player";
 
 export default class CommandMessage extends ChatMessage {
   /**
-   * The command object, can be null if the command is not found
-   */
-  command: any | null = null;
-
-  /**
    * The name of the attempted command, doesn't have to be a legal command name
    */
   commandName: string;
@@ -30,6 +25,11 @@ export default class CommandMessage extends ChatMessage {
    */
   commandParamsArray: string[];
 
+  /**
+   * The number of params passed in
+   */
+  commandParamsLength: number;
+
   constructor(message: string, player: Player) {
     super(message, player);
 
@@ -39,6 +39,11 @@ export default class CommandMessage extends ChatMessage {
     this.commandParamsArray = cmdParamsArray;
     this.commandParamsStr = cmdParamsStr;
     this.commandName = cmdName;
+    this.commandParamsLength = cmdParamsArray.length;
+  }
+
+  hasNoParams() {
+    return this.commandParamsLength === 0;
   }
 
   private _extractCommandNameAndParams() {
@@ -54,15 +59,5 @@ export default class CommandMessage extends ChatMessage {
       cmdParamsArray: cmdParams,
       cmdParamsStr: cmdParamsString,
     };
-  }
-
-  /**
-   * Loads the command object using the command name
-   * @return Returns false if the command was not found
-   */
-  loadCommand() {}
-
-  validateAndRun() {
-    // Validate the command, then run
   }
 }
