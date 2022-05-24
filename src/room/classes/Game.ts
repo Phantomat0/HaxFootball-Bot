@@ -1,5 +1,5 @@
 import { client, TEAMS } from "..";
-import { PlayableTeamId, PlayerObject, TeamId } from "../HBClient";
+import { PlayableTeamId, PlayerObject } from "../HBClient";
 import { PLAY_TYPES } from "../plays/BasePlay";
 import Chat from "../roomStructures/Chat";
 import PlayerRecorder from "../structures/PlayerRecorder";
@@ -26,6 +26,10 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     red: 0,
     blue: 0,
   };
+
+  redTeamName: string = "Red";
+  blueTeamName: string = "Blue";
+
   offenseTeamId: PlayableTeamId = 1;
 
   timeoutsUsed: {
@@ -44,6 +48,11 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   players: PlayerRecorder = new PlayerRecorder();
   stats: PlayerStatManager = new PlayerStatManager();
   private _canStartSnapPlay: boolean = true;
+
+  constructor() {
+    super();
+    this.updateStaticPlayers();
+  }
 
   updateStaticPlayers() {
     this.players.updateStaticPlayerList(this.offenseTeamId);
@@ -108,7 +117,7 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   }
 
   setScore(teamID: PlayableTeamId, score: number) {
-    teamID === TEAMS.RED ? this.score.red === score : this.score.blue === score;
+    teamID === TEAMS.RED ? (this.score.red = score) : (this.score.blue = score);
     return this;
   }
 
@@ -126,6 +135,10 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   getClock() {
     const time = this.getTime();
     return toClock(time);
+  }
+
+  getScoreBoardStr() {
+    return `${ICONS.RedSquare} ${this.score.red} -  ${this.score.blue} ${ICONS.BlueSquare}`;
   }
 
   sendScoreBoard() {
