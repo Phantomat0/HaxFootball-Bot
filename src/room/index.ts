@@ -30,6 +30,8 @@ export const TEAMS: TeamIdEnum = {
 };
 
 client.setCustomStadium(HFL_MAP);
+client.setTimeLimit(13);
+client.setScoreLimit(0);
 
 client.onGameStart = () => {
   if (!Room.isBotOn) return;
