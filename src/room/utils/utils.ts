@@ -126,6 +126,13 @@ export const inRange = (num: number, rangeMin: number, rangeMax: number) => {
   return num >= rangeMin && num <= rangeMax;
 };
 
+/*
+    O-----y1------O
+    |             |
+    x1			     x2
+    |			       |
+    O----y2------O
+    */
 export const isInRectangleArea = (
   { x1, y1, x2, y2 }: { x1: number; y1: number; x2: number; y2: number },
   { x, y }: { x: number; y: number }
@@ -212,4 +219,20 @@ export const sumObjectValues = (object: { [key: string | number]: number }) => {
 
 export const isObject = (obj: any) => {
   return obj != null && obj.constructor.name === "Object";
+};
+
+export const toOrdinalSuffix = (
+  number: number
+): `${number}st | ${number}nd | ${number}rd | ${number}th` => {
+  const english_ordinal_rules = new Intl.PluralRules("en", { type: "ordinal" });
+  const suffixes = {
+    one: "st",
+    two: "nd",
+    few: "rd",
+    other: "th",
+  };
+
+  const category = english_ordinal_rules.select(number);
+  const suffix = suffixes[category];
+  return number + suffix;
 };
