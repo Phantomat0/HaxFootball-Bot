@@ -1,3 +1,4 @@
+import ICONS from "../utils/Icons";
 import { MapSectionName } from "../utils/MapSectionFinder";
 import { isObject, sumObjectValues } from "../utils/utils";
 import Player from "./Player";
@@ -191,6 +192,16 @@ export default class PlayerStats implements IPlayerStat {
     });
   }
 
+  getStatsStringNormal(): string {
+    console.log(this);
+
+    const recStats = `Receiving | Rec: ${this.totalReceptions} ${ICONS.SmallBlackSquare} Yds: ${this.totalReceivingYards} ${ICONS.SmallBlackSquare} Ratt: ${this.rushingAttempts} ${ICONS.SmallBlackSquare} Ruyd: ${this.rushingYards} | TD: ${this.touchdownsReceived} ${ICONS.SmallBlackSquare} RuTD: ${this.touchdownsRushed}`;
+    const qbStats = `Quarterback | Cmp/Att: ${this.totalPassCompletions}/${this.totalPassAttempts} ${ICONS.SmallBlackSquare} Pyds: ${this.totalPassYards} | TD: ${this.touchdownsThrown} Ints: ${this.interceptionsThrown}`;
+    const defensiveStats = `Defense | PD: ${this.totalPassDeflections} ${ICONS.SmallBlackSquare} Tak: ${this.tackles} ${ICONS.SmallBlackSquare} Sak: ${this.sacks} ${ICONS.SmallBlackSquare} Ints: ${this.interceptionsReceived}`;
+
+    return `${recStats}\n${qbStats}\n${defensiveStats}`;
+  }
+
   getStatsStringMini(): string {
     console.log(this);
     const receivingStats =
@@ -218,13 +229,13 @@ export default class PlayerStats implements IPlayerStat {
       .join(" | ");
   }
 
-  getStatsStringFull(): [string, string, string] {
+  getStatsStringFull(): string {
     console.log(this);
     const offenseStatsString = `Rec: ${this.totalReceptions} (${this.cornerReceptions}-${this.receptions.middle}-${this.receptions.middle}) | RecYds: ${this.totalReceivingYards} (${this.cornerReceivingYards}-${this.receivingYards.middle}-${this.receivingYards.deep}) | RecTds: ${this.touchdownsReceived} | RushTds: ${this.touchdownsRushed} | Rush: ${this.rushingAttempts} | RushYds: ${this.rushingYards}`;
     const qbStatsString = `Att: ${this.totalPassAttempts} (${this.cornerPassAttempts}-${this.passAttempts.middle}-${this.passAttempts.deep}) | Cmp: ${this.totalPassCompletions} (${this.cornerPassCompletions}-${this.passCompletions.middle}-${this.passCompletions.deep}) | QbYds: ${this.totalPassYards} (${this.cornerPassYards}-${this.passYards.middle}-${this.passYards.deep}) | qbTds: ${this.touchdownsThrown} | Int: ${this.interceptionsThrown}`;
     const defenseStatsString = `PD: ${this.totalPassDeflections} (${this.cornerPassDeflections}-${this.passDeflections.middle}-${this.passDeflections.deep}) | Tak: ${this.tackles} | YardsAllowed: ${this.totalYardsAllowed} (${this.cornerYardsAllowed}-${this.yardsAllowed.middle}-${this.yardsAllowed.deep}) | FdFum: ${this.forcedFumbles} | IntR: ${this.interceptionsReceived} | Sak: ${this.sacks}`;
 
-    return [offenseStatsString, qbStatsString, defenseStatsString];
+    return `${offenseStatsString}\n${qbStatsString}\n${defenseStatsString}`;
   }
 
   // getStatsStringFull(): [string, string, string] {
