@@ -19,6 +19,10 @@ export default class PlayerRecorder {
     fielded: PlayerObject[];
     offense: PlayerObject[];
     defense: PlayerObject[];
+  } = {
+    fielded: [],
+    offense: [],
+    defense: [],
   };
   playerPositionsMap = new Map<
     PlayerObject["id"],
