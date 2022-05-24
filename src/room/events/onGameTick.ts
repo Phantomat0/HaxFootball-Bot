@@ -1,6 +1,6 @@
 import { PlayStorageKeys } from "../plays/BasePlay";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
-import Room from "..";
+import Room, { client } from "..";
 import MapReferee from "../structures/MapReferee";
 import GameReferee from "../structures/GameReferee";
 import { checkBallCarrierContact, checkBallContact } from "./tickEvents";
@@ -25,6 +25,12 @@ const eventListeners: EventListener[] = [
       "interceptionRuling",
     ],
     run: () => {
+      // Follow ball
+
+      const ballPosition = Ball.getPosition();
+
+      client.setDiscProperties(5, ballPosition);
+
       const ballOutOfBounds = MapReferee.checkIfBallOutOfBounds(); // This returns either null or the ballPosition,
       if (ballOutOfBounds)
         return Room?.game?.play?.handleBallOutOfBounds(ballOutOfBounds);
