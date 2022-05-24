@@ -1,3 +1,4 @@
+import { TEAMS } from "..";
 import { PlayableTeamId, Position } from "../HBClient";
 import DistanceCalculator from "../structures/DistanceCalculator";
 import { MAP_POINTS } from "./map";
@@ -87,6 +88,22 @@ export default class MapSectionFinder {
           .addByTeam(losX, YARD * 100, offenseTeamId)
           .calculate();
 
+        /*
+    O-----y1------O
+    |             |
+    x1			     x2
+    |			        |
+    O----y2------O
+    */
+        // X1 is the limit for blue, X2 is the limit for red
+        if (offenseTeamId === TEAMS.BLUE)
+          return {
+            x1: unlimitedYardsInFrontOfLOS,
+            y1: TOP_SIDELINE - 1000,
+            x2: fifteenYardsInFrontOfLOS,
+            y2: BOT_SIDELINE + 1000,
+          };
+
         return {
           x1: fifteenYardsInFrontOfLOS,
           y1: TOP_SIDELINE - 1000,
@@ -118,6 +135,8 @@ export default class MapSectionFinder {
         losX,
         offenseTeamId
       );
+
+      console.log(rectangleArea, positionToCheck, losX, section.name);
       return isInRectangleArea(rectangleArea, positionToCheck);
     });
 
