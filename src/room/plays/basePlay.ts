@@ -8,6 +8,7 @@ import {
   PlayerObjFlat,
   Position,
 } from "../HBClient";
+import { SHOW_DEBUG_CHAT } from "../roomConfig";
 import Chat from "../roomStructures/Chat";
 import Ball from "../structures/Ball";
 import DistanceCalculator from "../structures/DistanceCalculator";
@@ -78,8 +79,10 @@ export default abstract class BasePlay<T> extends WithStateStore<
   }
 
   protected _setLivePlay(bool: boolean) {
-    Chat.send(`SET LIVE PLAY TO: ${bool}`);
     this._isLivePlay = bool;
+    if (SHOW_DEBUG_CHAT) {
+      Chat.send(`SET LIVE PLAY TO: ${bool}`);
+    }
   }
 
   terminatePlayDuringError() {
@@ -172,10 +175,16 @@ export default abstract class BasePlay<T> extends WithStateStore<
       Room.game.offenseTeamId
     );
 
+    const { distance: startingPositionConstrained } =
+      PreSetCalculators.roundAdjustedEndDistanceAroundEndzone(
+        this._startingPosition.x,
+        offenseTeam
+      );
+
     // Calculate the yard difference
     const { yards: netYards } = new DistanceCalculator()
       .calcNetDifferenceByTeam(
-        this._startingPosition.x,
+        startingPositionConstrained,
         endDistanceConstrainedAndRounded,
         offenseTeam
       )
@@ -294,9 +303,9 @@ export default abstract class BasePlay<T> extends WithStateStore<
 
       const addYardsAndStartNewDownIfNecessary = () => {
         Room.game.down.setLOS(newLosX);
-        Room.game.down.subtractYards(netYards);
+        Room.game.down.subtractYardsToGet(netYards);
 
-        const currentYardsToGet = Room.game.down.getYards();
+        const currentYardsToGet = Room.game.down.getYardsToGet();
 
         // First down
         if (currentYardsToGet <= 0 || resetDown) {

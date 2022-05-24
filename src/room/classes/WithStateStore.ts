@@ -1,3 +1,4 @@
+import { SHOW_DEBUG_CHAT } from "../roomConfig";
 import Chat from "../roomStructures/Chat";
 
 interface StateStoreType {
@@ -15,8 +16,11 @@ export default class WithStateStore<
    */
   //@ts-ignore
   setState<K extends keyof T>(state: K, value: T[K] = true) {
-    Chat.send(`StateChange: ${state}`);
     this._stateStore[state] = value;
+
+    if (SHOW_DEBUG_CHAT) {
+      Chat.send(`StateChange: ${state}`);
+    }
   }
 
   /**
