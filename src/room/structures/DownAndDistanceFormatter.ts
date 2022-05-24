@@ -1,5 +1,6 @@
 import { Position } from "../HBClient";
 import { MAP_POINTS } from "../utils/map";
+import { toOrdinalSuffix } from "../utils/utils";
 
 class DownAndDistanceFormatter {
   formatRedZonePenalties(currentRedZonePenalties: 0 | 1 | 2 | 3) {
@@ -8,14 +9,7 @@ class DownAndDistanceFormatter {
   }
 
   formatDown(currentDown: 1 | 2 | 3 | 4 | 5) {
-    const downStrings = {
-      1: "1st",
-      2: "2nd",
-      3: "3rd",
-      4: "4th",
-      5: "5th",
-    };
-    return downStrings[currentDown];
+    return toOrdinalSuffix(currentDown);
   }
 
   formatYardsToGain(lineToGainPoint: Position["x"], lineToGainYards: number) {
