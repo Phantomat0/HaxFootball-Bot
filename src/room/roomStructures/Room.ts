@@ -25,6 +25,14 @@ export default class RoomClient {
     return this._isBotOn;
   }
 
+  turnBotOff() {
+    this._isBotOn = false;
+  }
+
+  turnBotOn() {
+    this._isBotOn = true;
+  }
+
   /**
    * Used when we know play has to be defined
    */
