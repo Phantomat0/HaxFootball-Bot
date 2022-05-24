@@ -4,6 +4,8 @@ import GameCommandHandler, {
   GameCommandError,
 } from "../commands/GameCommandHandler";
 import gameCommandsMap from "../commands/GameCommands";
+import CommandHandler, { CommandError } from "../commands/CommandHandler";
+import CommandMessage from "../classes/CommandMessage";
 
 export default class ChatHandler {
   static handleOffensiveMessage(chatObj: ChatMessage): false {
@@ -28,7 +30,36 @@ export default class ChatHandler {
     return false;
   }
 
-  static maybeHandleCommand(chatObj: ChatMessage): false {
+  static maybeHandleCommand(chatObj: ChatMessage): boolean {
+    const cmdMessage = new CommandMessage(chatObj.content, chatObj.author);
+
+    const cmdHandler = new CommandHandler(cmdMessage);
+    try {
+      const commandExists = cmdHandler.loadCommand();
+
+      if (!commandExists)
+        throw new CommandError(
+          `Command ${cmdMessage.commandName} does not exist`
+        );
+
+      cmdHandler.validateAndRun();
+    } catch (error) {
+      // If we get an error, check what kind of error we have
+      const isCommandError = error instanceof CommandError;
+
+      if (isCommandError) {
+        const commandError = error as CommandError;
+
+        chatObj.replyError(commandError.errorMsg);
+      } else {
+        Chat.sendBotError(error.message);
+      }
+
+      return false;
+    }
+
+    // We know the command is defined since there werent any errors
+    // return cmdHandler.command!.showCommand;
     return false;
   }
 
