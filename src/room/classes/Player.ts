@@ -105,6 +105,7 @@ export default class Player {
 
   setAdmin(bool: boolean) {
     client.setPlayerAdmin(this.id, bool);
+    return this;
   }
 
   /**
@@ -113,6 +114,7 @@ export default class Player {
 
   setAdminLevel(adminLevel: PlayerAdminLevel) {
     this._adminLevel = adminLevel;
+    return this;
   }
 
   /**

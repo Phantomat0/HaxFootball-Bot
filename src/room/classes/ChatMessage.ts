@@ -81,4 +81,8 @@ export default class ChatMessage {
     options.id = this.author?.id;
     Chat.sendSuccess(msg, options);
   }
+
+  announce(msg: string, options: MessageOptions = {}) {
+    Chat.sendAnnouncement(msg, options);
+  }
 }

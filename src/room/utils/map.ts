@@ -400,6 +400,8 @@ const HFL_MAP = `{
     
     { "pos" : [10000,280 ], "trait" : "yardtogetmarker" },
     { "pos" : [10000,-280 ], "trait" : "yardtogetmarker" },
+
+    { "pos" : [0,0 ], "trait" : "cameraball" },
     
     { "pos" : [930,-60 ], "trait" : "goalPost" },
     { "pos" : [-930,-60 ], "trait" : "goalPost" },
@@ -442,13 +444,14 @@ const HFL_MAP = `{
     "endline" : { "vis" : false, "bCoef" : 1, "cMask" : ["ball" ] },
     "goalPost" : { "radius" : 4, "invMass" : 0, "bCoef" : 0.5, "color" : "FFFF00" },
     "goalNet" : { "vis" : true, "bCoef" : 0.1, "cMask" : ["ball" ] },
-    "kickOffBarrier" : { "vis" : false, "bCoef" : 0.1, "cGroup" : ["redKO","blueKO", ], "cMask" : ["red","blue","c0"] },
+    "kickOffBarrier" : { "vis" : false, "bCoef" : 0.1, "cGroup" : ["redKO","blueKO" ], "cMask" : ["red","blue","c0"] },
     "goalline" : { "vis" : true, "color" : "FFA500", "cMask" : [ "c0", "wall" ]},
     "yardline" : { "vis" : true, "color" : "c7e6bd", "cMask" : [ ]},
     "centerline" : { "vis" : true, "color" : "c7e6bd", "cMask" : [ ] },
     "goalmarker" : { "vis" : true, "color" : "FFA500", "cMask" : [ ], "radius" : 3 },
     "losmarker" : { "vis" : true, "color" : "2c47f5", "cMask" : [ ], "radius" : 3 },
     "yardtogetmarker" : { "vis" : true, "color" : "b4eb34", "cMask" : [ ], "radius" : 3 },
+    "cameraball" : { "vis" : true, color: "000000", "cMask" : [ ], "radius" : 30 },
     "losline" : { "vis" : true, "color" : "2c47f5" },
     "yardtogetline" : { "color" : "b4eb34" },
     "goal" : { "vis" : true, "color" : "FFA500" }
