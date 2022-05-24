@@ -8,14 +8,8 @@ import DistanceCalculator, {
 import DownAndDistanceFormatter from "../structures/DownAndDistanceFormatter";
 import { DISC_IDS, MAP_POINTS } from "../utils/map";
 import { getRandomIntInRange } from "../utils/utils";
-import WithStateStore from "./WithStateStore";
 
-interface DownStore {
-  kickOff: true;
-  punt: true;
-}
-
-export default class Down extends WithStateStore<DownStore, keyof DownStore> {
+export default class Down {
   static CONFIG = {
     DEFAULT_YARDS_TO_GET: 20,
   };
@@ -28,7 +22,7 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
     y: 0,
   };
   private _currentDown: 1 | 2 | 3 | 4 | 5 = 1;
-  private _yards: number = Down.CONFIG.DEFAULT_YARDS_TO_GET;
+  private _yardsToGet: number = Down.CONFIG.DEFAULT_YARDS_TO_GET;
   private _redZonePenalties: 0 | 1 | 2 | 3 = 0;
   _MAX_REZONE_PENALTIES: number = 3;
 
@@ -45,17 +39,17 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
     return DistanceConverter.toYardLine(this._los.x);
   }
 
-  getYards() {
-    return this._yards;
+  getYardsToGet() {
+    return this._yardsToGet;
   }
 
-  setYards(yards: number) {
-    this._yards = yards;
+  setYardsToGet(yards: number) {
+    this._yardsToGet = yards;
     return this;
   }
 
-  subtractYards(netYards: number) {
-    this._yards -= netYards;
+  subtractYardsToGet(netYards: number) {
+    this._yardsToGet -= netYards;
     return this;
   }
 
@@ -75,8 +69,7 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
 
   startNew() {
     this._currentDown = 1;
-    this._yards = Down.CONFIG.DEFAULT_YARDS_TO_GET;
-    this.clearState();
+    this._yardsToGet = Down.CONFIG.DEFAULT_YARDS_TO_GET;
     return;
   }
 
@@ -95,7 +88,7 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
     return new DistanceCalculator()
       .addByTeam(
         this._los.x,
-        MAP_POINTS.YARD * this._yards,
+        MAP_POINTS.YARD * this._yardsToGet,
         Room.game.offenseTeamId
       )
       .calculate();
@@ -109,14 +102,14 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
     return this._redZonePenalties === this._MAX_REZONE_PENALTIES;
   }
 
-  sendDownAndDistance() {
+  getDownAndDistanceString() {
     const down = DownAndDistanceFormatter.formatDown(this._currentDown);
 
     const lineToGainPoint = this._getLineToGainPoint();
 
     const yardsOrGoal = DownAndDistanceFormatter.formatYardsToGain(
       lineToGainPoint,
-      this._yards
+      this._yardsToGet
     );
     const redZonePenalties = DownAndDistanceFormatter.formatRedZonePenalties(
       this._redZonePenalties
@@ -128,9 +121,13 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
 
     const LOSYard = this.getLOSYard();
 
-    const formattedMessage = `${down} & ${yardsOrGoal} at ${LOSHalf}${LOSYard}${redZonePenalties}`;
+    return `${down} & ${yardsOrGoal} at ${LOSHalf}${LOSYard}${redZonePenalties}`;
+  }
 
-    Chat.send(formattedMessage);
+  sendDownAndDistance() {
+    const downAndDistanceStr = this.getDownAndDistanceString();
+
+    Chat.send(downAndDistanceStr);
   }
 
   setPlayers() {
@@ -214,6 +211,22 @@ export default class Down extends WithStateStore<DownStore, keyof DownStore> {
     const snapPosition = this.getSnapPosition();
     Ball.setPosition(snapPosition);
     Ball.suppress();
+  }
+
+  hardSetPlayers() {
+    const fieldedPlayers = Room.game.players.getFielded();
+
+    fieldedPlayers.forEach((player) => {
+      const sevenYardsBehindLosX = new DistanceCalculator()
+        .subtractByTeam(
+          this.getLOS().x,
+          MAP_POINTS.YARD * 7,
+          player.team as PlayableTeamId
+        )
+        .calculate();
+
+      client.setPlayerDiscProperties(player.id, { x: sevenYardsBehindLosX });
+    });
   }
 
   hardReset() {
