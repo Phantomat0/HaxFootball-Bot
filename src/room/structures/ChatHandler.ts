@@ -6,6 +6,8 @@ import GameCommandHandler, {
 import gameCommandsMap from "../commands/GameCommands";
 import CommandHandler, { CommandError } from "../commands/CommandHandler";
 import CommandMessage from "../classes/CommandMessage";
+import Room, { TEAMS } from "..";
+import COLORS from "../utils/colors";
 
 export default class ChatHandler {
   static handleOffensiveMessage(chatObj: ChatMessage): false {
@@ -17,6 +19,28 @@ export default class ChatHandler {
   }
 
   static maybeHandleTeamChat(chatObj: ChatMessage): false {
+    if (chatObj.author.team === TEAMS.SPECTATORS) return false;
+
+    const teamPlayers =
+      chatObj.author.team === TEAMS.RED
+        ? Room.players.getRed()
+        : Room.players.getBlue();
+
+    const teamColor =
+      chatObj.author.team === TEAMS.RED
+        ? COLORS.HaxballRed
+        : COLORS.HaxballBlue;
+
+    const msg = chatObj.content.substring(Chat.PREFIX.TEAMCHAT.length).trim();
+
+    // Now concat the message and the playername
+    const msgFormatted = `${chatObj.author.shortName}: ${msg}`;
+
+    // Now send the message to the team players
+    teamPlayers.forEach((player) => {
+      Chat.send(msgFormatted, { color: teamColor, id: player.id });
+    });
+
     return false;
   }
 
