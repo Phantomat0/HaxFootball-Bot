@@ -236,3 +236,21 @@ export const toOrdinalSuffix = (
   const suffix = suffixes[category];
   return number + suffix;
 };
+
+export const extrapolateLine = <T extends number>(
+  p1: { x: number; y: number },
+  p2: { x: number; y: number },
+  maxX: T
+): { x: T | number; y: number } => {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+
+  // Line is vertical
+  if (dx === 0) return { x: p1.x, y: Infinity };
+
+  const slope = dy / dx;
+  // Line: y = slope * (x - p.x) + p.y
+  const y = slope * (maxX - p1.x) + p1.y;
+  // Equivalent: x = (y - p.y) / slope + p.x
+  return { x: maxX, y: y };
+};

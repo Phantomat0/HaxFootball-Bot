@@ -27,9 +27,9 @@ const eventListeners: EventListener[] = [
     run: () => {
       // Follow ball
 
-      const ballPosition = Ball.getPosition();
+      // const ballPosition = Ball.getPosition();
 
-      client.setDiscProperties(5, ballPosition);
+      // client.setDiscProperties(5, ballPosition);
 
       const ballOutOfBounds = MapReferee.checkIfBallOutOfBounds(); // This returns either null or the ballPosition,
       if (ballOutOfBounds)
@@ -222,9 +222,9 @@ const eventListeners: EventListener[] = [
     },
   },
   {
-    // Ball Moving
-    name: "Ball is Moving",
-    runWhen: ["interceptionAttemptKicked"],
+    // Kick Drag on Interceptions
+    name: "Ball Position Interceeption",
+    runWhen: ["interceptionAttempt"],
     stopWhen: ["interceptionRuling"],
     run: () => {
       // Check if the ball is moving, when it starts reaching a very low speed, call bad int
@@ -232,6 +232,33 @@ const eventListeners: EventListener[] = [
       if (!ballIsMoving) {
         return Room.getPlay<Snap>().handleUnsuccessfulInterception("Missed");
       }
+
+      const interceptionKicked = Room.getPlay<Snap>().stateExists(
+        "interceptionAttemptKicked"
+      );
+
+      if (interceptionKicked) return;
+
+      // const { xspeed, yspeed } = Ball.getSpeed();
+
+      // const absoluteSpeed = Math.abs(xspeed) + Math.abs(yspeed);
+
+      const dragDistance = 20;
+
+      const ballPositionOnFirstTouch = Room.getPlay<Snap>().getState(
+        "interceptionBallPositionFirstTouch"
+      );
+
+      const ballDragged = MapReferee.checkIfBallDragged(
+        ballPositionOnFirstTouch,
+        Ball.getPosition(),
+        dragDistance
+      );
+
+      if (ballDragged)
+        return Room.getPlay<Snap>().handleUnsuccessfulInterception(
+          "Drag on kick"
+        );
     },
   },
 ];

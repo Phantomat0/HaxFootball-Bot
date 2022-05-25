@@ -6,6 +6,7 @@ import Chat from "../roomStructures/Chat";
 import Ball from "../structures/Ball";
 import GameReferee from "../structures/GameReferee";
 import MapReferee from "../structures/MapReferee";
+import MessageFormatter from "../structures/MessageFormatter";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import ICONS from "../utils/Icons";
 import MapSectionFinder, { MapSectionName } from "../utils/MapSectionFinder";
@@ -165,9 +166,6 @@ export default class Snap extends SnapEvents {
       return this.handleUnsuccessfulInterception(touchedByOffenseOrDefense);
     }
 
-    // Ok now we know the contacts are from the intercepting player, lets check for the kick time
-    const firstTouchTime = this.getState("interceptFirstTouchTime");
-
     // Check if the int was kicked yet or not
     const intKicked = this.stateExists("interceptionAttemptKicked");
 
@@ -176,15 +174,6 @@ export default class Snap extends SnapEvents {
       return this.handleUnsuccessfulInterception(
         "Illegally touched by defense"
       );
-    }
-
-    const withinTime = GameReferee.checkIfInterceptionWithinTime(
-      firstTouchTime,
-      Room.game.getTime()
-    );
-
-    if (!withinTime) {
-      return this.handleUnsuccessfulInterception("Drag on kick");
     }
 
     // He finally kicks it, meaning there is a legal int attempt
@@ -201,6 +190,28 @@ export default class Snap extends SnapEvents {
     );
     Room.game.swapOffenseAndUpdatePlayers();
     this.setBallCarrier(ballContactObj.player);
+
+    // In three seconds, check if the ball is headed towards being a fg or not
+    setTimeout(() => {
+      if (this.stateExists("interceptionRuling")) return;
+
+      const { xspeed } = Ball.getSpeed();
+
+      const ballPosition = Ball.getPosition();
+
+      const ballPositionOnFirstTouch = this.getState(
+        "interceptionBallPositionFirstTouch"
+      );
+
+      const isHeadedTowardsInt = MapReferee.checkIfBallIsHeadedInIntTrajectory(
+        xspeed,
+        ballPositionOnFirstTouch,
+        ballPosition
+      );
+
+      if (isHeadedTowardsInt)
+        return this.handleUnsuccessfulInterception("Missed");
+    }, 3000);
   }
 
   protected _handleInterceptionAttempt(ballContactObj: BallContact) {
@@ -216,7 +227,7 @@ export default class Snap extends SnapEvents {
 
     this.setState("interceptionAttempt");
     this.setState("interceptingPlayer", ballContactObj.player);
-    this.setState("interceptFirstTouchTime", Room.game.getTime());
+    this.setState("interceptionBallPositionFirstTouch", Ball.getPosition());
 
     if (ballContactObj.type === "kick")
       return this._handleInterceptionKick(ballContactObj);
@@ -244,6 +255,8 @@ export default class Snap extends SnapEvents {
 
   // This method needs to be made public since it can be called by our event observer
   handleUnsuccessfulInterception(badIntReason: BadIntReasons) {
+    this.setState("interceptionRuling");
+
     Chat.send(`Interception unsuccessful: ${badIntReason}`);
     // This means we swapped offense, so reswap again
     if (this.stateExists("interceptionAttemptKicked")) {
@@ -273,19 +286,22 @@ export default class Snap extends SnapEvents {
 
     if (!endPositionExists) return;
 
-    const endPosition = this.getState("interceptionPlayerEndPosition");
+    const rawEndPosition = this.getState("interceptionPlayerEndPosition");
+
+    const { endPosition: adjustedEndPosition } =
+      this._getPlayDataOffense(rawEndPosition);
 
     const { isSafety, isTouchback } =
       GameReferee.checkIfSafetyOrTouchbackPlayer(
         this.getState("interceptionPlayerKickPosition"),
-        endPosition,
+        rawEndPosition,
         Room.game.offenseTeamId
       );
 
     if (isSafety) return this.handleSafety();
     if (isTouchback) return this.handleTouchback();
 
-    return this.endPlay({ newLosX: endPosition.x, resetDown: true });
+    return this.endPlay({ newLosX: adjustedEndPosition.x, resetDown: true });
   }
 
   protected _handleInterceptionBallCarrierOutOfBounds(
@@ -411,7 +427,13 @@ export default class Snap extends SnapEvents {
     if (this.stateExists("interceptionRuling"))
       return this._handleTackle(playerContactObj);
 
+    const { yardAndHalfStr } = this._getPlayDataOffense(
+      playerContactObj.playerPosition
+    );
+
     // If there hasn't been a ruling yet on the int, save the tackle position
+    Chat.send(`${ICONS.HandFingersSpread} Tackle ${yardAndHalfStr}`);
+
     this.setState(
       "interceptionPlayerEndPosition",
       playerContactObj.playerPosition

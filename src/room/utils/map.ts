@@ -5,6 +5,8 @@ const HFL_MAP = `{
   "width" : 1090,
   
   "height" : 380,
+
+  "cameraFollow" : "player",
   
   "spawnDistance" : 980,
   
@@ -400,8 +402,6 @@ const HFL_MAP = `{
     
     { "pos" : [10000,280 ], "trait" : "yardtogetmarker" },
     { "pos" : [10000,-280 ], "trait" : "yardtogetmarker" },
-
-    { "pos" : [0,0 ], "trait" : "cameraball" },
     
     { "pos" : [930,-60 ], "trait" : "goalPost" },
     { "pos" : [-930,-60 ], "trait" : "goalPost" },

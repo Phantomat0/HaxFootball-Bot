@@ -126,7 +126,7 @@ export interface SnapStore {
   interceptionAttemptKicked: true;
   interceptingPlayer: PlayerObject;
   ballIntercepted: true;
-  interceptFirstTouchTime: number;
+  interceptionBallPositionFirstTouch: Position;
   interceptionRuling: boolean;
   interceptionPlayerEndPosition: Position;
   interceptionTackler: PlayerObject;

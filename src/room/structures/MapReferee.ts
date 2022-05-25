@@ -1,7 +1,9 @@
 import { TEAMS } from "..";
 import { PlayableTeamId, PlayerObject, Position } from "../HBClient";
+import Chat from "../roomStructures/Chat";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
 import { MAP_POINTS } from "../utils/map";
+import { extrapolateLine } from "../utils/utils";
 import Ball from "./Ball";
 import DistanceCalculator from "./DistanceCalculator";
 import PreSetCalculators from "./PreSetCalculators";
@@ -162,6 +164,39 @@ class MapReferee {
       PreSetCalculators.adjustMapCoordinatesForRadius(radius);
 
     return y > topHash && y < botHash;
+  }
+
+  checkIfBallIsHeadedInIntTrajectory(
+    ballXSpeed: number,
+    ballPositionOnFirstTouch: Position,
+    ballPosition: Position
+  ) {
+    const { TOP_FG_POST, BOTTOM_FG_POST, RED_SIDELINE, BLUE_SIDELINE } =
+      MAP_POINTS;
+    // To determine which way the ball is moving, we use the ballXSpeed
+
+    const sideLineBallIsApproaching =
+      ballXSpeed < 0 ? RED_SIDELINE : BLUE_SIDELINE;
+
+    const positionBallWillMeetTeamSideLine = extrapolateLine(
+      ballPositionOnFirstTouch,
+      ballPosition,
+      sideLineBallIsApproaching
+    );
+
+    console.log(positionBallWillMeetTeamSideLine);
+    console.log("XSPEED", ballXSpeed);
+
+    // All we have to do is now check that that position is inbounds
+
+    const willBeAGoodInt = this.checkIfBetweenY(
+      positionBallWillMeetTeamSideLine.y,
+      TOP_FG_POST,
+      BOTTOM_FG_POST
+    );
+
+    if (willBeAGoodInt) return false;
+    return true;
   }
 
   checkIfBallIsMoving() {
