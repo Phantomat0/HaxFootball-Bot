@@ -35,20 +35,76 @@ interface Speed {
 }
 
 interface DiscPropertiesObject {
+  /**
+   * x axis position.
+   */
   x: number;
+  /**
+   * y axis position.
+   */
   y: number;
+  /**
+   * x axis speed, can be negative.
+   */
   xspeed: number;
+  /**
+   * y axis speed, can be negative.
+   */
   yspeed: number;
+  /**
+   * x gravity.
+   */
   xgravity: number;
+  /**
+   * y gravity.
+   */
   ygravity: number;
+  /**
+   * Radius of the disc.
+   */
   radius: number;
+  /**
+   * Number from 0 to 1 that defines how bouncy the ball is.
+   */
   bCoeff: number;
+  /**
+   * Number from 0 to 1 that defines the inverse of the mass, the closer to 0 the heavier this object is.
+   */
   invMass: number;
+  /**
+   * Number from 0 to 1 that defines the inverse of the mass, the closer to 0 the heavier this object is.
+   */
   damping: number;
   color: number;
   cMask: number;
   cGroup: number;
 }
+
+/* DEFAULT PHYSICS */
+
+// "playerPhysics" : {
+// 	"bCoef" : 0.5,
+// 	"invMass" : 0.5,
+// 	"damping" : 0.96,
+// 	"acceleration" : 0.1,
+// 	"kickingAcceleration" : 0.07,
+// 	"kickingDamping" : 0.96,
+// 	"kickStrength" : 5
+
+// },
+
+// "ballPhysics" : {
+// 	"radius" : 10,
+// 	"bCoef" : 0.5,
+// 	"invMass" : 1,
+// 	"damping" : 0.99,
+// 	"color" : "FFFFFF",
+// 	"cMask" : [ "all"
+// 	],
+// 	"cGroup" : [ "ball"
+// 	]
+
+// }
 
 /**
  * Collision flags for map collisions
