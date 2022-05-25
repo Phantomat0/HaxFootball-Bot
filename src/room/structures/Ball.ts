@@ -62,6 +62,22 @@ class Ball {
     });
   }
 
+  setGravity({ x, y }: { x?: number; y?: number }) {
+    if (typeof x === "number") {
+      client.setDiscProperties(DISC_IDS.BALL, {
+        xgravity: x,
+      });
+    }
+
+    if (typeof y === "number") {
+      client.setDiscProperties(DISC_IDS.BALL, {
+        ygravity: y,
+      });
+    }
+
+    return this;
+  }
+
   removeGravity() {
     client.setDiscProperties(DISC_IDS.BALL, {
       invMass: 1,
