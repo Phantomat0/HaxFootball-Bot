@@ -28,7 +28,7 @@ export default class KickOff extends KickOffEvents {
     );
 
     // Ball downed by own team
-    Chat.send(`Ball downed by defense ${yardAndHalfStr}`);
+    Chat.send(`${ICONS.Pushpin} Ball downed by defense ${yardAndHalfStr}`);
 
     // Check where the ball was downed at
     // The catch position is the same as the endzone position

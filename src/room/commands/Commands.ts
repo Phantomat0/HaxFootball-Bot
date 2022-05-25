@@ -505,9 +505,10 @@ const commandsMap = new Collection<CommandName, Command>([
 
         const offenseString = getTeamStringFromId(newOffense);
 
-        return cmd.announce(
+        cmd.announce(
           `Offense swapped by ${cmd.author.shortName}, ${offenseString} is now on offense`
         );
+        Room.game.down.sendDownAndDistance();
       },
     },
   ],

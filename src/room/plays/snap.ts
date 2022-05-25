@@ -6,7 +6,6 @@ import Chat from "../roomStructures/Chat";
 import Ball from "../structures/Ball";
 import GameReferee from "../structures/GameReferee";
 import MapReferee from "../structures/MapReferee";
-import MessageFormatter from "../structures/MessageFormatter";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import ICONS from "../utils/Icons";
 import MapSectionFinder, { MapSectionName } from "../utils/MapSectionFinder";
@@ -119,6 +118,24 @@ export default class Snap extends SnapEvents {
     this._handlePenalty("illegalTouch", ballContactObj.player);
   }
 
+  private _handleCurvePass(ballContactObj: BallContact) {
+    // We have to determine if the players position is lower or higher than the ball, that way can set the right gravity
+    // If player is passing up, set y gravity positive (ball curves down)
+    // If player is passing down, set y gravity megative (ball curves up)
+
+    const ballPosition = Ball.getPosition();
+
+    const { playerPosition } = ballContactObj;
+
+    const playerIsTouchingBottomOfBall = playerPosition.y > ballPosition.y;
+
+    const CURVE_SHAPRNESS = 0.09;
+
+    if (playerIsTouchingBottomOfBall)
+      return Ball.setGravity({ y: CURVE_SHAPRNESS });
+    return Ball.setGravity({ y: -CURVE_SHAPRNESS });
+  }
+
   protected _handleBallContactQuarterback(ballContactObj: BallContact) {
     const { type } = ballContactObj;
 
@@ -132,7 +149,12 @@ export default class Snap extends SnapEvents {
 
     // If he didnt touch, he kicked, meaning he passed
     this.setState("ballPassed");
-    return this.setBallCarrier(null);
+
+    this.setBallCarrier(null);
+
+    if (this.stateExists("curvePass")) {
+      this._handleCurvePass(ballContactObj);
+    }
   }
 
   protected _handleBallContactOffense(ballContactObj: BallContact) {
@@ -257,7 +279,14 @@ export default class Snap extends SnapEvents {
   handleUnsuccessfulInterception(badIntReason: BadIntReasons) {
     this.setState("interceptionRuling");
 
-    Chat.send(`Interception unsuccessful: ${badIntReason}`);
+    if (
+      badIntReason === "Missed" ||
+      badIntReason === "Drag on kick" ||
+      badIntReason === "Out of bounds during attempt"
+    ) {
+      Chat.send(`Interception unsuccessful: ${badIntReason}`);
+    }
+
     // This means we swapped offense, so reswap again
     if (this.stateExists("interceptionAttemptKicked")) {
       Room.game.swapOffenseAndUpdatePlayers();
