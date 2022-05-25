@@ -3,6 +3,8 @@ import Player from "../classes/Player";
 import { PlayableTeamId } from "../HBClient";
 import Snap from "../plays/Snap";
 import Chat from "../roomStructures/Chat";
+import COLORS from "../utils/colors";
+import ICONS from "../utils/Icons";
 
 export interface GameCommandPermissions {
   /**
@@ -44,6 +46,33 @@ const gameCommandsMap = new Map<string, GameCommand>([
           new Snap(Room.game.getTime(), player.playerObject!),
           player.playerObject!
         );
+      },
+    },
+  ],
+  [
+    "cp",
+    {
+      showCommand: false,
+      permissions: {
+        adminLevel: 0,
+        onlyOffense: true,
+        onlyDuringNoPlay: true,
+      },
+      run(player) {
+        Room.game.setState("curvePass");
+        // We probs should inform all the team members
+
+        const offensePlayers =
+          Room.game.offenseTeamId === TEAMS.RED
+            ? Room.players.getRed()
+            : Room.players.getBlue();
+
+        offensePlayers.forEach((teamPlayer) => {
+          Chat.send(`${ICONS.Frisbee} Curve pass enabled`, {
+            id: teamPlayer.id,
+            color: COLORS.Gray,
+          });
+        });
       },
     },
   ],

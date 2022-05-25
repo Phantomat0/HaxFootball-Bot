@@ -13,6 +13,7 @@ interface GameStore {
   safetyKickoff: true;
   canTwoPoint: boolean;
   twoPointAttempt: boolean;
+  curvePass: true;
 }
 
 export default class Game extends WithStateStore<GameStore, keyof GameStore> {

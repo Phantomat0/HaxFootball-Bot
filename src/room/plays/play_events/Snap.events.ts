@@ -113,6 +113,7 @@ class SnapValidator {
 }
 
 export interface SnapStore {
+  curvePass: true;
   ballSnapped: true;
   ballPassed: true;
   ballCaught: true;
@@ -189,6 +190,10 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     this.setBallPositionOnSet(Ball.getPosition());
     Room.game.down.moveFieldMarkers();
     this._startBlitzClock();
+
+    const isCurvePass = Room.game.stateExists("curvePass");
+
+    if (isCurvePass) this.setState("curvePass");
   }
 
   run() {
