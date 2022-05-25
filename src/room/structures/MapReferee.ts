@@ -1,6 +1,5 @@
 import { TEAMS } from "..";
 import { PlayableTeamId, PlayerObject, Position } from "../HBClient";
-import Chat from "../roomStructures/Chat";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
 import { MAP_POINTS } from "../utils/map";
 import { extrapolateLine } from "../utils/utils";
@@ -67,18 +66,6 @@ class MapReferee {
     return null;
   };
 
-  // getEndZonePlayerIsIn(rawPlayerPosition: Position, teamId: PlayableTeamId) {
-  //   const adjustedPlayerPosition = PreSetCalculators.adjustPlayerPositionFront(
-  //     rawPlayerPosition,
-  //     teamId
-  //   );
-  //   return this._getEndZonePositionIsIn(adjustedPlayerPosition.x);
-  // }
-
-  // getEndZoneBallIsInForSafety(rawBallPosition: Position, teamId) {
-  //   const adjustedBallPosition = PreSetCalculators.adjustBallPosition()
-  // }
-
   checkIfPlayerOutOfBounds(position: Position) {
     // We have to adjust the player position
     const isOutOfBounds = this._checkIfOutOfBounds(
@@ -108,18 +95,6 @@ class MapReferee {
 
     return dragAmount > maxDragDistance;
   }
-
-  // // Also returns the endzone the player is in
-  // checkIfPlayerInEndZone = (
-  //   playerPosition: Position,
-  //   teamId: PlayableTeamId
-  // ) => {
-  //   const playerPositionX = PreSetCalculators.adjustPlayerPositionFront(
-  //     playerPosition,
-  //     teamId
-  //   );
-  //   return this._checkIfInEndzone(x);
-  // };
 
   /**
    * Returns the endzone the x position is in, or null if not in redzone
@@ -183,9 +158,6 @@ class MapReferee {
       ballPosition,
       sideLineBallIsApproaching
     );
-
-    console.log(positionBallWillMeetTeamSideLine);
-    console.log("XSPEED", ballXSpeed);
 
     // All we have to do is now check that that position is inbounds
 
