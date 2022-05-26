@@ -238,14 +238,6 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       ? this.getState("catchPosition")
       : null;
 
-    const { isSafety } = GameReferee.checkIfSafetyOrTouchbackPlayer(
-      catchPosition,
-      ballCarrierPosition,
-      Room.game.offenseTeamId
-    );
-
-    if (isSafety) return this.handleSafety();
-
     const { endPosition, netYards, yardAndHalfStr } =
       this._getPlayDataOffense(ballCarrierPosition);
 
@@ -253,6 +245,12 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       `${ICONS.Pushpin} ${
         this.getBallCarrier().name
       } went out of bounds ${yardAndHalfStr}`
+    );
+
+    const { isSafety } = GameReferee.checkIfSafetyOrTouchbackPlayer(
+      catchPosition,
+      ballCarrierPosition,
+      Room.game.offenseTeamId
     );
 
     // If the QB went out of bounds, or ball was ran add rushing stats
@@ -278,6 +276,8 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
         passYards: { [mapSection]: netYards },
       });
     }
+
+    if (isSafety) return this.handleSafety();
 
     this.endPlay({ newLosX: endPosition.x, netYards });
   }
