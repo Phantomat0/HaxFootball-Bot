@@ -1,6 +1,8 @@
 import Room, { TEAMS } from "..";
 import Player from "../classes/Player";
 import { PlayableTeamId } from "../HBClient";
+import FieldGoal from "../plays/FieldGoal";
+import Punt from "../plays/Punt";
 import Snap from "../plays/Snap";
 import Chat from "../roomStructures/Chat";
 import COLORS from "../utils/colors";
@@ -85,7 +87,12 @@ const gameCommandsMap = new Map<string, GameCommand>([
         onlyOffense: true,
         onlyDuringNoPlay: true,
       },
-      run(player) {},
+      run(player) {
+        Room.game.setPlay(
+          new FieldGoal(Room.game.getTime(), player.playerObject!),
+          player.playerObject!
+        );
+      },
     },
   ],
   [
@@ -97,7 +104,9 @@ const gameCommandsMap = new Map<string, GameCommand>([
         onlyOffense: true,
         onlyDuringNoPlay: true,
       },
-      run(player) {},
+      run(player) {
+        // Room.game.setPlay(new Punt(Room.game.getTime()), player.playerObject!);
+      },
     },
   ],
   [
