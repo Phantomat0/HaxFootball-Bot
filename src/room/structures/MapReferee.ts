@@ -3,7 +3,6 @@ import { PlayableTeamId, PlayerObject, Position } from "../HBClient";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
 import { MAP_POINTS } from "../utils/map";
 import { extrapolateLine } from "../utils/utils";
-import Ball from "./Ball";
 import DistanceCalculator from "./DistanceCalculator";
 import PreSetCalculators from "./PreSetCalculators";
 
@@ -75,8 +74,7 @@ class MapReferee {
     return isOutOfBounds ? position : null;
   }
 
-  checkIfBallOutOfBounds = () => {
-    const ballPosition = Ball.getPosition();
+  checkIfBallOutOfBounds = (ballPosition: Position) => {
     const isOutOfBounds = this._checkIfOutOfBounds(
       ballPosition,
       MAP_POINTS.BALL_RADIUS
@@ -171,9 +169,9 @@ class MapReferee {
     return true;
   }
 
-  checkIfBallIsMoving() {
+  checkIfBallIsMoving(BallSpeed: { xspeed: number; yspeed: number }) {
     const BALL_DEAD_SPEED = 0.05;
-    const { xspeed } = Ball.getSpeed();
+    const { xspeed } = BallSpeed;
 
     // xpseed can be negative, so make sure you get absoltue value
     return Math.abs(xspeed) > BALL_DEAD_SPEED;
