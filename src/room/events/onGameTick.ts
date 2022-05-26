@@ -1,6 +1,6 @@
 import { PlayStorageKeys } from "../plays/BasePlay";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
-import Room, { client } from "..";
+import Room from "..";
 import MapReferee from "../structures/MapReferee";
 import GameReferee from "../structures/GameReferee";
 import { checkBallCarrierContact, checkBallContact } from "./tickEvents";
@@ -10,6 +10,7 @@ import Snap from "../plays/Snap";
 import Ball from "../structures/Ball";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import FieldGoal from "../plays/FieldGoal";
+import { MAP_POINTS } from "../utils/map";
 
 const eventListeners: EventListener[] = [
   {
@@ -25,13 +26,9 @@ const eventListeners: EventListener[] = [
       "interceptionRuling",
     ],
     run: () => {
-      // Follow ball
+      const ballPosition = Ball.getPosition();
 
-      // const ballPosition = Ball.getPosition();
-
-      // client.setDiscProperties(5, ballPosition);
-
-      const ballOutOfBounds = MapReferee.checkIfBallOutOfBounds(); // This returns either null or the ballPosition,
+      const ballOutOfBounds = MapReferee.checkIfBallOutOfBounds(ballPosition); // This returns either null or the ballPosition,
       if (ballOutOfBounds)
         return Room?.game?.play?.handleBallOutOfBounds(ballOutOfBounds);
     },
@@ -42,17 +39,33 @@ const eventListeners: EventListener[] = [
     runWhen: ["fieldGoal"],
     stopWhen: ["fieldGoalBlitzed", "ballRan"],
     run: () => {
-      //   // Here we check if the ball is within the hashes,
-      //   // Check if the ball has enough speed to even reach the field goal posts
-      //   // Check if the ball went through the posts
-      //   const withinHash = checkIfWithinHash(ball.getPosition(), MAP.BALL_RADIUS);
-      //   if (!withinHash) return play.handleBallOutOfHashes();
-      //   const successfulFieldGoal = checkIfFieldGoalSuccessful();
-      //   if (successfulFieldGoal) return play.handleSuccess();
-      //   if (play.getState("fieldGoalKicked")) {
-      //     const ballMoving = checkIfBallIsMoving();
-      //     if (!ballMoving) return play.handleIncomplete("FROM EVENT LISTENER");
-      //   }
+      // Here we check if the ball is within the hashes,
+      // Check if the ball has enough speed to even reach the field goal posts
+      // Check if the ball went through the posts
+
+      const ballPosition = Ball.getPosition();
+
+      const withinHash = MapReferee.checkIfWithinHash(
+        ballPosition,
+        MAP_POINTS.BALL_RADIUS
+      );
+      if (!withinHash) return Room.getPlay<FieldGoal>().onBallOutOfHashes();
+
+      const successfulFieldGoal = GameReferee.checkIfFieldGoalSuccessful(
+        ballPosition,
+        Room.game.offenseTeamId
+      );
+      if (successfulFieldGoal)
+        return Room.getPlay<FieldGoal>().handleSuccessfulFg("FG is good!");
+
+      const ballSpeed = Ball.getSpeed();
+
+      if (Room.getPlay<FieldGoal>().stateExists("fieldGoalKicked")) {
+        const ballMoving = MapReferee.checkIfBallIsMoving(ballSpeed);
+
+        if (!ballMoving)
+          return Room.getPlay<FieldGoal>().handleUnsuccessfulFg("Miss!");
+      }
     },
   },
   {
@@ -117,13 +130,13 @@ const eventListeners: EventListener[] = [
     // Runs
     name: "BallCarrier Player Contact Offense",
     runWhen: ["ballSnapped", "fieldGoal"],
-    stopWhen: ["ballRan", "ballCaught", "ballDeflected"],
+    stopWhen: ["ballPassed", "ballRan"],
     run: () => {
-      // Here we get the offensive team, filter out the QB, and use as an argument to the function
+      // Here we get the offensive team, filter out the QB or the kicker (which will always be he ball carrier in when the ball hasnt been passed or caught yet), and use as an argument to the function
       const offensePlayersNoQb = Room.game.players
         .getOffense()
         .filter(
-          (player) => player.id !== Room.getPlay<Snap>().getQuarterback().id
+          (player) => player.id !== Room.getPlay()?.getBallCarrier()?.id ?? 0
         );
       const playerContact = checkBallCarrierContact(offensePlayersNoQb);
       if (playerContact)
@@ -131,7 +144,7 @@ const eventListeners: EventListener[] = [
     },
   },
   {
-    // Early Blitz Penalty
+    // Early Blitz Penalty, Field Goal line blitzed
     name: "Defense Position",
     runWhen: ["ballSnapped", "fieldGoal"],
     stopWhen: [
@@ -139,7 +152,7 @@ const eventListeners: EventListener[] = [
       "ballRan",
       "ballPassed",
       "fieldGoalKicked",
-      "fieldGoalBlitzed",
+      "fieldGoalLineBlitzed",
     ],
     run: () => {
       const defensePlayers = Room.game.players.getDefense();
@@ -158,7 +171,7 @@ const eventListeners: EventListener[] = [
       const isFieldGoal = Room.getPlay().stateExistsUnsafe("fieldGoal");
 
       if (isFieldGoal)
-        return Room.getPlay<FieldGoal>().setState("fieldGoalBlitzed");
+        return Room.getPlay<FieldGoal>().setState("fieldGoalLineBlitzed");
       if (canBlitzOnSnap) return Room.getPlay<Snap>().setState("lineBlitzed");
 
       // If wasnt allowed to blitz, call penalty
@@ -169,7 +182,13 @@ const eventListeners: EventListener[] = [
     // Early LOS Cross Penalty for Snap and FieldGoal
     name: "Quarterback and Kicker Position",
     runWhen: ["ballSnapped", "fieldGoal"],
-    stopWhen: ["ballRan", "ballPassed", "fieldGoalKicked", "lineBlitzed"],
+    stopWhen: [
+      "ballRan",
+      "ballPassed",
+      "fieldGoalLineBlitzed",
+      "lineBlitzed",
+      "fieldGoalKicked",
+    ],
     run: () => {
       const qbOrKicker = Room.getPlay().getBallCarrier(); // This is really either the QB, or the kicker
 
@@ -189,7 +208,9 @@ const eventListeners: EventListener[] = [
       );
 
       if (!isBehindLOS)
-        return Room.getPlay<Snap>().handleIllegalCrossOffense(qbOrKicker);
+        return Room.getPlay<Snap | FieldGoal>().handleIllegalCrossOffense(
+          qbOrKicker
+        );
     },
   },
   {
@@ -228,7 +249,10 @@ const eventListeners: EventListener[] = [
     stopWhen: ["interceptionRuling"],
     run: () => {
       // Check if the ball is moving, when it starts reaching a very low speed, call bad int
-      const ballIsMoving = MapReferee.checkIfBallIsMoving();
+
+      const ballSpeed = Ball.getSpeed();
+
+      const ballIsMoving = MapReferee.checkIfBallIsMoving(ballSpeed);
       if (!ballIsMoving) {
         return Room.getPlay<Snap>().handleUnsuccessfulInterception("Missed");
       }
