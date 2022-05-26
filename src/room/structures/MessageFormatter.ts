@@ -17,7 +17,7 @@ export default class MessageFormatter {
   }
 
   static formatMessageMaybeWithClock(message: string, time: number) {
-    const WARNING_TIME = 10;
+    const WARNING_TIME = 720;
     return `${message} ${time >= WARNING_TIME ? toClock(time) : ""}`;
   }
 }

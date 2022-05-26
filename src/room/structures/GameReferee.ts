@@ -36,8 +36,6 @@ class GameReferee {
     isSafety: boolean;
     isTouchback: boolean;
   } => {
-    console.log("RAW PLAYER POS");
-    console.log({ rawPlayerPosition });
     // Adjust the player position forward
     const adjustedPlayerPosition = PreSetCalculators.adjustPlayerPositionFront(
       rawPlayerPosition,
@@ -51,8 +49,6 @@ class GameReferee {
         teamId
       );
 
-    console.log({ adjustedPlayerPosition }, { roundedPlayerX });
-
     const playEndedInEndzone = MapReferee.getEndZonePositionIsIn({
       x: roundedPlayerX.distance,
       y: adjustedPlayerPosition.y,
@@ -61,8 +57,6 @@ class GameReferee {
     // Now check that hes in the endzone, and that hes in his own endzone
     const playEndedInOwnEndzone =
       playEndedInEndzone && playEndedInEndzone === teamId;
-
-    console.log(playEndedInOwnEndzone);
 
     // If the play didnt end in the endzone, neither are true
     if (!playEndedInOwnEndzone)
@@ -79,9 +73,6 @@ class GameReferee {
       catchPosition === null
         ? false
         : Boolean(MapReferee.getEndZonePositionIsIn(catchPosition));
-
-    console.log(catchPosition);
-    console.log(catchPositionInsideEndzone);
 
     // If we caught the ball in the endzone, its a touchback
     if (catchPositionInsideEndzone)

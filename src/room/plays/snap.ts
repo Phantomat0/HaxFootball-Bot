@@ -32,7 +32,6 @@ export default class Snap extends SnapEvents {
 
   private _blitzTimer() {
     this._blitzClockTime++;
-    Chat.send(`${this._blitzClockTime}`);
     if (this._blitzClockTime >= this.BLITZ_TIME_SECONDS) {
       this.setState("canBlitz");
       return this._stopBlitzClock();
@@ -284,7 +283,7 @@ export default class Snap extends SnapEvents {
       badIntReason === "Drag on kick" ||
       badIntReason === "Out of bounds during attempt"
     ) {
-      Chat.send(`Interception unsuccessful: ${badIntReason}`);
+      // Chat.send(`Interception unsuccessful: ${badIntReason}`);
     }
 
     // This means we swapped offense, so reswap again
@@ -374,8 +373,6 @@ export default class Snap extends SnapEvents {
       playerContact.ballCarrierPosition
     );
 
-    Chat.send(`${ICONS.HandFingersSpread} Tackle ${yardAndHalfStr}`);
-
     Room.game.stats.updatePlayerStat(playerContact.player.id, {
       tackles: 1,
     });
@@ -401,6 +398,8 @@ export default class Snap extends SnapEvents {
       Room.game.stats.updatePlayerStat(playerContact.player.id, {
         qbSacks: 1,
       });
+    } else {
+      Chat.send(`${ICONS.HandFingersSpread} Tackle ${yardAndHalfStr}`);
     }
 
     // Tackle on a run
@@ -481,10 +480,10 @@ export default class Snap extends SnapEvents {
    * Handles regular touchdown
    */
   private _handleRegularTouchdown(endPosition: Position) {
-    const { netYards } = this._getPlayDataOffense(endPosition);
-    Chat.send(`${ICONS.Fire} TOUCHDOWN!`);
     // Determine what kind of touchdown we have here
     // If the ball has been ran or if the qb ran the ball
+    const { netYards } = this._getPlayDataOffense(endPosition);
+
     if (
       this.stateExistsUnsafe("ballRan") ||
       this._ballCarrier?.id === this._quarterback.id
@@ -510,21 +509,24 @@ export default class Snap extends SnapEvents {
       });
     }
 
-    this.scorePlay(7, Room.game.offenseTeamId, Room.game.defenseTeamId);
-    // Allow for a two point attempt
-    Room.game.setState("canTwoPoint");
+    super.handleTouchdown(endPosition);
   }
 
   /**
    * Handles an auto touchdown after three redzone penalties
    */
   handleAutoTouchdown() {
-    Chat.send(`${ICONS.Fire} Automatic Touchdown! - 3/3 Penalties`);
+    Chat.send(`${ICONS.Fire} Automatic Touchdown! - 3/3 Penalties`, {
+      sound: 2,
+    });
+
+    // Allow for a two point attempt
+    Room.game.setState("canTwoPoint");
+
     this.scorePlay(7, Room.game.offenseTeamId, Room.game.defenseTeamId);
   }
 
   handleTouchdown(position: Position) {
-    this._setLivePlay(false);
     // First we need to get the type of touchdown, then handle
     if (this.stateExistsUnsafe("twoPointAttempt"))
       return this._handleTwoPointTouchdown();

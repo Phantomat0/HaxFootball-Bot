@@ -18,8 +18,6 @@ export default class PreSetCalculators {
     position: Position,
     teamId: PlayableTeamId
   ) {
-    console.log("RAWWWWWWWWWWWWWWW POS");
-    console.log(position);
     const xPositionFront = new DistanceCalculator()
       .addByTeam(position.x, MAP_POINTS.PLAYER_RADIUS, teamId)
       .roundToYardByTeam(teamId)

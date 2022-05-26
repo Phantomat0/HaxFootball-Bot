@@ -32,6 +32,7 @@ export const TEAMS: TeamIdEnum = {
 client.setCustomStadium(HFL_MAP);
 client.setTimeLimit(13);
 client.setScoreLimit(0);
+client.setTeamsLock(true);
 
 client.onGameStart = () => {
   if (!Room.isBotOn) return;
@@ -42,11 +43,6 @@ client.onGameStop = () => {
   if (!Room.isBotOn) return;
   Room.endGame();
 };
-
-// client.onTeamGoal = () => {
-//   if (!Room.isBotOn) return;
-//   down.startNew();
-// };
 
 client.onPositionsReset = () => {
   if (!Room.isBotOn || !Room.game) return;

@@ -2,6 +2,7 @@ import Room from "..";
 import Player from "../classes/Player";
 import PlayerStats, { PlayerStatQuery } from "../classes/PlayerStats";
 import { PlayerObject } from "../HBClient";
+import { SHOW_DEBUG_CHAT } from "../roomConfig";
 import Chat from "../roomStructures/Chat";
 import Collection from "../utils/Collection";
 
@@ -36,7 +37,7 @@ export default class PlayerStatManager {
     const playerProfile = Room.players.playerCollection.get(playerId);
     if (!playerProfile) throw Error("Player is not in the room anymore");
 
-    Chat.send(`STAT UPDATE: ${JSON.stringify(statQuery)}`);
+    if (SHOW_DEBUG_CHAT) Chat.send(`STAT UPDATE: ${JSON.stringify(statQuery)}`);
 
     this.statsCollection.get(playerProfile.auth)?.updateStats(statQuery);
   }

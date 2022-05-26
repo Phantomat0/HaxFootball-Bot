@@ -15,7 +15,9 @@ export default class Punt extends PuntEvents {
     super(time);
   }
 
-  handleTouchdown(position: Position): void {}
+  handleTouchdown(endPosition: Position): void {
+    super.handleTouchdown(endPosition);
+  }
 
   protected _handleBallContactDefense(ballContactObj: BallContact): void {}
 

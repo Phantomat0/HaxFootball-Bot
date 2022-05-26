@@ -68,6 +68,7 @@ class Chat {
   }
 
   private _sendMessage(message: string, msgOptions: MessageOptions) {
+    console.log(msgOptions);
     const {
       icon = "",
       info = "",
@@ -76,7 +77,7 @@ class Chat {
       style = null,
       sound = null,
       autoSize = true,
-    } = msgOptions ?? {};
+    } = msgOptions;
 
     const messageStr = [icon, info, message]
       .map((str) => (str.length > 0 ? str + " " : str))
@@ -89,6 +90,7 @@ class Chat {
         ? this._getAutoSizedStyle(message, style)
         : style;
 
+    console.log(sound);
     // Finally send the message
     client.sendAnnouncement(messageStr, id, color, adjustedStyle, sound);
   }

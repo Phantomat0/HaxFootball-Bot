@@ -2,9 +2,9 @@ import puppeteer from "puppeteer";
 
 const HAXBALL_HEADLESS_URL = "https://www.haxball.com/headless";
 
-(async () => {
-  const IS_HEADLESS = false;
+const IS_HEADLESS = false;
 
+(async () => {
   const browser = await puppeteer.launch({ headless: IS_HEADLESS });
 
   const roomLink = await loadRoomAndGetURL(browser);

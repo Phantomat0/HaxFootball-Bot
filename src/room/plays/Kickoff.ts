@@ -13,13 +13,7 @@ import KickOffEvents from "./play_events/KickOff.events";
 
 export default class KickOff extends KickOffEvents {
   handleTouchdown(endPosition: Position): void {
-    const { netYards } = this._getPlayDataOffense(endPosition);
-
-    this._setLivePlay(false);
-
-    Chat.send(`TOUCHDOWN!!!! ${netYards} yards!`);
-
-    this.scorePlay(7, Room.game.offenseTeamId, Room.game.defenseTeamId);
+    super.handleTouchdown(endPosition);
   }
 
   protected _handleBallContactDefense(ballContactObj: BallContact): void {
