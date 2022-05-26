@@ -1,18 +1,12 @@
 import Game from "../classes/Game";
-import HBClient from "../HBClient";
-import { PLAY_TYPES } from "../plays/BasePlay";
+import { PLAY_TYPES } from "../plays/BasePlayAbstract";
 import KickOff from "../plays/Kickoff";
 import PlayerManager from "./Players";
 
 export default class RoomClient {
-  readonly client: HBClient;
   private _game: Game | null;
   readonly players: PlayerManager = new PlayerManager();
   private _isBotOn: boolean = true;
-
-  constructor(client: HBClient) {
-    this.client = client;
-  }
 
   /**
    * Returs the game when we know its defined

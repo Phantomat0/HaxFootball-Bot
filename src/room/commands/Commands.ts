@@ -3,7 +3,7 @@ import CommandMessage from "../classes/CommandMessage";
 import Player from "../classes/Player";
 import { PlayableTeamId } from "../HBClient";
 import Chat from "../roomStructures/Chat";
-import Ball from "../structures/Ball";
+import Ball from "../roomStructures/Ball";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import Collection from "../utils/Collection";
 import { getTeamStringFromId } from "../utils/haxUtils";

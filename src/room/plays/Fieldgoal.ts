@@ -2,16 +2,49 @@ import Room, { client } from "..";
 import BallContact from "../classes/BallContact";
 import PlayerContact from "../classes/PlayerContact";
 import { PlayerObject, Position } from "../HBClient";
+import Ball from "../roomStructures/Ball";
 import Chat from "../roomStructures/Chat";
 import DistanceCalculator from "../structures/DistanceCalculator";
 import GameReferee from "../structures/GameReferee";
 import MapReferee from "../structures/MapReferee";
+import { quickPause } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
 import { MAP_POINTS } from "../utils/map";
 import FieldGoalEvents from "./play_events/FieldGoal.events";
 
 export default class FieldGoal extends FieldGoalEvents {
   private _kicker: PlayerObject;
+
+  constructor(time: number, kicker: PlayerObject) {
+    super(time);
+    this._kicker = kicker;
+    this._ballCarrier = kicker;
+  }
+
+  validateBeforePlayBegins() {
+    // No real validation
+  }
+
+  prepare() {
+    Room.game.updateStaticPlayers();
+    this._setStartingPosition(Room.game.down.getLOS());
+    this.setBallPositionOnSet(Ball.getPosition());
+    Room.game.down.moveFieldMarkers();
+    this._setPlayersInPosition();
+  }
+
+  run() {
+    this._setLivePlay(true);
+    Ball.release();
+    this.setState("fieldGoal");
+    Chat.sendMessageMaybeWithClock(
+      `${ICONS.PurpleCircle} Field Goal`,
+      this.time
+    );
+    quickPause();
+  }
+
+  cleanUp(): void {}
 
   handleTouchdown(endPosition: Position): void {
     const { netYards } = this._getPlayDataOffense(endPosition);
@@ -26,14 +59,18 @@ export default class FieldGoal extends FieldGoalEvents {
     super.handleTouchdown(endPosition);
   }
 
-  protected _getKicker() {
-    return this._kicker;
+  handleSuccessfulFg(msg: string) {
+    Chat.send(msg);
+    this.scorePlay(3, Room.game.offenseTeamId, Room.game.defenseTeamId);
   }
 
-  constructor(time: number, kicker: PlayerObject) {
-    super(time);
-    this._kicker = kicker;
-    this._ballCarrier = kicker;
+  handleUnsuccessfulFg(msg: string) {
+    Chat.send(msg);
+    this.endPlay({});
+  }
+
+  protected _getKicker() {
+    return this._kicker;
   }
 
   protected _setKickerInPosition() {
@@ -98,37 +135,11 @@ export default class FieldGoal extends FieldGoalEvents {
     return this;
   }
 
-  handleSuccessfulFg(msg: string) {
-    Chat.send(msg);
-    this.scorePlay(3, Room.game.offenseTeamId, Room.game.defenseTeamId);
-  }
-
-  handleUnsuccessfulFg(msg: string) {
-    Chat.send(msg);
-    this.endPlay({ resetDown: true });
-  }
-
   protected _setPlayersInPosition() {
     this._setKickerInPosition()._setDefenseInPosition()._setOffenseInPosition();
   }
 
-  protected _handleBallContactDefense(ballContactObj: BallContact): void {
-    // If the field goal was kicked, and it was kicked before the blitz and they touched it
-
-    // If the FG was kicked
-    if (this.stateExists("fieldGoalKicked")) {
-      console.log(this.readAllState());
-      // If it was kicked before the blitz, its a penalty, if it was after, its a block
-      if (this.stateExists("fieldGoalLineBlitzed"))
-        return this.handleUnsuccessfulFg("Field goal blocked!");
-      return this.handleSuccessfulFg("Auto fg, defense kicked it");
-    }
-
-    // They blitzed the ball before the kick
-    this.setState("fieldGoalBlitzed");
-  }
-
-  private _handleBallContactKicker(ballContactObj: BallContact) {
+  protected _handleBallContactKicker(ballContactObj: BallContact) {
     if (this.stateExists("fieldGoalKicked"))
       return this.handleUnsuccessfulFg("Illegal fg, touched by kicker");
 
@@ -140,18 +151,6 @@ export default class FieldGoal extends FieldGoalEvents {
     if (this.stateExists("ballRan")) return this.setState("fieldGoalBlitzed");
 
     this.setState("fieldGoalKicked");
-  }
-
-  protected _handleBallContactOffense(ballContactObj: BallContact): void {
-    const { player } = ballContactObj;
-
-    if (player.id === this._kicker.id)
-      return this._handleBallContactKicker(ballContactObj);
-
-    // If offense touches the ball at anytime, its an incomplete field goal
-
-    Chat.send("Illegal fg, touched by offense");
-    return this.endPlay({ resetDown: true });
   }
 
   protected _handleRun(playerContactObj: PlayerContact) {
@@ -229,10 +228,4 @@ export default class FieldGoal extends FieldGoalEvents {
   onBallOutOfHashes() {
     this.handleUnsuccessfulFg("Missed");
   }
-
-  onKickDrag(): void {
-    this._handlePenalty("fgDrag", this._kicker);
-  }
-
-  cleanUp(): void {}
 }

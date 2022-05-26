@@ -3,7 +3,7 @@ import BallContact from "../../classes/BallContact";
 import PlayerContact from "../../classes/PlayerContact";
 import { PlayerObject, PlayerObjFlat, Position } from "../../HBClient";
 import Chat from "../../roomStructures/Chat";
-import Ball from "../../structures/Ball";
+import Ball from "../../roomStructures/Ball";
 import GameReferee from "../../structures/GameReferee";
 import MapReferee from "../../structures/MapReferee";
 import PreSetCalculators from "../../structures/PreSetCalculators";
@@ -20,55 +20,14 @@ export interface KickOffStore {
 }
 
 export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
-  validateBeforePlayBegins(player: PlayerObject | null): void {
-    // No validations, since this is run by the bot never the player :)
-  }
+  protected abstract _checkIfOffenseOffsidesOnKick(): {
+    isOffsides: boolean;
+    offsidesPlayer: PlayerObject | undefined;
+  };
 
-  /**
-   * The kickoff position is either at the 50, or at the defenive team's 20 in the case of a safety
-   */
-  private _determineKickOffPosition(): Position {
-    const isKickOffAfterSafety = this.stateExists("safetyKickoff");
+  protected abstract _handleCatch(ballContactObj: BallContact): void;
 
-    console.log({ isKickOffAfterSafety });
-
-    const offenseTwentyYardLine = PreSetCalculators.getPositionOfTeamYard(
-      20,
-      Room.game.offenseTeamId
-    );
-
-    if (isKickOffAfterSafety) return { x: offenseTwentyYardLine, y: 0 };
-
-    // Otherwsie just set it at the 50
-    return { x: 0, y: 0 };
-  }
-
-  prepare() {
-    const isSafetyKickoff = Room.game.stateExists("safetyKickoff");
-
-    if (isSafetyKickoff) {
-      this.setState("safetyKickoff");
-    }
-    const kickOffPosition = this._determineKickOffPosition();
-
-    this._setStartingPosition(kickOffPosition);
-    Ball.setPosition(kickOffPosition);
-    this.setBallPositionOnSet(kickOffPosition);
-    Room.game.down.setLOS(kickOffPosition.x);
-    Room.game.down.moveFieldMarkers({ hideLineToGain: true });
-  }
-
-  run(): void {
-    // Set a timeout because we need to wait till the ball has been set
-    // Otherwise a drag penalty is called
-    setTimeout(() => {
-      this._setLivePlay(true);
-      Ball.release();
-    }, 1000);
-    this.setState("kickOff");
-  }
-
-  handleBallCarrierContactDefense(playerContact: PlayerContact): void {
+  onBallCarrierContactDefense(playerContact: PlayerContact): void {
     const { endPosition, netYards, yardAndHalfStr } = this._getPlayDataOffense(
       playerContact.ballCarrierPosition
     );
@@ -90,15 +49,14 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
     this.endPlay({
       newLosX: endPosition.x,
       netYards,
-      resetDown: true,
     });
   }
 
-  handleBallCarrierContactOffense(playerContact: PlayerContact): void {
+  onBallCarrierContactOffense(playerContact: PlayerContact): void {
     // Nothing interesting happens since we dont allow runs on kickoff
   }
 
-  handleBallCarrierOutOfBounds(ballCarrierPosition: Position): void {
+  onBallCarrierOutOfBounds(ballCarrierPosition: Position): void {
     const catchPosition = this.getState("catchPosition");
 
     const { isSafety, isTouchback } =
@@ -120,15 +78,15 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
 
     console.log(this._startingPosition, endPosition, netYards);
 
-    this.endPlay({ newLosX: endPosition.x, resetDown: true });
+    this.endPlay({ newLosX: endPosition.x });
   }
 
-  handleBallContact(ballContactObj: BallContact): void {
+  onBallContact(ballContactObj: BallContact): void {
     if (this.stateExists("kickOffCaught")) return;
-    super.handleBallContact(ballContactObj);
+    super.onBallContact(ballContactObj);
   }
 
-  handleBallOutOfBounds(ballPosition: Position): void {
+  onBallOutOfBounds(ballPosition: Position): void {
     const kicker = this.getState("KickOffKicker");
 
     // Check if its a safety or not, if its a safety its defense 40 yard line
@@ -152,7 +110,7 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
 
     this._handlePenalty(penaltyType, kicker);
 
-    this.endPlay({ newLosX: newLosX, resetDown: true });
+    this.endPlay({ newLosX: newLosX });
   }
 
   onKickDrag(player: PlayerObjFlat | null): void {
@@ -191,5 +149,66 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
     this._handlePenalty(penaltyType, playerClosestToBall);
 
     this.endPlay({ newLosX: newLosX, resetDown: true });
+  }
+
+  protected _onBallContactDefense(ballContactObj: BallContact): void {
+    const { yardAndHalfStr, endPosition } = this._getPlayDataOffense(
+      ballContactObj.playerPosition
+    );
+
+    // Ball downed by own team
+    Chat.send(`${ICONS.Pushpin} Ball downed by defense ${yardAndHalfStr}`);
+
+    // Check where the ball was downed at
+    // The catch position is the same as the endzone position
+    // Adjust it for defense, since they are the ones making contact
+    const { isTouchback } = GameReferee.checkIfSafetyOrTouchbackPlayer(
+      ballContactObj.playerPosition,
+      ballContactObj.playerPosition,
+      Room.game.offenseTeamId
+    );
+
+    if (isTouchback) return this.handleTouchback();
+
+    this.endPlay({ newLosX: endPosition.x, resetDown: true });
+  }
+
+  protected _onBallContactOffense(ballContactObj: BallContact): void {
+    // We have to know if it was kicked off first
+    // Kicking team starts off as offense, switched to defense moment the ball is kicked
+
+    // Kicking team touches
+    if (this.stateExists("kickOffKicked") === false) {
+      if (ballContactObj.type === "kick") {
+        this.setState("kickOffKicked");
+        this.setState("KickOffKicker", ballContactObj.player);
+
+        // Before we swap, check for the penalty
+
+        const { isOffsides, offsidesPlayer } =
+          this._checkIfOffenseOffsidesOnKick();
+
+        if (isOffsides) {
+          // We have to check if its a safety or not
+
+          const isSafetyKickoff = Room.game.stateExists("safetyKickoff");
+
+          if (isSafetyKickoff)
+            return this._handlePenalty(
+              "kickOffOffsidesSafety",
+              offsidesPlayer!
+            );
+
+          return this._handlePenalty("kickOffOffsides", offsidesPlayer!);
+        }
+
+        Room.game.swapOffenseAndUpdatePlayers();
+      }
+
+      return;
+    }
+
+    // Receiving team touches
+    this._handleCatch(ballContactObj);
   }
 }

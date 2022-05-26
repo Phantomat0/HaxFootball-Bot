@@ -3,13 +3,20 @@ import BallContact from "../classes/BallContact";
 import PlayerContact from "../classes/PlayerContact";
 import { PlayerObject, PlayerObjFlat, Position } from "../HBClient";
 import Chat from "../roomStructures/Chat";
-import Ball from "../structures/Ball";
+import Ball from "../roomStructures/Ball";
 import GameReferee from "../structures/GameReferee";
 import MapReferee from "../structures/MapReferee";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import ICONS from "../utils/Icons";
 import MapSectionFinder, { MapSectionName } from "../utils/MapSectionFinder";
 import SnapEvents from "./play_events/Snap.events";
+import { GameCommandError } from "../commands/GameCommandHandler";
+import {
+  PenaltyName,
+  AdditionalPenaltyData,
+} from "../structures/PenaltyDataGetter";
+import { getPlayerDiscProperties } from "../utils/haxUtils";
+import { MAP_POINTS } from "../utils/map";
 
 export type BadIntReasons =
   | "Blocked by offense"
@@ -30,25 +37,88 @@ export default class Snap extends SnapEvents {
     this._ballCarrier = quarterback;
   }
 
-  private _blitzTimer() {
-    this._blitzClockTime++;
-    if (this._blitzClockTime >= this.BLITZ_TIME_SECONDS) {
-      this.setState("canBlitz");
-      return this._stopBlitzClock();
+  validateBeforePlayBegins(player: PlayerObject | null) {
+    if (Room.game.canStartSnapPlay === false)
+      throw new GameCommandError(
+        "Please wait a second before snapping the ball"
+      );
+
+    Room.game.updateStaticPlayers();
+    Room.game.players.savePlayerPositions();
+
+    const {
+      valid,
+      penaltyName,
+      player: penaltiedPlayer,
+      penaltyData,
+    } = new SnapValidator(player as PlayerObject).validate();
+
+    if (!valid) {
+      this._handlePenalty(penaltyName!, penaltiedPlayer!, penaltyData);
+      throw new GameCommandError("Penalty", false);
     }
+  }
+
+  prepare() {
+    this._setStartingPosition(Room.game.down.getLOS());
+    this.setBallPositionOnSet(Ball.getPosition());
+    Room.game.down.moveFieldMarkers();
+    this._startBlitzClock();
+
+    const isCurvePass = Room.game.stateExists("curvePass");
+
+    if (isCurvePass) this.setState("curvePass");
+  }
+
+  run() {
+    this._setLivePlay(true);
+    Ball.release();
+    this.setState("ballSnapped");
+    Chat.sendMessageMaybeWithClock(
+      `${ICONS.GreenCircle} Ball is Hiked`,
+      this.time
+    );
+  }
+
+  cleanUp() {
+    this._stopBlitzClock();
   }
 
   getQuarterback() {
     return this._quarterback;
   }
 
-  protected _startBlitzClock() {
-    this._blitzClock = setInterval(this._blitzTimer.bind(this), 1000);
+  /**
+   * Handles an auto touchdown after three redzone penalties
+   */
+  handleAutoTouchdown() {
+    Chat.send(`${ICONS.Fire} Automatic Touchdown! - 3/3 Penalties`, {
+      sound: 2,
+    });
+
+    // Allow for a two point attempt
+    Room.game.setState("canTwoPoint");
+
+    this.scorePlay(7, Room.game.offenseTeamId, Room.game.defenseTeamId);
   }
 
-  private _stopBlitzClock() {
-    if (this._blitzClock === null) return;
-    clearInterval(this._blitzClock);
+  handleTouchdown(position: Position) {
+    // First we need to get the type of touchdown, then handle
+    if (this.stateExistsUnsafe("twoPointAttempt"))
+      return this._handleTwoPointTouchdown();
+    return this._handleRegularTouchdown(position);
+  }
+
+  handleIllegalCrossOffense(player: PlayerObjFlat) {
+    this._handlePenalty("illegalLosCross", player);
+  }
+
+  handleIllegalBlitz(player: PlayerObject) {
+    this._handlePenalty("illegalBlitz", player, { time: this._blitzClockTime });
+  }
+
+  protected _startBlitzClock() {
+    this._blitzClock = setInterval(this._blitzTimerInterval.bind(this), 1000);
   }
 
   protected _getStatInfo(endPosition: Position): {
@@ -156,25 +226,6 @@ export default class Snap extends SnapEvents {
     }
   }
 
-  protected _handleBallContactOffense(ballContactObj: BallContact) {
-    if (this.stateExists("ballDeflected"))
-      return this._handleBallContactDuringInterception(ballContactObj);
-
-    const { player } = ballContactObj;
-    const { id } = player;
-
-    // If contact was made by QB, handle it seperately
-    const isQBContact = id === this.getQuarterback().id;
-    if (isQBContact) return this._handleBallContactQuarterback(ballContactObj);
-
-    // Receiver touched but there wasnt a pass yet
-    const touchButNoQbPass = this.stateExists("ballPassed") === false;
-    if (touchButNoQbPass) return this._handleIllegalTouch(ballContactObj);
-
-    // Has to be a catch
-    this._handleCatch(ballContactObj);
-  }
-
   protected _handleBallContactDuringInterception(ballContactObj: BallContact) {
     // If anyone but the intercepting player touches the ball, reset play
     const interceptingPlayer = this.getState("interceptingPlayer");
@@ -252,26 +303,6 @@ export default class Snap extends SnapEvents {
 
     if (ballContactObj.type === "kick")
       return this._handleInterceptionKick(ballContactObj);
-  }
-
-  protected _handleBallContactDefense(ballContactObj: BallContact) {
-    // If the ball wasn't passed yet, ball must have been blitzed
-    if (!this.stateExists("ballPassed")) return this.setState("ballBlitzed");
-
-    const { mapSection } = this._getStatInfo(ballContactObj.playerPosition);
-
-    Room.game.stats.updatePlayerStat(ballContactObj.player.id, {
-      passDeflections: { [mapSection]: 1 },
-    });
-
-    Room.game.stats.updatePlayerStat(this._quarterback.id, {
-      passAttempts: { [mapSection]: 1 },
-    });
-
-    Chat.send(`${ICONS.DoNotEnter} Incomplete - Pass Deflected`);
-    this.setState("ballDeflected");
-
-    this._handleInterceptionAttempt(ballContactObj);
   }
 
   // This method needs to be made public since it can be called by our event observer
@@ -512,40 +543,110 @@ export default class Snap extends SnapEvents {
     super.handleTouchdown(endPosition);
   }
 
-  /**
-   * Handles an auto touchdown after three redzone penalties
-   */
-  handleAutoTouchdown() {
-    Chat.send(`${ICONS.Fire} Automatic Touchdown! - 3/3 Penalties`, {
-      sound: 2,
-    });
-
-    // Allow for a two point attempt
-    Room.game.setState("canTwoPoint");
-
-    this.scorePlay(7, Room.game.offenseTeamId, Room.game.defenseTeamId);
+  private _blitzTimerInterval() {
+    this._blitzClockTime++;
+    if (this._blitzClockTime >= this.BLITZ_TIME_SECONDS) {
+      this.setState("canBlitz");
+      return this._stopBlitzClock();
+    }
   }
 
-  handleTouchdown(position: Position) {
-    // First we need to get the type of touchdown, then handle
-    if (this.stateExistsUnsafe("twoPointAttempt"))
-      return this._handleTwoPointTouchdown();
-    return this._handleRegularTouchdown(position);
+  private _stopBlitzClock() {
+    if (this._blitzClock === null) return;
+    clearInterval(this._blitzClock);
+  }
+}
+
+class SnapValidatorPenalty<T extends PenaltyName> {
+  penaltyName: T;
+  player: PlayerObject;
+  penaltyData: AdditionalPenaltyData;
+
+  constructor(
+    penaltyName: T,
+    player: PlayerObject,
+    penaltyData: AdditionalPenaltyData = {}
+  ) {
+    this.penaltyName = penaltyName;
+    this.player = player;
+    this.penaltyData = penaltyData;
+  }
+}
+
+class SnapValidator {
+  private _player: PlayerObject;
+  private _playerPosition: Position;
+
+  constructor(player: PlayerObject) {
+    this._player = player;
+    this._playerPosition = getPlayerDiscProperties(this._player.id)?.position;
   }
 
-  onKickDrag(player: PlayerObjFlat | null) {
-    this._handlePenalty("snapDrag", player!);
+  private _checkSnapOutOfBounds(): never | void {
+    const isOutOfBounds = MapReferee.checkIfPlayerOutOfBounds(
+      this._playerPosition
+    );
+
+    if (isOutOfBounds)
+      throw new SnapValidatorPenalty("snapOutOfBounds", this._player);
   }
 
-  handleIllegalCrossOffense(player: PlayerObjFlat) {
-    this._handlePenalty("illegalLosCross", player);
+  private _checkSnapWithinHashes(): never | void {
+    const isWithinHash = MapReferee.checkIfWithinHash(
+      this._playerPosition,
+      MAP_POINTS.PLAYER_RADIUS
+    );
+
+    if (!isWithinHash)
+      throw new SnapValidatorPenalty("snapOutOfHashes", this._player);
   }
 
-  handleIllegalBlitz(player: PlayerObject) {
-    this._handlePenalty("illegalBlitz", player, { time: this._blitzClockTime });
+  private _checkOffsideOffense(): never | void {
+    const offsidePlayer = MapReferee.findTeamPlayerOffside(
+      Room.game.players.getOffense(),
+      Room.game.offenseTeamId,
+      Room.game.down.getLOS().x
+    );
+
+    if (offsidePlayer)
+      throw new SnapValidatorPenalty("offsidesOffense", offsidePlayer);
   }
 
-  cleanUp() {
-    this._stopBlitzClock();
+  private _checkOffsideDefense(): never | void {
+    const offsidePlayer = MapReferee.findTeamPlayerOffside(
+      Room.game.players.getDefense(),
+      Room.game.defenseTeamId,
+      Room.game.down.getLOS().x
+    );
+
+    if (offsidePlayer)
+      throw new SnapValidatorPenalty("offsidesDefense", offsidePlayer);
+  }
+
+  validate() {
+    try {
+      this._checkSnapWithinHashes();
+      this._checkSnapOutOfBounds();
+      this._checkOffsideOffense();
+      this._checkOffsideDefense();
+    } catch (e) {
+      if (e instanceof SnapValidatorPenalty) {
+        const { penaltyName, player, penaltyData } =
+          e as SnapValidatorPenalty<any>;
+
+        return {
+          valid: false,
+          penaltyName: penaltyName,
+          player: player,
+          penaltyData: penaltyData,
+        };
+      }
+
+      console.log(e);
+    }
+
+    return {
+      valid: true,
+    };
   }
 }

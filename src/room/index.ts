@@ -13,7 +13,7 @@ import HFL_MAP from "./utils/map";
 //@ts-ignore
 export const client: HBClient = HBInit(roomConfig);
 
-const Room = new RoomClient(client);
+const Room = new RoomClient();
 
 export default Room;
 

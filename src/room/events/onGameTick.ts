@@ -1,4 +1,3 @@
-import { PlayStorageKeys } from "../plays/BasePlay";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
 import Room from "..";
 import MapReferee from "../structures/MapReferee";
@@ -7,10 +6,11 @@ import { checkBallCarrierContact, checkBallContact } from "./tickEvents";
 import Chat from "../roomStructures/Chat";
 import { PlayableTeamId } from "../HBClient";
 import Snap from "../plays/Snap";
-import Ball from "../structures/Ball";
+import Ball from "../roomStructures/Ball";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import FieldGoal from "../plays/FieldGoal";
 import { MAP_POINTS } from "../utils/map";
+import { PlayStorageKeys } from "../plays/BasePlayAbstract";
 
 const eventListeners: EventListener[] = [
   {
@@ -30,7 +30,7 @@ const eventListeners: EventListener[] = [
 
       const ballOutOfBounds = MapReferee.checkIfBallOutOfBounds(ballPosition); // This returns either null or the ballPosition,
       if (ballOutOfBounds)
-        return Room?.game?.play?.handleBallOutOfBounds(ballOutOfBounds);
+        return Room?.game?.play?.onBallOutOfBounds(ballOutOfBounds);
     },
   },
   {
@@ -83,7 +83,7 @@ const eventListeners: EventListener[] = [
     ],
     run: () => {
       const ballContact = checkBallContact();
-      if (ballContact) return Room.getPlay().handleBallContact(ballContact);
+      if (ballContact) return Room.getPlay().onBallContact(ballContact);
     },
   },
   {
@@ -101,9 +101,7 @@ const eventListeners: EventListener[] = [
         MapReferee.checkIfPlayerOutOfBounds(position);
 
       if (ballCarrierOutOfBounds)
-        return Room.getPlay().handleBallCarrierOutOfBounds(
-          ballCarrierOutOfBounds
-        );
+        return Room.getPlay().onBallCarrierOutOfBounds(ballCarrierOutOfBounds);
 
       const isTouchdown = GameReferee.checkIfTouchdown(
         position,
@@ -123,7 +121,7 @@ const eventListeners: EventListener[] = [
       if (defensePlayers.length === 0) return;
       const playerContact = checkBallCarrierContact(defensePlayers);
       if (playerContact)
-        return Room.getPlay().handleBallCarrierContactDefense(playerContact);
+        return Room.getPlay().onBallCarrierContactDefense(playerContact);
     },
   },
   {
@@ -140,7 +138,7 @@ const eventListeners: EventListener[] = [
         );
       const playerContact = checkBallCarrierContact(offensePlayersNoQb);
       if (playerContact)
-        return Room.getPlay().handleBallCarrierContactOffense(playerContact);
+        return Room.getPlay().onBallCarrierContactOffense(playerContact);
     },
   },
   {

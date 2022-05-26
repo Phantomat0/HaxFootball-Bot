@@ -1,16 +1,9 @@
 import Room from "..";
 import BallContact from "../classes/BallContact";
-import PlayerContact from "../classes/PlayerContact";
-import WithStateStore from "../classes/WithStateStore";
-import {
-  PlayableTeamId,
-  PlayerObject,
-  PlayerObjFlat,
-  Position,
-} from "../HBClient";
+import { PlayableTeamId, PlayerObjFlat, Position } from "../HBClient";
 import { SHOW_DEBUG_CHAT } from "../roomConfig";
 import Chat from "../roomStructures/Chat";
-import Ball from "../structures/Ball";
+import Ball from "../roomStructures/Ball";
 import DistanceCalculator from "../structures/DistanceCalculator";
 import MapReferee from "../structures/MapReferee";
 import MessageFormatter from "../structures/MessageFormatter";
@@ -23,32 +16,31 @@ import { flattenPlayer, quickPause } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
 import MapSectionFinder, { MapSectionName } from "../utils/MapSectionFinder";
 import { plural, truncateName } from "../utils/utils";
-import FieldGoal from "./FieldGoal";
-import KickOff from "./Kickoff";
-import { FieldGoalStore } from "./play_events/FieldGoal.events";
-import { KickOffStore } from "./play_events/KickOff.events";
-import { PuntStore } from "./play_events/Punt.events";
-import { SnapStore } from "./play_events/Snap.events";
-import Punt from "./Punt";
 import Snap from "./Snap";
-
-export type PLAY_TYPES = Snap | FieldGoal | KickOff | Punt;
-
-type PlayStorages = SnapStore & FieldGoalStore & PuntStore & KickOffStore;
-
-export type PlayStorageKeys = keyof PlayStorages | "twoPointAttempt";
+import BasePlayAbstract, { PLAY_TYPES } from "./BasePlayAbstract";
 
 interface EndPlayData {
+  /**
+   * Used to update the down and distance
+   */
   netYards?: number;
+  /**
+   * Where the LOS will be for the next play.
+   *
+   * Can be null if the LOS isn't moving
+   */
   newLosX?: Position["x"] | null;
+  /**
+   * Used exclusively in penalties when we want to repeat a down
+   */
   addDown?: boolean;
+  /**
+   * Used when we want to force a new down
+   */
   resetDown?: boolean;
 }
 
-export default abstract class BasePlay<T> extends WithStateStore<
-  T,
-  PlayStorageKeys
-> {
+export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
   protected _isLivePlay: boolean = false;
   protected _ballCarrier: ReturnType<typeof flattenPlayer> | null = null;
   protected _ballPositionOnSet: Position | null = null;
@@ -77,13 +69,6 @@ export default abstract class BasePlay<T> extends WithStateStore<
 
   get isLivePlay() {
     return this._isLivePlay;
-  }
-
-  protected _setLivePlay(bool: boolean) {
-    this._isLivePlay = bool;
-    if (SHOW_DEBUG_CHAT) {
-      Chat.send(`SET LIVE PLAY TO: ${bool}`);
-    }
   }
 
   terminatePlayDuringError() {
@@ -323,132 +308,99 @@ export default abstract class BasePlay<T> extends WithStateStore<
     addDown = true,
     resetDown = false,
   }: EndPlayData) {
-    const updateDown = () => {
-      // Dont update the down if nothing happened, like off a pass deflection, punt, or kickoff
-      if (newLosX === null) return;
-
-      const addYardsAndStartNewDownIfNecessary = () => {
-        Room.game.down.setLOS(newLosX);
-        Room.game.down.subtractYardsToGet(netYards);
-
-        const currentYardsToGet = Room.game.down.getYardsToGet();
-
-        // First down
-        if (currentYardsToGet <= 0) {
-          Chat.send(`${ICONS.Star} First Down!`);
-          return Room.game.down.startNew();
-        }
-
-        if (resetDown) {
-          return Room.game.down.startNew();
-        }
-
-        // There are runs on field goals, so you could get the downage
-        if (this.stateExistsUnsafe("fieldGoal")) {
-          // This endplay only runs when there is a running play on the field goal
-          Chat.send(`${ICONS.Loudspeaker} Turnover on downs FIELD GOAL!`);
-          Room.game.swapOffenseAndUpdatePlayers();
-          Room.game.down.startNew();
-        }
-      };
-      addYardsAndStartNewDownIfNecessary();
-    };
-    const enforceDown = () => {
-      const currentDown = Room.game.down.getDown();
-
-      // Check for turnover
-
-      const isFieldGoalWithResetDown =
-        this.stateExistsUnsafe("fieldGoal") && resetDown;
-
-      if (currentDown === 5 || isFieldGoalWithResetDown) {
-        Chat.send(`${ICONS.Loudspeaker} Turnover on downs!`);
-        Room.game.swapOffenseAndUpdatePlayers();
-        Room.game.down.startNew();
-      }
-    };
-
     this._setLivePlay(false);
 
-    if (addDown && resetDown === false) {
-      Room.game.down.addDown();
-    }
+    const gotFirstDown = this._updateDistance({
+      netYards,
+      newLosX,
+      addDown,
+      resetDown,
+    });
 
-    updateDown();
-    enforceDown();
+    // Set the new LOS position if it is present
+    if (newLosX !== null) Room.game.down.setLOS(newLosX);
+
+    this._updateDown(gotFirstDown, { netYards, newLosX, addDown, resetDown });
     Room.game.down.resetAfterDown();
   }
 
   /**
    * Handles a player touching the ball
    */
-  handleBallContact(ballContactObj: BallContact) {
+  onBallContact(ballContactObj: BallContact) {
     return ballContactObj.player.team === Room.game.offenseTeamId
-      ? this._handleBallContactOffense(ballContactObj)
-      : this._handleBallContactDefense(ballContactObj);
+      ? this._onBallContactOffense(ballContactObj)
+      : this._onBallContactDefense(ballContactObj);
   }
 
-  /* ABSTRACT */
+  protected _setLivePlay(bool: boolean) {
+    this._isLivePlay = bool;
+    if (SHOW_DEBUG_CHAT) {
+      Chat.send(`SET LIVE PLAY TO: ${bool}`);
+    }
+  }
 
   /**
-   * Validation before the game sets the play
-   * @return Throws a GameCommandError in the case of an error
-   */
-  abstract validateBeforePlayBegins(player: PlayerObject | null): never | void;
-
-  /**
-   * Prepares aspects such as player and ball position before the play is run.
+   * Updates the the LOS distance
+   * @returns gotFirstDown Returns true if the offense got a first down
    *
-   * Anything that deals with Game state must be dealt with here
+   * Returns false if resetDown is true
    */
-  abstract prepare(): void;
+  private _updateDistance({
+    netYards,
+    newLosX,
+    resetDown,
+  }: Required<EndPlayData>) {
+    // If the line of scrimmage isn't being moved, we dont have have to update the distance
+    if (newLosX === null) return false;
+
+    // \
+    const currentYardsToGet = Room.game.down.getYardsToGet();
+
+    // We gained the same or more yards than we needed, first down
+    if (netYards >= currentYardsToGet) return true;
+
+    // Otherwise we have to subtract the yards
+    Room.game.down.subtractYardsToGet(netYards);
+
+    return false;
+  }
 
   /**
-   * Begins live play
+   * Enforces a turnover on 5th down on a bad fg/ bad fg rush
+   *
+   * Resets the down if resetDown set to true, and starts a new down if we got a first down
    */
-  abstract run(): void;
+  private _updateDown(
+    gotFirstDown: boolean,
+    { addDown, resetDown }: Required<EndPlayData>
+  ) {
+    if (resetDown) return Room.game.down.startNew();
+    // If they got the first down, send message and start a new down
+    if (gotFirstDown) {
+      Chat.send(`${ICONS.Star} First Down!`);
+      return Room.game.down.startNew();
+    }
 
-  /**
-   * Handled ball out of bounds
-   */
-  abstract handleBallOutOfBounds(ballPosition: Position): void;
+    // If they didn't get a first down, add the down and check for a possible turnover
 
-  /**
-   * Handled ball carrier out of bounds
-   */
-  abstract handleBallCarrierOutOfBounds(ballCarrierPosition: Position): void;
+    const shouldIncrementDown = addDown && resetDown === false;
+    if (shouldIncrementDown) {
+      Room.game.down.addDown();
+    }
 
-  /**
-   * Handled offense touching ball carrier (runs)
-   */
-  abstract handleBallCarrierContactOffense(playerContact: PlayerContact): void;
+    const TURNOVER_DOWN = 5;
 
-  /**
-   * Handled defense touching ball carrier (tackles)
-   */
-  abstract handleBallCarrierContactDefense(playerContact: PlayerContact): void;
+    const currentDown = Room.game.down.getDown();
 
-  /**
-   * Handles an offensive player touching the ball
-   */
-  protected abstract _handleBallContactOffense(
-    ballContactObj: BallContact
-  ): void;
+    const isFieldGoal = this.stateExistsUnsafe("fieldGoal");
 
-  /**
-   * Handles a defensive player touching the ball
-   */
-  protected abstract _handleBallContactDefense(
-    ballContactObj: BallContact
-  ): void;
-
-  /**
-   * Handles a drag on a kick
-   */
-  abstract onKickDrag(player: PlayerObjFlat | null): void;
-
-  /**
-   * Cleans up any variables from the current play
-   */
-  abstract cleanUp(): void;
+    // Check for turnover, either they reach the turnover down
+    // or they didn't get a first down on a field goal
+    if (currentDown === TURNOVER_DOWN || isFieldGoal) {
+      Chat.send(`${ICONS.Loudspeaker} Turnover on downs!`);
+      Room.game.swapOffenseAndUpdatePlayers();
+      Room.game.down.startNew();
+    }
+  }
 }

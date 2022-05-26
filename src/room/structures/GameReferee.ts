@@ -4,18 +4,18 @@ import { MAP_POINTS } from "../utils/map";
 import MapReferee from "./MapReferee";
 import PreSetCalculators from "./PreSetCalculators";
 
-class GameReferee {
+export default class GameReferee {
   /**
    * Check if there is a safety when the ball goes out of bounds
    */
-  checkIfSafetyBall(ballPosition: Position, team: PlayableTeamId) {
+  static checkIfSafetyBall(ballPosition: Position, team: PlayableTeamId) {
     return MapReferee.getEndZonePositionIsIn(ballPosition) === team;
   }
 
   /**
    * Check if a tackle can be considered a tackle
    */
-  checkIfSack(
+  static checkIfSack(
     qbPosition: Position,
     losX: number,
     offenseTeamId: PlayableTeamId
@@ -28,7 +28,7 @@ class GameReferee {
    * @param catchPosition The already adjusted catch position
    * @param rawPlayerPosition The raw player position, we will adjust to teamendzone
    */
-  checkIfSafetyOrTouchbackPlayer = (
+  static checkIfSafetyOrTouchbackPlayer = (
     catchPosition: Position | null,
     rawPlayerPosition: Position,
     teamId: PlayableTeamId
@@ -88,7 +88,7 @@ class GameReferee {
     };
   };
 
-  checkIfTouchbackBall(ballPosition: Position, teamId: PlayableTeamId) {
+  static checkIfTouchbackBall(ballPosition: Position, teamId: PlayableTeamId) {
     // We know the ball went out of bounds, so we really only care if it was infront in the endzone or not
     const endZone = MapReferee.getEndZonePositionIsIn(ballPosition);
 
@@ -96,7 +96,7 @@ class GameReferee {
     return endZone === teamId;
   }
 
-  checkIfTouchdown(rawPlayerPosition: Position, teamId: PlayableTeamId) {
+  static checkIfTouchdown(rawPlayerPosition: Position, teamId: PlayableTeamId) {
     // Adjust the player position forward
     const adjustedPlayerPosition = PreSetCalculators.adjustPlayerPositionFront(
       rawPlayerPosition,
@@ -109,7 +109,7 @@ class GameReferee {
     return endZone && endZone !== teamId;
   }
 
-  checkIfFieldGoalSuccessful(
+  static checkIfFieldGoalSuccessful(
     ballPosition: Position,
     offenseTeamId: PlayableTeamId
   ) {
@@ -120,7 +120,7 @@ class GameReferee {
     return offenseTeamId === TEAMS.RED ? x > blueFG : x < redFG;
   }
 
-  checkIfInterceptionWithinTime(intTime: number, timeNow: number) {
+  static checkIfInterceptionWithinTime(intTime: number, timeNow: number) {
     const INTERCEPTION_TIME_LIMIT = 5;
 
     const differenceBetweenIntTimeAndTimeNow = intTime - timeNow;
@@ -129,7 +129,7 @@ class GameReferee {
   }
 
   // Check for the ball position to be behind one of the endzones and between FG posts
-  checkIfInterceptionSuccessful(ballPosition: Position) {
+  static checkIfInterceptionSuccessful(ballPosition: Position) {
     const isBehindRedFG = MapReferee.checkIfBallBetweenFGPosts(
       ballPosition,
       TEAMS.RED as PlayableTeamId
@@ -142,5 +142,3 @@ class GameReferee {
     return isBehindRedFG || isBehindBlueFG;
   }
 }
-
-export default new GameReferee();

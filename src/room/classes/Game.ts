@@ -1,6 +1,6 @@
 import { client, TEAMS } from "..";
 import { PlayableTeamId, PlayerObject } from "../HBClient";
-import { PLAY_TYPES } from "../plays/BasePlay";
+import { PLAY_TYPES } from "../plays/BasePlayAbstract";
 import Chat from "../roomStructures/Chat";
 import PlayerRecorder from "../structures/PlayerRecorder";
 import PlayerStatManager from "../structures/PlayerStatManager";

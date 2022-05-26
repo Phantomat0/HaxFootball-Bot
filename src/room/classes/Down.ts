@@ -1,7 +1,7 @@
 import Room, { client } from "..";
 import { PlayableTeamId, PlayerObject, Position } from "../HBClient";
 import Chat from "../roomStructures/Chat";
-import Ball from "../structures/Ball";
+import Ball from "../roomStructures/Ball";
 import DistanceCalculator, {
   DistanceConverter,
 } from "../structures/DistanceCalculator";

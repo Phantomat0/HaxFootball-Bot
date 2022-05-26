@@ -1,116 +1,19 @@
 import Room from "../..";
 import BallContact from "../../classes/BallContact";
 import PlayerContact from "../../classes/PlayerContact";
-import { PlayableTeamId, PlayerObject, Position } from "../../HBClient";
+import {
+  PlayableTeamId,
+  PlayerObject,
+  PlayerObjFlat,
+  Position,
+} from "../../HBClient";
 import Chat from "../../roomStructures/Chat";
-import Ball from "../../structures/Ball";
-import { GameCommandError } from "../../commands/GameCommandHandler";
 import GameReferee from "../../structures/GameReferee";
 import MapReferee from "../../structures/MapReferee";
-import {
-  AdditionalPenaltyData,
-  PenaltyName,
-} from "../../structures/PenaltyDataGetter";
-import { getPlayerDiscProperties } from "../../utils/haxUtils";
 import ICONS from "../../utils/Icons";
-import { MAP_POINTS } from "../../utils/map";
 import { MapSectionName } from "../../utils/MapSectionFinder";
 import BasePlay from "../BasePlay";
 import { BadIntReasons } from "../Snap";
-
-class SnapValidatorPenalty<T extends PenaltyName> {
-  penaltyName: T;
-  player: PlayerObject;
-  penaltyData: AdditionalPenaltyData;
-
-  constructor(
-    penaltyName: T,
-    player: PlayerObject,
-    penaltyData: AdditionalPenaltyData = {}
-  ) {
-    this.penaltyName = penaltyName;
-    this.player = player;
-    this.penaltyData = penaltyData;
-  }
-}
-
-class SnapValidator {
-  private _player: PlayerObject;
-  private _playerPosition: Position;
-
-  constructor(player: PlayerObject) {
-    this._player = player;
-    this._playerPosition = getPlayerDiscProperties(this._player.id)?.position;
-  }
-
-  private _checkSnapOutOfBounds(): never | void {
-    const isOutOfBounds = MapReferee.checkIfPlayerOutOfBounds(
-      this._playerPosition
-    );
-
-    if (isOutOfBounds)
-      throw new SnapValidatorPenalty("snapOutOfBounds", this._player);
-  }
-
-  private _checkSnapWithinHashes(): never | void {
-    const isWithinHash = MapReferee.checkIfWithinHash(
-      this._playerPosition,
-      MAP_POINTS.PLAYER_RADIUS
-    );
-
-    if (!isWithinHash)
-      throw new SnapValidatorPenalty("snapOutOfHashes", this._player);
-  }
-
-  private _checkOffsideOffense(): never | void {
-    const offsidePlayer = MapReferee.findTeamPlayerOffside(
-      Room.game.players.getOffense(),
-      Room.game.offenseTeamId,
-      Room.game.down.getLOS().x
-    );
-
-    if (offsidePlayer)
-      throw new SnapValidatorPenalty("offsidesOffense", offsidePlayer);
-  }
-
-  private _checkOffsideDefense(): never | void {
-    const offsidePlayer = MapReferee.findTeamPlayerOffside(
-      Room.game.players.getDefense(),
-      Room.game.defenseTeamId,
-      Room.game.down.getLOS().x
-    );
-
-    if (offsidePlayer)
-      throw new SnapValidatorPenalty("offsidesDefense", offsidePlayer);
-  }
-
-  validate() {
-    try {
-      this._checkSnapWithinHashes();
-      this._checkSnapOutOfBounds();
-      this._checkOffsideOffense();
-      this._checkOffsideDefense();
-    } catch (e) {
-      if (e instanceof SnapValidatorPenalty) {
-        const { penaltyName, player, penaltyData } =
-          e as SnapValidatorPenalty<any>;
-
-        return {
-          valid: false,
-          penaltyName: penaltyName,
-          player: player,
-          penaltyData: penaltyData,
-        };
-      }
-
-      console.log(e);
-    }
-
-    return {
-      valid: true,
-    };
-  }
-}
 
 export interface SnapStore {
   curvePass: true;
@@ -153,6 +56,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
   protected abstract _handleInterceptionBallCarrierOutOfBounds(
     ballCarrierPosition: Position
   ): any;
+  protected abstract _handleInterceptionAttempt(ballContactObj: BallContact);
 
   abstract handleUnsuccessfulInterception(message: BadIntReasons): any;
   protected abstract _getStatInfo(endPosition: Position): {
@@ -161,52 +65,28 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
   };
   protected abstract _startBlitzClock(): void;
 
-  validateBeforePlayBegins(player: PlayerObject | null) {
-    if (Room.game.canStartSnapPlay === false)
-      throw new GameCommandError(
-        "Please wait a second before snapping the ball"
-      );
+  /**
+   * Determines whether the ball contact was offense or defense and handles
+   */
+  onBallContact(ballContactObj: BallContact) {
+    // Normally if any of these states were true, our eventlistener wouldnt run
+    // but handleBallContact can also be run from our onPlayerBallKick
+    if (
+      this.stateExists("ballCaught") ||
+      this.stateExists("ballRan") ||
+      this.stateExists("ballBlitzed")
+    )
+      return;
 
-    Room.game.updateStaticPlayers();
+    // Handle any contact during an int seperately
+    if (this.stateExists("interceptionAttempt"))
+      return this._handleBallContactDuringInterception(ballContactObj);
 
-    Room.game.players.savePlayerPositions();
-
-    const {
-      valid,
-      penaltyName,
-      player: penaltiedPlayer,
-      penaltyData,
-    } = new SnapValidator(player as PlayerObject).validate();
-
-    if (!valid) {
-      this._handlePenalty(penaltyName!, penaltiedPlayer!, penaltyData);
-      throw new GameCommandError("Penalty", false);
-    }
+    // Run the native one
+    super.onBallContact(ballContactObj);
   }
 
-  async prepare() {
-    Room.game.updateStaticPlayers();
-    this._setStartingPosition(Room.game.down.getLOS());
-    this.setBallPositionOnSet(Ball.getPosition());
-    Room.game.down.moveFieldMarkers();
-    this._startBlitzClock();
-
-    const isCurvePass = Room.game.stateExists("curvePass");
-
-    if (isCurvePass) this.setState("curvePass");
-  }
-
-  run() {
-    this._setLivePlay(true);
-    Ball.release();
-    this.setState("ballSnapped");
-    Chat.sendMessageMaybeWithClock(
-      `${ICONS.GreenCircle} Ball is Hiked`,
-      this.time
-    );
-  }
-
-  handleBallOutOfBounds(ballPosition: Position) {
+  onBallOutOfBounds(ballPosition: Position) {
     // Check if this was a result of an int attempt
     if (this.stateExists("interceptionAttempt")) {
       const isSuccessfulInt =
@@ -228,7 +108,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     Chat.send(`${ICONS.DoNotEnter} Incomplete - Pass out of bounds!`);
     return this.endPlay({});
   }
-  handleBallCarrierOutOfBounds(ballCarrierPosition: Position) {
+  onBallCarrierOutOfBounds(ballCarrierPosition: Position) {
     if (this.stateExists("interceptionAttempt"))
       return this._handleInterceptionBallCarrierOutOfBounds(
         ballCarrierPosition
@@ -282,7 +162,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     this.endPlay({ newLosX: endPosition.x, netYards });
   }
 
-  handleBallCarrierContactOffense(playerContact: PlayerContact) {
+  onBallCarrierContactOffense(playerContact: PlayerContact) {
     const { player, playerPosition, ballCarrierPosition } = playerContact;
     // Verify that its a legal run
 
@@ -303,31 +183,53 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     this._handlePenalty("illegalRun", player);
   }
 
-  handleBallCarrierContactDefense(playerContact: PlayerContact) {
+  onBallCarrierContactDefense(playerContact: PlayerContact) {
     if (this.stateExists("interceptingPlayer"))
       return this._handleInterceptionTackle(playerContact);
 
     this._handleTackle(playerContact);
   }
 
-  /**
-   * Determines whether the ball contact was offense or defense and handles
-   */
-  handleBallContact(ballContactObj: BallContact) {
-    // Normally if any of these states were true, our eventlistener wouldnt run
-    // but handleBallContact can also be run from our onPlayerBallKick
-    if (
-      this.stateExists("ballCaught") ||
-      this.stateExists("ballRan") ||
-      this.stateExists("ballBlitzed")
-    )
-      return;
+  onKickDrag(player: PlayerObjFlat | null) {
+    this._handlePenalty("snapDrag", player!);
+  }
 
-    // Handle any contact during an int seperately
-    if (this.stateExists("interceptionAttempt"))
+  protected _onBallContactDefense(ballContactObj: BallContact) {
+    // If the ball wasn't passed yet, ball must have been blitzed
+    if (!this.stateExists("ballPassed")) return this.setState("ballBlitzed");
+
+    const { mapSection } = this._getStatInfo(ballContactObj.playerPosition);
+
+    Room.game.stats.updatePlayerStat(ballContactObj.player.id, {
+      passDeflections: { [mapSection]: 1 },
+    });
+
+    Room.game.stats.updatePlayerStat(this.getQuarterback().id, {
+      passAttempts: { [mapSection]: 1 },
+    });
+
+    Chat.send(`${ICONS.DoNotEnter} Incomplete - Pass Deflected`);
+    this.setState("ballDeflected");
+
+    this._handleInterceptionAttempt(ballContactObj);
+  }
+
+  protected _onBallContactOffense(ballContactObj: BallContact) {
+    if (this.stateExists("ballDeflected"))
       return this._handleBallContactDuringInterception(ballContactObj);
 
-    // Run the native one
-    super.handleBallContact(ballContactObj);
+    const { player } = ballContactObj;
+    const { id } = player;
+
+    // If contact was made by QB, handle it seperately
+    const isQBContact = id === this.getQuarterback().id;
+    if (isQBContact) return this._handleBallContactQuarterback(ballContactObj);
+
+    // Receiver touched but there wasnt a pass yet
+    const touchButNoQbPass = this.stateExists("ballPassed") === false;
+    if (touchButNoQbPass) return this._handleIllegalTouch(ballContactObj);
+
+    // Has to be a catch
+    this._handleCatch(ballContactObj);
   }
 }
