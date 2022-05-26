@@ -4,7 +4,7 @@ import Player from "../classes/Player";
 import { PlayableTeamId } from "../HBClient";
 import Chat from "../roomStructures/Chat";
 import Ball from "../structures/Ball";
-import { DistanceConverter } from "../structures/DistanceCalculator";
+import PreSetCalculators from "../structures/PreSetCalculators";
 import Collection from "../utils/Collection";
 import { getTeamStringFromId } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
@@ -183,7 +183,7 @@ const commandsMap = new Collection<CommandName, Command>([
       },
       async run(cmd: CommandMessage) {
         cmd.reply(
-          `!setlos (yard) | Sets the line of scrimmage position\n!setdown (down) (yard) | Sets the down and distance \n!setscore (team) (score) | Sets the score of a team\n!setplayers | Sets the players in front of ball | !dd | Returns the down and distance \n!swapo | Swaps offense and defense`
+          `cp | Curved pass\n!setlos (yard) | Sets the line of scrimmage position\n!setdown (down) (yard) | Sets the down and distance \n!setscore (team) (score) | Sets the score of a team\n!setplayers | Sets the players in front of ball | !dd | Returns the down and distance \n!swapo | Swaps offense and defense`
         );
       },
     },
@@ -354,15 +354,17 @@ const commandsMap = new Collection<CommandName, Command>([
           throw new CommandError(`Yardage must be a number between 1 and 50`);
 
         // Figure out which team to update
-        const isRedTeam = team === "red" || team === "r";
+        const teamHalf =
+          team === "red" || team === "r" ? TEAMS.RED : TEAMS.BLUE;
 
-        const yardAsDistance = DistanceConverter.yardToDistance(yardageParsed);
+        const yardAsDistance = PreSetCalculators.getPositionOfTeamYard(
+          yardageParsed,
+          teamHalf as PlayableTeamId
+        );
 
-        // Red is negative, blue is positive
-        const yardDistanceToTeam = isRedTeam ? -yardAsDistance : yardAsDistance;
-
-        Room.game.down.setLOS(yardDistanceToTeam);
+        Room.game.down.setLOS(yardAsDistance);
         Room.game.down.setBallAndFieldMarkersPlayEnd();
+        Room.game.down.hardSetPlayers();
 
         cmd.announce(`LOS moved by ${cmd.author.shortName}`);
         Room.game.down.sendDownAndDistance();
