@@ -22,6 +22,7 @@ import PreSetCalculators from "../structures/PreSetCalculators";
 import { flattenPlayer, quickPause } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
 import MapSectionFinder, { MapSectionName } from "../utils/MapSectionFinder";
+import { plural, truncateName } from "../utils/utils";
 import FieldGoal from "./FieldGoal";
 import KickOff from "./Kickoff";
 import { FieldGoalStore } from "./play_events/FieldGoal.events";
@@ -91,6 +92,31 @@ export default abstract class BasePlay<T> extends WithStateStore<
 
   getMaskPlay<T extends PLAY_TYPES>() {
     return this as unknown as T;
+  }
+
+  /**
+   * Sends the touchdown announcement, scores the play, and sets "canTwoPoint"
+   * @param endPosition
+   */
+  handleTouchdown(endPosition: Position) {
+    this._setLivePlay(false);
+
+    const { netYards } = this._getPlayDataOffense(endPosition);
+
+    const truncatedBallCarrierName = truncateName(this._ballCarrier!.name);
+    Chat.send(
+      `${ICONS.Fire} TOUCHDOWN ${truncatedBallCarrierName} ${plural(
+        netYards,
+        "yard",
+        "yards"
+      )}`,
+      { sound: 2 }
+    );
+
+    this.scorePlay(7, Room.game.offenseTeamId, Room.game.defenseTeamId);
+
+    // Allow for a two point attempt
+    Room.game.setState("canTwoPoint");
   }
 
   /**
@@ -308,15 +334,16 @@ export default abstract class BasePlay<T> extends WithStateStore<
         const currentYardsToGet = Room.game.down.getYardsToGet();
 
         // First down
-        if (currentYardsToGet <= 0 || resetDown) {
-          if (resetDown === false) {
-            Chat.send(`${ICONS.Star} First Down!`);
-          }
-          Room.game.down.startNew();
+        if (currentYardsToGet <= 0) {
+          Chat.send(`${ICONS.Star} First Down!`);
+          return Room.game.down.startNew();
         }
 
-        // Maybe instead of doing this, u can just add anb option to EndPlayData like "turnover"
-        // Turnover
+        if (resetDown) {
+          return Room.game.down.startNew();
+        }
+
+        // There are runs on field goals, so you could get the downage
         if (this.stateExistsUnsafe("fieldGoal")) {
           // This endplay only runs when there is a running play on the field goal
           Chat.send(`${ICONS.Loudspeaker} Turnover on downs FIELD GOAL!`);
@@ -330,7 +357,11 @@ export default abstract class BasePlay<T> extends WithStateStore<
       const currentDown = Room.game.down.getDown();
 
       // Check for turnover
-      if (currentDown === 5) {
+
+      const isFieldGoalWithResetDown =
+        this.stateExistsUnsafe("fieldGoal") && resetDown;
+
+      if (currentDown === 5 || isFieldGoalWithResetDown) {
         Chat.send(`${ICONS.Loudspeaker} Turnover on downs!`);
         Room.game.swapOffenseAndUpdatePlayers();
         Room.game.down.startNew();
@@ -363,7 +394,7 @@ export default abstract class BasePlay<T> extends WithStateStore<
    * Validation before the game sets the play
    * @return Throws a GameCommandError in the case of an error
    */
-  abstract validateBeforePlayBegins(player: PlayerObject | null): void;
+  abstract validateBeforePlayBegins(player: PlayerObject | null): never | void;
 
   /**
    * Prepares aspects such as player and ball position before the play is run.
@@ -410,11 +441,6 @@ export default abstract class BasePlay<T> extends WithStateStore<
   protected abstract _handleBallContactDefense(
     ballContactObj: BallContact
   ): void;
-
-  /**
-   * Handles a player scoring a touchdown
-   */
-  abstract handleTouchdown(position: Position): void;
 
   /**
    * Handles a drag on a kick
