@@ -1,11 +1,11 @@
-import { PlayerObject, Position } from "../HBClient";
+import { PlayerObject, PlayerObjFlat, Position } from "../HBClient";
 import { flattenPlayer } from "../utils/haxUtils";
 
 export type BallContactType = "kick" | "touch";
 
 export default class BallContact {
   type: BallContactType;
-  player: any;
+  player: PlayerObjFlat;
   playerPosition: Position;
   constructor(
     contactType: BallContactType,
