@@ -19,7 +19,7 @@ import { plural, truncateName } from "../utils/utils";
 import Snap from "./Snap";
 import BasePlayAbstract, { PLAY_TYPES } from "./BasePlayAbstract";
 
-interface EndPlayData {
+export interface EndPlayData {
   /**
    * Used to update the down and distance
    */
@@ -37,7 +37,7 @@ interface EndPlayData {
   /**
    * Used when we want to force a new down
    */
-  resetDown?: boolean;
+  setNewDown?: boolean;
 }
 
 export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
@@ -78,6 +78,19 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
   getMaskPlay<T extends PLAY_TYPES>() {
     return this as unknown as T;
   }
+
+  /**
+   * Constrains and adjusts a position by doing the following:
+   *
+   * 1. Adjust forward for player radius depending on team
+   * 2. Prevent rounding down to 0 yard line, 775 or -775. Will round to 759.5 in that case
+   * 3. Round to yard by team
+   * 4. Constrain to team endzones
+   */
+  adjustAndConstrainPlayerPositionToCorrectYard(
+    position: Position,
+    offenseTeamid: PlayableTeamId
+  ) {}
 
   /**
    * Sends the touchdown announcement, scores the play, and sets "canTwoPoint"
@@ -242,7 +255,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
       Room.game.offenseTeamId
     );
 
-    this.endPlay({ newLosX: offenseTwentyYardLine, resetDown: true });
+    this.endPlay({ newLosX: offenseTwentyYardLine, setNewDown: true });
   }
 
   /**
@@ -306,7 +319,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     netYards = 0,
     newLosX = null,
     addDown = true,
-    resetDown = false,
+    setNewDown = false,
   }: EndPlayData) {
     this._setLivePlay(false);
 
@@ -314,13 +327,15 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
       netYards,
       newLosX,
       addDown,
-      resetDown,
+      setNewDown,
     });
+
+    console.log({ netYards, newLosX, addDown, setNewDown });
 
     // Set the new LOS position if it is present
     if (newLosX !== null) Room.game.down.setLOS(newLosX);
 
-    this._updateDown(gotFirstDown, { netYards, newLosX, addDown, resetDown });
+    this._updateDown(gotFirstDown, { netYards, newLosX, addDown, setNewDown });
     Room.game.down.resetAfterDown();
   }
 
@@ -346,11 +361,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
    *
    * Returns false if resetDown is true
    */
-  private _updateDistance({
-    netYards,
-    newLosX,
-    resetDown,
-  }: Required<EndPlayData>) {
+  private _updateDistance({ netYards, newLosX }: Required<EndPlayData>) {
     // If the line of scrimmage isn't being moved, we dont have have to update the distance
     if (newLosX === null) return false;
 
@@ -373,9 +384,9 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
    */
   private _updateDown(
     gotFirstDown: boolean,
-    { addDown, resetDown }: Required<EndPlayData>
+    { addDown, setNewDown }: Required<EndPlayData>
   ) {
-    if (resetDown) return Room.game.down.startNew();
+    if (setNewDown) return Room.game.down.startNew();
     // If they got the first down, send message and start a new down
     if (gotFirstDown) {
       Chat.send(`${ICONS.Star} First Down!`);
@@ -383,9 +394,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     }
 
     // If they didn't get a first down, add the down and check for a possible turnover
-
-    const shouldIncrementDown = addDown && resetDown === false;
-    if (shouldIncrementDown) {
+    if (addDown) {
       Room.game.down.addDown();
     }
 
