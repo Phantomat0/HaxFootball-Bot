@@ -73,6 +73,7 @@ export default class Snap extends SnapEvents {
     this._setStartingPosition(Room.game.down.getLOS());
     this.setBallPositionOnSet(Ball.getPosition());
     Room.game.down.moveFieldMarkers();
+    this._getAllOffsideOffenseAndMove();
     this._getAllOffsideDefenseAndMove();
     this._startBlitzClock();
 
@@ -207,6 +208,32 @@ export default class Snap extends SnapEvents {
 
   protected _handleIllegalTouch(ballContactObj: BallContact) {
     this._handlePenalty("illegalTouch", ballContactObj.player);
+  }
+
+  private _getAllOffsideOffenseAndMove() {
+    const offsidePlayers = MapReferee.findAllTeamPlayerOffside(
+      Room.game.players.getOffense(),
+      Room.game.offenseTeamId,
+      Room.game.down.getLOS().x
+    );
+
+    const tenYardsBehindLosX = new DistanceCalculator()
+      .subtractByTeam(
+        Room.game.down.getLOS().x,
+        MAP_POINTS.YARD * 10,
+        Room.game.defenseTeamId
+      )
+      .calculate();
+
+    offsidePlayers.forEach((player) => {
+      // Send the message they are offside
+      Chat.send(
+        `⚠️ You were offside (infront of the blue line), you have been moved 10 yards back.`,
+        { id: player.id }
+      );
+      // Set their x value 15 yards behind LOS
+      client.setPlayerDiscProperties(player.id, { x: tenYardsBehindLosX });
+    });
   }
 
   private _getAllOffsideDefenseAndMove() {
@@ -693,7 +720,7 @@ class SnapValidator {
     try {
       this._checkSnapWithinHashes();
       this._checkSnapOutOfBounds();
-      this._checkOffsideOffense();
+      // this._checkOffsideOffense();
       // this._checkOffsideDefense();
     } catch (e) {
       if (e instanceof SnapValidatorPenalty) {
