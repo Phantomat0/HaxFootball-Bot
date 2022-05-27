@@ -384,7 +384,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     // Check for turnover, either they reach the turnover down
     // or they didn't get a first down on a field goal
     if (currentDown === TURNOVER_DOWN || isFieldGoal) {
-      Chat.send(`${ICONS.Loudspeaker} Turnover on downs!`);
+      Chat.send(`${ICONS.Loudspeaker} Turnover on downs!`, { sound: 0 });
       Room.game.swapOffenseAndUpdatePlayers();
       Room.game.down.startNew();
     }

@@ -47,7 +47,7 @@ export default class CommandMessage extends ChatMessage {
   }
 
   private _extractCommandNameAndParams() {
-    const splitMessage = this._splitContentByWhiteSpace();
+    const splitMessage = this._splitContentByWhiteSpaceAndToLower();
 
     const [cmdNameWithPrefix, ...cmdParams] = splitMessage;
 

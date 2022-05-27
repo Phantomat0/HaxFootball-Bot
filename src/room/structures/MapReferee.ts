@@ -44,13 +44,13 @@ class MapReferee {
   findTeamPlayerOffsideNoAdjust(
     players: PlayerObject[],
     team: PlayableTeamId,
-    losX: Position["x"]
+    pointToBeBehind: Position["x"]
   ) {
     const offsidePlayer = players.find((player) => {
       const {
         position: { x },
       } = getPlayerDiscProperties(player.id)!;
-      const isOnside = this.checkIfBehind(x, losX, team);
+      const isOnside = this.checkIfBehind(x, pointToBeBehind, team);
       return !isOnside;
     });
 
@@ -60,13 +60,13 @@ class MapReferee {
   findAllTeamPlayerOffside(
     players: PlayerObject[],
     team: PlayableTeamId,
-    losX: Position["x"]
+    pointToBeBehind: Position["x"]
   ) {
     const offsidePlayers = players.filter((player) => {
       const {
         position: { x },
       } = getPlayerDiscProperties(player.id)!;
-      const isOnside = this.checkIfBehind(x, losX, team);
+      const isOnside = this.checkIfBehind(x, pointToBeBehind, team);
       return isOnside === false;
     });
 
