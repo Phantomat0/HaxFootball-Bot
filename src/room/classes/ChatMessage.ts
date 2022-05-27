@@ -28,7 +28,7 @@ export default class ChatMessage {
   /**
    * Split all the words by whitespace and makes them lowercase
    */
-  protected _splitContentByWhiteSpace(): string[] {
+  protected _splitContentByWhiteSpaceAndToLower(): string[] {
     return this.content.toLowerCase().split(/\s+/);
   }
 
@@ -57,7 +57,7 @@ export default class ChatMessage {
    * Check if the message starts with the teamchat prefix
    */
   startsWithTeamChatPrefix(): boolean {
-    const [firstWord = null] = this._splitContentByWhiteSpace();
+    const [firstWord = null] = this._splitContentByWhiteSpaceAndToLower();
     // First word has to equal, that way if someone starts a sentence with
     // t, it doesnt flag as team chat
     return firstWord === Chat.PREFIX.TEAMCHAT;
