@@ -19,9 +19,11 @@ export type PenaltyName =
   | "snapOutOfBounds"
   | "offsidesOffense"
   | "offsidesDefense"
+  | "crowding"
   | "snapDrag"
   | "fgDrag"
   | "puntDrag"
+  | "puntOffsidesOffense"
   | "illegalTouch"
   | "illegalRun"
   | "illegalLosCross"
@@ -70,6 +72,11 @@ export default class PenaltyDataGetter {
         netYards: 0,
         addDown: true,
       },
+      crowding: {
+        message: `Crowding!, 15 yard penalty, repeat the down`,
+        netYards: 15,
+        addDown: false,
+      },
       fgDrag: {
         message: `Field Goal Kick Drag, automatic loss of down`,
         netYards: 0,
@@ -79,6 +86,12 @@ export default class PenaltyDataGetter {
         message: `Punt Kick Drag, 10 yard penalty, repeat the down`,
         netYards: -10,
         addDown: false,
+      },
+      puntOffsidesOffense: {
+        message: `Offsides Offense, automatic offense 40 yard line`,
+        netYards: 0,
+        addDown: false,
+        hasOwnHandler: true,
       },
       illegalTouch: {
         message: `Illegal touching of the ball by ${playerName}, automatic loss of down`,
