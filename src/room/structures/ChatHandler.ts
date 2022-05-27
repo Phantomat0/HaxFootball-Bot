@@ -89,7 +89,7 @@ export default class ChatHandler {
 
   static handleGameCommand(chatObj: ChatMessage): boolean {
     // We know game command is defined since we already checked with isGameCommand()
-    const gameCommand = gameCommandsMap.get(chatObj.content)!;
+    const gameCommand = gameCommandsMap.get(chatObj.content.toLowerCase())!;
 
     try {
       new GameCommandHandler(chatObj, gameCommand).validateAndRun();
