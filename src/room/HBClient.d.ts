@@ -403,7 +403,9 @@ export default interface HBClient {
   /**
    * Same as getDiscProperties but targets the disc belonging to a player with the given Id.
    */
-  getPlayerDiscProperties(playerId: PlayerObject["id"]): DiscPropertiesObject;
+  getPlayerDiscProperties(
+    playerId: PlayerObject["id"]
+  ): DiscPropertiesObject | null;
   /**
    * Gets the number of discs in the game including the ball and player discs.
    */
