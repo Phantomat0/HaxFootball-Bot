@@ -52,8 +52,8 @@ export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
 
     const { isSafety, isTouchback } =
       GameReferee.checkIfSafetyOrTouchbackPlayer(
-        Room.game.down.getLOS(),
-        ballCarrierPosition,
+        this._startingPosition,
+        endPosition,
         Room.game.offenseTeamId
       );
 

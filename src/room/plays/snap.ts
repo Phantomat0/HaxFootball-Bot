@@ -1,4 +1,4 @@
-import Room from "..";
+import Room, { client } from "..";
 import BallContact from "../classes/BallContact";
 import PlayerContact from "../classes/PlayerContact";
 import {
@@ -23,6 +23,7 @@ import {
 import { getPlayerDiscProperties } from "../utils/haxUtils";
 import { MAP_POINTS } from "../utils/map";
 import SnapCrowdChecker from "../structures/SnapCrowdChecker";
+import DistanceCalculator from "../structures/DistanceCalculator";
 
 export type BadIntReasons =
   | "Blocked by offense"
@@ -72,6 +73,7 @@ export default class Snap extends SnapEvents {
     this._setStartingPosition(Room.game.down.getLOS());
     this.setBallPositionOnSet(Ball.getPosition());
     Room.game.down.moveFieldMarkers();
+    this._getAllOffsideDefenseAndMove();
     this._startBlitzClock();
 
     const isCurvePass = Room.game.stateExists("curvePass");
@@ -179,12 +181,10 @@ export default class Snap extends SnapEvents {
     }
 
     /// Its a legal catch
-
-    const adjustedPlayerPosition =
-      PreSetCalculators.adjustPlayerPositionFrontAfterPlay(
-        playerPosition,
-        player.team as PlayableTeamId
-      );
+    const adjustedPlayerPosition = PreSetCalculators.adjustRawEndPosition(
+      playerPosition,
+      player.team as PlayableTeamId
+    );
 
     this.setState("catchPosition", adjustedPlayerPosition);
 
@@ -207,6 +207,32 @@ export default class Snap extends SnapEvents {
 
   protected _handleIllegalTouch(ballContactObj: BallContact) {
     this._handlePenalty("illegalTouch", ballContactObj.player);
+  }
+
+  private _getAllOffsideDefenseAndMove() {
+    const offsidePlayers = MapReferee.findAllTeamPlayerOffside(
+      Room.game.players.getDefense(),
+      Room.game.defenseTeamId,
+      Room.game.down.getLOS().x
+    );
+
+    const fifteenYardsBehindLosX = new DistanceCalculator()
+      .subtractByTeam(
+        Room.game.down.getLOS().x,
+        MAP_POINTS.YARD * 15,
+        Room.game.defenseTeamId
+      )
+      .calculate();
+
+    offsidePlayers.forEach((player) => {
+      // Send the message they are offside
+      Chat.send(
+        `⚠️ You were offside (infront of the blue line), you have been moved 15 yards back.`,
+        { id: player.id }
+      );
+      // Set their x value 15 yards behind LOS
+      client.setPlayerDiscProperties(player.id, { x: fifteenYardsBehindLosX });
+    });
   }
 
   private _handleCurvePass(ballContactObj: BallContact) {
@@ -284,24 +310,16 @@ export default class Snap extends SnapEvents {
     );
     Room.game.swapOffenseAndUpdatePlayers();
 
-    const adjustedPlayerKickPosition =
-      PreSetCalculators.adjustPlayerPositionFrontAfterPlay(
-        ballContactObj.playerPosition,
-        Room.game.offenseTeamId
-      );
-
-    const { distance: constrainedDistance, yardLine } =
-      PreSetCalculators.roundAdjustedEndDistanceAroundEndzone(
-        adjustedPlayerKickPosition.x,
-        Room.game.offenseTeamId
-      );
-
-    // Chat.send(`${yardLine}`);
+    const adjustedPlayerKickPosition = PreSetCalculators.adjustRawEndPosition(
+      ballContactObj.playerPosition,
+      Room.game.offenseTeamId
+    );
 
     this._setStartingPosition({
-      x: constrainedDistance,
+      x: adjustedPlayerKickPosition.x,
       y: adjustedPlayerKickPosition.y,
     });
+
     this.setBallCarrier(ballContactObj.player);
 
     // In three seconds, check if the ball is headed towards being a fg or not
@@ -423,7 +441,7 @@ export default class Snap extends SnapEvents {
       const { isSafety, isTouchback } =
         GameReferee.checkIfSafetyOrTouchbackPlayer(
           this.getState("interceptionPlayerKickPosition"),
-          ballCarrierPosition,
+          endPosition,
           Room.game.offenseTeamId
         );
 
@@ -444,6 +462,9 @@ export default class Snap extends SnapEvents {
     const { endPosition, netYards, yardAndHalfStr } = this._getPlayDataOffense(
       playerContact.ballCarrierPosition
     );
+
+    console.log("RAW POSITION", playerContact.ballCarrierPosition);
+    console.log("RAW POSITION", playerContact.ballCarrierPosition);
 
     Room.game.stats.updatePlayerStat(playerContact.player.id, {
       tackles: 1,
@@ -508,13 +529,13 @@ export default class Snap extends SnapEvents {
       });
     }
 
-    const catchPosition = this.stateExists("catchPosition")
+    const startingPosition = this.stateExists("catchPosition")
       ? this.getState("catchPosition")
-      : null;
+      : this._startingPosition;
 
     const { isSafety } = GameReferee.checkIfSafetyOrTouchbackPlayer(
-      catchPosition,
-      playerContact.ballCarrierPosition,
+      startingPosition,
+      endPosition,
       Room.game.offenseTeamId
     );
 
@@ -624,7 +645,7 @@ class SnapValidator {
 
   constructor(player: PlayerObject) {
     this._player = player;
-    this._playerPosition = getPlayerDiscProperties(this._player.id)?.position;
+    this._playerPosition = getPlayerDiscProperties(this._player.id)!.position;
   }
 
   private _checkSnapOutOfBounds(): never | void {
@@ -673,7 +694,7 @@ class SnapValidator {
       this._checkSnapWithinHashes();
       this._checkSnapOutOfBounds();
       this._checkOffsideOffense();
-      this._checkOffsideDefense();
+      // this._checkOffsideDefense();
     } catch (e) {
       if (e instanceof SnapValidatorPenalty) {
         const { penaltyName, player, penaltyData } =

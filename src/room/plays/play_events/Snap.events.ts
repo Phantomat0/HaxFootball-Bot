@@ -114,9 +114,9 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
         ballCarrierPosition
       );
 
-    const catchPosition = this.stateExists("catchPosition")
+    const startPosition = this.stateExists("catchPosition")
       ? this.getState("catchPosition")
-      : null;
+      : this._startingPosition;
 
     const { endPosition, netYards, yardAndHalfStr } =
       this._getPlayDataOffense(ballCarrierPosition);
@@ -128,8 +128,8 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     );
 
     const { isSafety } = GameReferee.checkIfSafetyOrTouchbackPlayer(
-      catchPosition,
-      ballCarrierPosition,
+      startPosition,
+      endPosition,
       Room.game.offenseTeamId
     );
 

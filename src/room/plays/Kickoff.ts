@@ -1,11 +1,6 @@
 import Room from "..";
 import BallContact from "../classes/BallContact";
-import {
-  PlayableTeamId,
-  PlayerObject,
-  PlayerObjFlat,
-  Position,
-} from "../HBClient";
+import { PlayerObject, PlayerObjFlat, Position } from "../HBClient";
 import Ball from "../roomStructures/Ball";
 import Chat from "../roomStructures/Chat";
 import DistanceCalculator from "../structures/DistanceCalculator";
@@ -107,34 +102,26 @@ export default class KickOff extends KickOffEvents {
   protected _handleCatch(ballContactObj: BallContact) {
     // Adjust the position and set it
 
-    const catchPosition = PreSetCalculators.adjustPlayerPositionFront(
+    const adjustedCatchPosition = PreSetCalculators.adjustRawEndPosition(
       ballContactObj.playerPosition,
       Room.game.offenseTeamId
     );
 
-    this.setState("catchPosition", catchPosition);
-    this._setStartingPosition(catchPosition);
+    this._setStartingPosition(adjustedCatchPosition);
 
     // Check if caught out of bounds
     const isOutOfBounds = MapReferee.checkIfPlayerOutOfBounds(
       ballContactObj.playerPosition
     );
 
-    const frontPlayerPosition =
-      PreSetCalculators.adjustPlayerPositionFrontAfterPlay(
-        ballContactObj.playerPosition,
-        ballContactObj.player.team as PlayableTeamId
-      );
-
     if (isOutOfBounds) {
       Chat.send(`${ICONS.DoNotEnter} Caught out of bounds`);
-      return this.endPlay({ newLosX: frontPlayerPosition.x });
+      return this.endPlay({});
     }
 
     Chat.send(`${ICONS.Football} Ball Caught`);
     this.setState("kickOffCaught");
 
-    this._setStartingPosition(frontPlayerPosition);
     this.setBallCarrier(ballContactObj.player);
   }
 
@@ -151,7 +138,7 @@ export default class KickOff extends KickOffEvents {
 
     const offSidePlayer =
       offensePlayers.find((player) => {
-        const { position } = getPlayerDiscProperties(player.id);
+        const { position } = getPlayerDiscProperties(player.id)!;
 
         const isOnside = MapReferee.checkIfBehind(
           position.x,

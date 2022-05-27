@@ -12,9 +12,9 @@ import BasePlay from "../BasePlay";
 export interface KickOffStore {
   kickOff: true;
   kickOffCaught: true;
+  catchPosition: true;
   kickOffKicked: true;
   KickOffKicker: PlayerObjFlat;
-  catchPosition: Position;
   safetyKickoff: true;
 }
 
@@ -36,11 +36,9 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
 
     Chat.send(`${ICONS.HandFingersSpread} Tackle ${yardAndHalfStr}`);
 
-    const catchPosition = this.getState("catchPosition");
-
     const { isSafety, isTouchback } =
       GameReferee.checkIfSafetyOrTouchbackPlayer(
-        catchPosition,
+        this._startingPosition,
         endPosition,
         Room.game.offenseTeamId
       );
@@ -59,26 +57,22 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
   }
 
   onBallCarrierOutOfBounds(ballCarrierPosition: Position): void {
-    const catchPosition = this.getState("catchPosition");
-
-    const { isSafety, isTouchback } =
-      GameReferee.checkIfSafetyOrTouchbackPlayer(
-        catchPosition,
-        ballCarrierPosition,
-        Room.game.offenseTeamId
-      );
-
-    if (isSafety) return super.handleSafety();
-    if (isTouchback) return super.handleTouchback();
-
-    const { endPosition, netYards, yardAndHalfStr } =
+    const { endPosition, yardAndHalfStr } =
       this._getPlayDataOffense(ballCarrierPosition);
 
     Chat.send(
       `${this.getBallCarrier().name} went out of bounds ${yardAndHalfStr}`
     );
 
-    console.log(this._startingPosition, endPosition, netYards);
+    const { isSafety, isTouchback } =
+      GameReferee.checkIfSafetyOrTouchbackPlayer(
+        this._startingPosition,
+        endPosition,
+        Room.game.offenseTeamId
+      );
+
+    if (isSafety) return super.handleSafety();
+    if (isTouchback) return super.handleTouchback();
 
     this.endPlay({ newLosX: endPosition.x });
   }
@@ -123,8 +117,8 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
     // The catch position is the same as the endzone position
     // Adjust it for defense, since they are the ones making contact
     const { isTouchback } = GameReferee.checkIfSafetyOrTouchbackPlayer(
-      ballContactObj.playerPosition,
-      ballContactObj.playerPosition,
+      this._startingPosition,
+      endPosition,
       Room.game.offenseTeamId
     );
 

@@ -60,42 +60,29 @@ export default class Punt extends PuntEvents {
     super.handleTouchdown(endPosition);
   }
 
-  getStartingPosition() {
-    return this.getState("catchPosition");
-  }
-
   protected _handleCatch(ballContactObj: BallContact) {
     const { player, playerPosition } = ballContactObj;
     const { team } = player;
 
-    const catchPosition = PreSetCalculators.adjustPlayerPositionFrontAfterPlay(
+    const adjustedCatchPosition = PreSetCalculators.adjustRawEndPosition(
       playerPosition,
       team as PlayableTeamId
     );
 
-    this.setState("catchPosition", catchPosition);
     this.setState("puntCaught");
-    this._setStartingPosition(catchPosition);
+    this._setStartingPosition(adjustedCatchPosition);
 
     // Check if caught out of bounds
     const isOutOfBounds = MapReferee.checkIfPlayerOutOfBounds(
       ballContactObj.playerPosition
     );
 
-    const frontPlayerPosition =
-      PreSetCalculators.adjustPlayerPositionFrontAfterPlay(
-        ballContactObj.playerPosition,
-        ballContactObj.player.team as PlayableTeamId
-      );
-
     if (isOutOfBounds) {
       Chat.send(`${ICONS.DoNotEnter} Caught out of bounds`);
-      return this.endPlay({ newLosX: frontPlayerPosition.x });
+      return this.endPlay({});
     }
 
     Chat.send(`${ICONS.Football} Ball Caught`);
-
-    this._setStartingPosition(frontPlayerPosition);
 
     this.setBallCarrier(player);
   }
@@ -118,7 +105,7 @@ export default class Punt extends PuntEvents {
       offensePlayers.find((player) => {
         // Filter out the kicker
         if (player.id === playerWhoKicked.id) return false;
-        const { position } = getPlayerDiscProperties(player.id);
+        const { position } = getPlayerDiscProperties(player.id)!;
 
         const isOnside = MapReferee.checkIfBehind(
           position.x,

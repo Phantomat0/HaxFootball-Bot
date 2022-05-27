@@ -14,30 +14,69 @@ export default class PreSetCalculators {
     };
   }
 
-  static adjustPlayerPositionFrontAfterPlay(
-    position: Position,
+  static adjustBallPositionOnOutOfBounds(
+    rawEndPosition: Position,
     teamId: PlayableTeamId
   ) {
+    // We do the same thing as player position, but using BALL_RADIUS
     const xPositionFront = new DistanceCalculator()
-      .addByTeam(position.x, MAP_POINTS.PLAYER_RADIUS, teamId)
-      .roundToTeamEndzone(teamId)
+      .addByTeam(rawEndPosition.x, MAP_POINTS.BALL_RADIUS, teamId)
+      .roundUpToYardIfBetweenTeamEndzoneAndOneYard(teamId)
       .roundToYardByTeam(teamId)
+      .constrainToEndzonePoints()
       .calculate();
     return {
       x: xPositionFront,
-      y: position.y,
+      y: rawEndPosition.y,
     };
   }
 
-  static adjustBallPosition(ballPosition: Position, teamId: PlayableTeamId) {
-    const newBallPositionX = new DistanceCalculator(ballPosition.x)
-      .roundToTeamEndzone(teamId)
-      .roundToYardByTeam(teamId)
-      .calculate();
+  static getNetYardsAndAdjustedEndPosition(
+    alreadyAdjustedStartingPosition: Position,
+    rawEndPosition: Position,
+    offenseTeamId: PlayableTeamId
+  ) {
+    const adjustedEndPosition = this.adjustRawEndPosition(
+      rawEndPosition,
+      offenseTeamId
+    );
+    const { distance: adjustedEndPositionX, yardLine } = new DistanceCalculator(
+      adjustedEndPosition.x
+    ).calculateAndConvert();
+
+    const { yards: netYards } = new DistanceCalculator()
+      .calcNetDifferenceByTeam(
+        alreadyAdjustedStartingPosition.x,
+        adjustedEndPositionX,
+        offenseTeamId
+      )
+      .calculateAndConvert();
 
     return {
-      x: newBallPositionX,
-      y: ballPosition.y,
+      netYards,
+      yardLine,
+      adjustedEndPositionX,
+    };
+  }
+
+  static adjustRawEndPosition(
+    rawEndPosition: Position,
+    teamId: PlayableTeamId
+  ): Position {
+    // We need to do the following to the EndPosition:
+    // 1. Add the MAP_BALL_RADIUS to the player, in the correct direction
+    // 2. Make sure if the ball is between the 0 and 1 yardline of the offense, it gets rounded up.
+    // 3. Round to the nearest yard, always rounding down
+    // 4. Constrain to the nearest endzone
+    const xPositionFront = new DistanceCalculator()
+      .addByTeam(rawEndPosition.x, MAP_POINTS.PLAYER_RADIUS, teamId)
+      .roundUpToYardIfBetweenTeamEndzoneAndOneYard(teamId)
+      .roundToYardByTeam(teamId)
+      .constrainToEndzonePoints()
+      .calculate();
+    return {
+      x: xPositionFront,
+      y: rawEndPosition.y,
     };
   }
 
@@ -78,24 +117,4 @@ export default class PreSetCalculators {
       botFG: BOTTOM_FG_POST - objectRadius,
     };
   };
-
-  /**
-   *
-   * @param adjustedEndDistance Distance already adjusted to player or ball
-   */
-  static roundAdjustedEndDistanceAroundEndzone(
-    adjustedEndDistance: number,
-    offenseTeamId: PlayableTeamId
-  ) {
-    // Adjust it so if its between and 0 and 1 yard line we always round up
-    // Round it to either 775 or -775
-    const endDistanceConstrainedAndRounded = new DistanceCalculator(
-      adjustedEndDistance
-    )
-      .roundToTeamEndzone(offenseTeamId)
-      .constrainToEndzonePoints()
-      .calculateAndConvert();
-
-    return endDistanceConstrainedAndRounded;
-  }
 }

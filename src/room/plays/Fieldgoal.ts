@@ -207,8 +207,8 @@ export default class FieldGoal extends FieldGoalEvents {
 
     const { isSafety, isTouchback } =
       GameReferee.checkIfSafetyOrTouchbackPlayer(
-        Room.game.down.getLOS(),
-        playerContactObj.ballCarrierPosition,
+        this._startingPosition,
+        endPosition,
         Room.game.offenseTeamId
       );
 
