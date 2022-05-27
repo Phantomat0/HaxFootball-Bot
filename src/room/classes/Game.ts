@@ -49,10 +49,19 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   players: PlayerRecorder = new PlayerRecorder();
   stats: PlayerStatManager = new PlayerStatManager();
   private _canStartSnapPlay: boolean = true;
+  private _isPaused: boolean = false;
 
   constructor() {
     super();
     this.updateStaticPlayers();
+  }
+
+  setIsPaused(bool: boolean) {
+    this._isPaused = bool;
+  }
+
+  get isPaused() {
+    return this._isPaused;
   }
 
   updateStaticPlayers() {
@@ -91,6 +100,15 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
 
   startSnapDelay() {
     this._canStartSnapPlay = false;
+    // If the game is paused, set the delay for 4000 seconds
+
+    if (this._isPaused) {
+      setTimeout(() => {
+        this._canStartSnapPlay = true;
+      }, 4000);
+      return;
+    }
+
     setTimeout(() => {
       this._canStartSnapPlay = true;
     }, 2000);
