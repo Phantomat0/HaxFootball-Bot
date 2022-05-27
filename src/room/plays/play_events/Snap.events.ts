@@ -28,7 +28,7 @@ export interface SnapStore {
   lineBlitzed: true;
   interceptionAttempt: true;
   interceptionAttemptKicked: true;
-  interceptingPlayer: PlayerObject;
+  interceptingPlayer: PlayerObjFlat;
   ballIntercepted: true;
   interceptionBallPositionFirstTouch: Position;
   interceptionRuling: boolean;

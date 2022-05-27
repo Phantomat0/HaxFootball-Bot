@@ -6,7 +6,6 @@ import Chat from "../../roomStructures/Chat";
 import Ball from "../../roomStructures/Ball";
 import GameReferee from "../../structures/GameReferee";
 import MapReferee from "../../structures/MapReferee";
-import PreSetCalculators from "../../structures/PreSetCalculators";
 import ICONS from "../../utils/Icons";
 import BasePlay from "../BasePlay";
 
@@ -22,9 +21,12 @@ export interface KickOffStore {
 export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
   protected abstract _checkIfOffenseOffsidesOnKick(): {
     isOffsides: boolean;
-    offsidesPlayer: PlayerObject | undefined;
+    offsidesPlayer: PlayerObject | null;
   };
-
+  protected abstract _handleOffensePenalty(
+    player: PlayerObjFlat,
+    penaltyName: "offsidesOffense" | "drag" | "ballOutOfBounds"
+  ): void;
   protected abstract _handleCatch(ballContactObj: BallContact): void;
 
   onBallCarrierContactDefense(playerContact: PlayerContact): void {
@@ -89,28 +91,7 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
   onBallOutOfBounds(ballPosition: Position): void {
     const kicker = this.getState("KickOffKicker");
 
-    // Check if its a safety or not, if its a safety its defense 40 yard line
-    const offenseFortyYardLine = PreSetCalculators.getPositionOfTeamYard(
-      40,
-      Room.game.offenseTeamId
-    );
-
-    const defenseFortyYardLine = PreSetCalculators.getPositionOfTeamYard(
-      40,
-      Room.game.defenseTeamId
-    );
-
-    const newLosX = this.stateExists("safetyKickoff")
-      ? defenseFortyYardLine
-      : offenseFortyYardLine;
-
-    const penaltyType = this.stateExists("safetyKickoff")
-      ? "kickOffOffsidesSafety"
-      : "kickOffOutOfBounds";
-
-    this._handlePenalty(penaltyType, kicker);
-
-    this.endPlay({ newLosX: newLosX });
+    this._handleOffensePenalty(kicker, "ballOutOfBounds");
   }
 
   onKickDrag(player: PlayerObjFlat | null): void {
@@ -127,28 +108,7 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
       Room.game.swapOffenseAndUpdatePlayers();
     }
 
-    const offenseFortyYardLine = PreSetCalculators.getPositionOfTeamYard(
-      40,
-      Room.game.offenseTeamId
-    );
-
-    const defenseFortyYardLine = PreSetCalculators.getPositionOfTeamYard(
-      40,
-      Room.game.defenseTeamId
-    );
-
-    // If its a safety, set it as the defense forty, otherwise its the offense forty
-    const newLosX = this.stateExists("safetyKickoff")
-      ? defenseFortyYardLine
-      : offenseFortyYardLine;
-
-    const penaltyType = this.stateExists("safetyKickoff")
-      ? "kickOffDragSafety"
-      : "kickOffDrag";
-
-    this._handlePenalty(penaltyType, playerClosestToBall);
-
-    this.endPlay({ newLosX: newLosX, resetDown: true });
+    this._handleOffensePenalty(playerClosestToBall!, "drag");
   }
 
   protected _onBallContactDefense(ballContactObj: BallContact): void {
@@ -170,7 +130,7 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
 
     if (isTouchback) return this.handleTouchback();
 
-    this.endPlay({ newLosX: endPosition.x, resetDown: true });
+    this.endPlay({ newLosX: endPosition.x });
   }
 
   protected _onBallContactOffense(ballContactObj: BallContact): void {
@@ -184,25 +144,13 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
         this.setState("KickOffKicker", ballContactObj.player);
 
         // Before we swap, check for the penalty
-
         const { isOffsides, offsidesPlayer } =
           this._checkIfOffenseOffsidesOnKick();
 
-        if (isOffsides) {
-          // We have to check if its a safety or not
-
-          const isSafetyKickoff = Room.game.stateExists("safetyKickoff");
-
-          if (isSafetyKickoff)
-            return this._handlePenalty(
-              "kickOffOffsidesSafety",
-              offsidesPlayer!
-            );
-
-          return this._handlePenalty("kickOffOffsides", offsidesPlayer!);
-        }
-
         Room.game.swapOffenseAndUpdatePlayers();
+
+        if (isOffsides)
+          return this._handleOffensePenalty(offsidesPlayer!, "offsidesOffense");
       }
 
       return;

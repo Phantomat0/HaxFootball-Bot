@@ -10,7 +10,7 @@ const IS_HEADLESS = false;
   const roomLink = await loadRoomAndGetURL(browser);
 
   if (IS_HEADLESS) return;
-  await joinRoom(browser, roomLink, "NIPSEY HUSSLE");
+  // await joinRoom(browser, roomLink, "NIPSEY HUSSLE");
 })();
 
 async function loadRoomAndGetURL(browser: puppeteer.Browser): Promise<string> {

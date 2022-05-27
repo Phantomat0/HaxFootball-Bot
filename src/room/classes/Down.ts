@@ -70,6 +70,7 @@ export default class Down {
   startNew() {
     this._currentDown = 1;
     this._yardsToGet = Down.CONFIG.DEFAULT_YARDS_TO_GET;
+    this._redZonePenalties = 0;
     return;
   }
 

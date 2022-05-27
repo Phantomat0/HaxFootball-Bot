@@ -1,6 +1,11 @@
 import Room from "..";
 import BallContact from "../classes/BallContact";
-import { PlayerObject, Position } from "../HBClient";
+import {
+  PlayableTeamId,
+  PlayerObject,
+  PlayerObjFlat,
+  Position,
+} from "../HBClient";
 import Ball from "../roomStructures/Ball";
 import Chat from "../roomStructures/Chat";
 import DistanceCalculator from "../structures/DistanceCalculator";
@@ -9,6 +14,7 @@ import PreSetCalculators from "../structures/PreSetCalculators";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
 import { MAP_POINTS } from "../utils/map";
+import { EndPlayData } from "./BasePlay";
 import KickOffEvents from "./play_events/KickOff.events";
 
 export default class KickOff extends KickOffEvents {
@@ -43,15 +49,62 @@ export default class KickOff extends KickOffEvents {
 
   cleanUp(): void {}
 
+  /**
+   * Extension to our regular endPlay, but in a kickoff we always want to set a new down
+   */
+  endPlay(endPlayData: Omit<EndPlayData, "setNewDown">) {
+    super.endPlay({ ...endPlayData, setNewDown: true });
+  }
+
   handleTouchdown(endPosition: Position): void {
     // If we ever want to add stats for specials teams, would do it here
     super.handleTouchdown(endPosition);
   }
 
-  protected _handleCatch(ballContactObj: BallContact) {
-    Chat.send(`${ICONS.Football} Ball Caught`);
-    this.setState("kickOffCaught");
+  protected _handleOffensePenalty(
+    player: PlayerObjFlat,
+    penaltyName: "offsidesOffense" | "drag" | "ballOutOfBounds"
+  ) {
+    const offenseFortyYardLine = PreSetCalculators.getPositionOfTeamYard(
+      40,
+      Room.game.offenseTeamId
+    );
 
+    const defenseFortyYardLine = PreSetCalculators.getPositionOfTeamYard(
+      40,
+      Room.game.defenseTeamId
+    );
+
+    // If its a safety, set it as the defense forty, otherwise its the offense forty
+    const newLosX = this.stateExists("safetyKickoff")
+      ? defenseFortyYardLine
+      : offenseFortyYardLine;
+
+    if (penaltyName === "drag") {
+      const penaltyType = this.stateExists("safetyKickoff")
+        ? "kickOffDragSafety"
+        : "kickOffDrag";
+      this._handlePenalty(penaltyType, player);
+    }
+
+    if (penaltyName === "offsidesOffense") {
+      const penaltyType = this.stateExists("safetyKickoff")
+        ? "kickOffOffsidesSafety"
+        : "kickOffOffsides";
+      this._handlePenalty(penaltyType, player);
+    }
+
+    if (penaltyName === "ballOutOfBounds") {
+      const penaltyType = this.stateExists("safetyKickoff")
+        ? "kickOffOutOfBoundsSafety"
+        : "kickOffOutOfBounds";
+      this._handlePenalty(penaltyType, player);
+    }
+
+    this.endPlay({ newLosX: newLosX });
+  }
+
+  protected _handleCatch(ballContactObj: BallContact) {
     // Adjust the position and set it
 
     const catchPosition = PreSetCalculators.adjustPlayerPositionFront(
@@ -70,13 +123,16 @@ export default class KickOff extends KickOffEvents {
     const frontPlayerPosition =
       PreSetCalculators.adjustPlayerPositionFrontAfterPlay(
         ballContactObj.playerPosition,
-        ballContactObj.player.team
+        ballContactObj.player.team as PlayableTeamId
       );
 
     if (isOutOfBounds) {
-      Chat.send(`${ICONS.Pushpin} Caught out of bounds`);
-      return this.endPlay({ newLosX: frontPlayerPosition.x, resetDown: true });
+      Chat.send(`${ICONS.DoNotEnter} Caught out of bounds`);
+      return this.endPlay({ newLosX: frontPlayerPosition.x });
     }
+
+    Chat.send(`${ICONS.Football} Ball Caught`);
+    this.setState("kickOffCaught");
 
     this._setStartingPosition(frontPlayerPosition);
     this.setBallCarrier(ballContactObj.player);
@@ -93,17 +149,18 @@ export default class KickOff extends KickOffEvents {
 
     // Find a player that is offsides
 
-    const offSidePlayer = offensePlayers.find((player) => {
-      const { position } = getPlayerDiscProperties(player.id);
+    const offSidePlayer =
+      offensePlayers.find((player) => {
+        const { position } = getPlayerDiscProperties(player.id);
 
-      const isOnside = MapReferee.checkIfBehind(
-        position.x,
-        twoYardsInFrontOfLos,
-        Room.game.offenseTeamId
-      );
+        const isOnside = MapReferee.checkIfBehind(
+          position.x,
+          twoYardsInFrontOfLos,
+          Room.game.offenseTeamId
+        );
 
-      return isOnside === false;
-    });
+        return isOnside === false;
+      }) ?? null;
 
     const offsidePlayerExists = Boolean(offSidePlayer);
 

@@ -63,3 +63,13 @@ client.onPlayerLeave = onLeave;
 client.onGameTick = onGameTick;
 
 client.onPlayerChat = onChat;
+
+client.onGamePause = () => {
+  if (!Room.isBotOn || !Room.game) return;
+  Room.game.setIsPaused(true);
+};
+
+client.onGameUnpause = () => {
+  if (!Room.isBotOn || !Room.game) return;
+  Room.game.setIsPaused(false);
+};

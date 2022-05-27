@@ -20,8 +20,8 @@ export default class PreSetCalculators {
   ) {
     const xPositionFront = new DistanceCalculator()
       .addByTeam(position.x, MAP_POINTS.PLAYER_RADIUS, teamId)
-      .roundToYardByTeam(teamId)
       .roundToTeamEndzone(teamId)
+      .roundToYardByTeam(teamId)
       .calculate();
     return {
       x: xPositionFront,

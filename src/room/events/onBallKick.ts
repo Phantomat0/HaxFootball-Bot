@@ -9,5 +9,5 @@ export default function onBallKick(player: PlayerObject) {
   const { position } = player;
   const ballContact = new BallContact("kick", player, position);
 
-  Room.game.play!.handleBallContact(ballContact);
+  Room.game.play!.onBallContact(ballContact);
 }

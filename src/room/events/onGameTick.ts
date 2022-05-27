@@ -283,6 +283,18 @@ const eventListeners: EventListener[] = [
         );
     },
   },
+  {
+    // Crowd
+    name: "Crowd",
+    runWhen: ["ballSnapped"],
+    stopWhen: ["ballPassed", "lineBlitzed", "ballRan"],
+    run: () => {
+      const foundACrowder = Room.getPlay<Snap>().findCrowder();
+
+      if (foundACrowder)
+        return Room.getPlay<Snap>().handleCrowdingPenalty(foundACrowder);
+    },
+  },
 ];
 
 export default function onGameTick() {
