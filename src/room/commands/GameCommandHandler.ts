@@ -26,7 +26,7 @@ export default class GameCommandHandler {
 
     if (!Room.game) throw new GameCommandError("No game in progess", false);
 
-    if (Room.game.isPaused) throw new GameCommandError("Game is paused", false);
+    if (Room.game.isPaused) throw new GameCommandError("Game is paused", true);
   }
 
   private _validateGameCommandProps() {
