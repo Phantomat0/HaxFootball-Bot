@@ -29,29 +29,16 @@ export default class GameReferee {
    * @param rawPlayerPosition The raw player position, we will adjust to teamendzone
    */
   static checkIfSafetyOrTouchbackPlayer = (
-    catchPosition: Position | null,
-    rawPlayerPosition: Position,
+    startPosition: Position,
+    endPosition: Position,
     teamId: PlayableTeamId
   ): {
     isSafety: boolean;
     isTouchback: boolean;
   } => {
-    // Adjust the player position forward
-    const adjustedPlayerPosition = PreSetCalculators.adjustPlayerPositionFront(
-      rawPlayerPosition,
-      teamId
-    );
-
-    // Now lets round to the endzones
-    const roundedPlayerX =
-      PreSetCalculators.roundAdjustedEndDistanceAroundEndzone(
-        adjustedPlayerPosition.x,
-        teamId
-      );
-
     const playEndedInEndzone = MapReferee.getEndZonePositionIsIn({
-      x: roundedPlayerX.distance,
-      y: adjustedPlayerPosition.y,
+      x: endPosition.x,
+      y: endPosition.y,
     });
 
     // Now check that hes in the endzone, and that hes in his own endzone
@@ -66,16 +53,17 @@ export default class GameReferee {
       };
 
     // Now we know its either a touchback or a safety, just distinguish
-    // Safety - catchPosition was OUTSIDE of endzone
-    // Touchback - catchPosition was INSIDE endzone
+    // Safety - startPosition was OUTSIDE of endzone
+    // Touchback - startPosition was INSIDE endzone
 
-    const catchPositionInsideEndzone =
-      catchPosition === null
-        ? false
-        : Boolean(MapReferee.getEndZonePositionIsIn(catchPosition));
+    // Start position can be the LOS, where the pass was caught, where the int was kicked, but its already been adjusted
+
+    const startPositionInsideEndzone = Boolean(
+      MapReferee.getEndZonePositionIsIn(startPosition)
+    );
 
     // If we caught the ball in the endzone, its a touchback
-    if (catchPositionInsideEndzone)
+    if (startPositionInsideEndzone)
       return {
         isSafety: false,
         isTouchback: true,
@@ -88,9 +76,12 @@ export default class GameReferee {
     };
   };
 
-  static checkIfTouchbackBall(ballPosition: Position, teamId: PlayableTeamId) {
+  static checkIfTouchbackBall(
+    adjustedBallPosition: Position,
+    teamId: PlayableTeamId
+  ) {
     // We know the ball went out of bounds, so we really only care if it was infront in the endzone or not
-    const endZone = MapReferee.getEndZonePositionIsIn(ballPosition);
+    const endZone = MapReferee.getEndZonePositionIsIn(adjustedBallPosition);
 
     // Check if it went out in our endzone
     return endZone === teamId;
