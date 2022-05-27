@@ -4,7 +4,6 @@ import { PlayableTeamId, PlayerObjFlat, Position } from "../HBClient";
 import { SHOW_DEBUG_CHAT } from "../roomConfig";
 import Chat from "../roomStructures/Chat";
 import Ball from "../roomStructures/Ball";
-import DistanceCalculator from "../structures/DistanceCalculator";
 import MapReferee from "../structures/MapReferee";
 import MessageFormatter from "../structures/MessageFormatter";
 import PenaltyDataGetter, {
@@ -177,53 +176,31 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     mapSection: MapSectionName;
     yardAndHalfStr: string;
   } {
-    const offenseTeam = Room.game.offenseTeamId;
-    // Adjust the rawPlayerPosition
-    const newEndPosition = PreSetCalculators.adjustPlayerPositionFrontAfterPlay(
-      rawEndPosition,
-      offenseTeam
-    );
+    const { yardLine, netYards, adjustedEndPositionX } =
+      PreSetCalculators.getNetYardsAndAdjustedEndPosition(
+        this._startingPosition,
+        rawEndPosition,
+        Room.game.offenseTeamId
+      );
 
-    const {
-      distance: endDistanceConstrainedAndRounded,
-      yardLine: endYardLine,
-    } = PreSetCalculators.roundAdjustedEndDistanceAroundEndzone(
-      newEndPosition.x,
-      offenseTeam
+    const yardAndHalfStr = MessageFormatter.formatYardMessage(
+      yardLine,
+      adjustedEndPositionX
     );
 
     const losX = Room.game.down.getLOS().x;
+
+    // We dont need to do any adjustmnents for map sections
     const mapSection = new MapSectionFinder().getSectionName(
-      newEndPosition,
+      rawEndPosition,
       losX,
       Room.game.offenseTeamId
     );
 
-    const { distance: startingPositionConstrained } =
-      PreSetCalculators.roundAdjustedEndDistanceAroundEndzone(
-        this._startingPosition.x,
-        offenseTeam
-      );
-
-    // Calculate the yard difference
-    const { yards: netYards } = new DistanceCalculator()
-      .calcNetDifferenceByTeam(
-        startingPositionConstrained,
-        endDistanceConstrainedAndRounded,
-        offenseTeam
-      )
-      .roundToYardByTeam(offenseTeam)
-      .calculateAndConvert();
-
-    const yardAndHalfStr = MessageFormatter.formatYardMessage(
-      endYardLine,
-      endDistanceConstrainedAndRounded
-    );
-
     return {
       netYards,
-      endYardLine,
-      endPosition: { x: endDistanceConstrainedAndRounded, y: rawEndPosition.y },
+      endYardLine: yardLine,
+      endPosition: { x: adjustedEndPositionX, y: rawEndPosition.y },
       mapSection,
       yardAndHalfStr,
     };
@@ -389,7 +366,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     if (setNewDown) return Room.game.down.startNew();
     // If they got the first down, send message and start a new down
     if (gotFirstDown) {
-      Chat.send(`${ICONS.Star} First Down!`);
+      // Chat.send(`${ICONS.Star} First Down!`);
       return Room.game.down.startNew();
     }
 
