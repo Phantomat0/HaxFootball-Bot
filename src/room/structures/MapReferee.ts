@@ -29,7 +29,7 @@ class MapReferee {
     losX: Position["x"]
   ) {
     const offsidePlayer = players.find((player) => {
-      const { position } = getPlayerDiscProperties(player.id);
+      const { position } = getPlayerDiscProperties(player.id)!;
       const { x } = PreSetCalculators.adjustPlayerPositionFront(position, team);
       const isOnside = this.checkIfBehind(x, losX, team);
       return !isOnside;
@@ -49,12 +49,28 @@ class MapReferee {
     const offsidePlayer = players.find((player) => {
       const {
         position: { x },
-      } = getPlayerDiscProperties(player.id);
+      } = getPlayerDiscProperties(player.id)!;
       const isOnside = this.checkIfBehind(x, losX, team);
       return !isOnside;
     });
 
     return offsidePlayer;
+  }
+
+  findAllTeamPlayerOffside(
+    players: PlayerObject[],
+    team: PlayableTeamId,
+    losX: Position["x"]
+  ) {
+    const offsidePlayers = players.filter((player) => {
+      const {
+        position: { x },
+      } = getPlayerDiscProperties(player.id)!;
+      const isOnside = this.checkIfBehind(x, losX, team);
+      return isOnside === false;
+    });
+
+    return offsidePlayers;
   }
 
   getEndZonePositionIsIn = (position: Position) => {
@@ -194,7 +210,7 @@ class MapReferee {
     players: PlayerObject[]
   ) => {
     const distancesOfEachPlayerFromBall = players.map((player) => {
-      const { position } = getPlayerDiscProperties(player.id);
+      const { position } = getPlayerDiscProperties(player.id)!;
       const distanceToBall = new DistanceCalculator()
         .calcDifference3D(ballPosition, position)
         .calculate();
