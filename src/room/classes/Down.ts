@@ -151,6 +151,8 @@ export default class Down {
       const playerPositionToSet = {
         x: tenYardsBehindLosX,
         y: randomYCoordinate,
+        xspeed: 0,
+        yspeed: 0,
       };
 
       client.setPlayerDiscProperties(player.id, playerPositionToSet);
@@ -183,31 +185,15 @@ export default class Down {
       const playerPositionToSet = {
         x: sevenYardsBehindLosX,
         y: position.y,
+        xspeed: 0,
+        yspeed: 0,
       };
 
       client.setPlayerDiscProperties(player.id, playerPositionToSet);
     });
   }
 
-  // private _createInvisibleWallDefense() {
-  //   Chat.send("Set the invisible wall");
-  //   const defensePlayers = Room.game.players.getDefense();
-  //   console.log(defensePlayers);
-
-  //   console.log(Room.game.defenseTeamId);
-
-  //   defensePlayers.forEach((player) => {
-  //     const cf = client.CollisionFlags;
-  //     console.log(cf);
-  //     const cfTeam = Room.game.defenseTeamId === TEAMS.RED ? cf.red : cf.blue;
-
-  //     console.log(cfTeam);
-  //     client.setPlayerDiscProperties(player.id, { cGroup: cfTeam | cf.c0 });
-  //   });
-  // }
-
   setBallAndFieldMarkersPlayEnd() {
-    // this._createInvisibleWallDefense();
     this.moveFieldMarkers();
     const snapPosition = this.getSnapPosition();
     Ball.setPosition(snapPosition);
@@ -226,7 +212,11 @@ export default class Down {
         )
         .calculate();
 
-      client.setPlayerDiscProperties(player.id, { x: sevenYardsBehindLosX });
+      client.setPlayerDiscProperties(player.id, {
+        x: sevenYardsBehindLosX,
+        xspeed: 0,
+        yspeed: 0,
+      });
     });
   }
 
