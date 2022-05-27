@@ -128,7 +128,7 @@ export default class Down {
   sendDownAndDistance() {
     const downAndDistanceStr = this.getDownAndDistanceString();
 
-    Chat.send(downAndDistanceStr);
+    Chat.send(downAndDistanceStr, { sound: 0 });
   }
 
   setPlayers() {
