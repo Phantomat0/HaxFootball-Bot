@@ -31,7 +31,7 @@ export default class PlayerRecorder {
 
   savePlayerPositions() {
     this._playersStatic.fielded.forEach((player) => {
-      const { position } = getPlayerDiscProperties(player.id);
+      const { position } = getPlayerDiscProperties(player.id)!;
       this.playerPositionsMap.set(player.id, {
         team: player.team,
         position: position,

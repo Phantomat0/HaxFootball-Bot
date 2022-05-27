@@ -76,7 +76,7 @@ export default class SnapCrowdChecker {
   }
 
   private _checkIfPlayerInCrowdBox(playerId: PlayerObject["id"], losX: number) {
-    const { position } = getPlayerDiscProperties(playerId);
+    const { position } = getPlayerDiscProperties(playerId)!;
     return isInRectangleArea(this._playCrowdBoxArea, position);
   }
 

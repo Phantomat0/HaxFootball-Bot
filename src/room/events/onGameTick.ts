@@ -95,7 +95,7 @@ const eventListeners: EventListener[] = [
       const ballCarrier = Room.getPlay().getBallCarrierSafe();
       if (!ballCarrier) return;
 
-      const { position } = getPlayerDiscProperties(ballCarrier.id);
+      const { position } = getPlayerDiscProperties(ballCarrier.id)!;
 
       const ballCarrierOutOfBounds =
         MapReferee.checkIfPlayerOutOfBounds(position);
@@ -192,7 +192,7 @@ const eventListeners: EventListener[] = [
 
       const { id, team } = qbOrKicker;
 
-      const { position } = getPlayerDiscProperties(id);
+      const { position } = getPlayerDiscProperties(id)!;
 
       const qbAdjustedPosition = PreSetCalculators.adjustPlayerPositionFront(
         position,

@@ -4,7 +4,13 @@ import { leftpad } from "./utils";
 
 export const getPlayerDiscProperties = (id: number) => {
   // Flattened the native method because we only use speed and and position
-  const { xspeed, yspeed, x, y } = client.getPlayerDiscProperties(id);
+  const {
+    xspeed = null,
+    yspeed = 0,
+    x = 0,
+    y = 0,
+  } = client.getPlayerDiscProperties(id) ?? {};
+  if (xspeed === null) return null;
   return {
     position: { x, y },
     speed: { x: xspeed, y: yspeed },

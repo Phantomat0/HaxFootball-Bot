@@ -18,7 +18,7 @@ export const checkBallContact = () => {
 
   for (const player of fielded) {
     const { id } = player;
-    const { position: playerPosition } = getPlayerDiscProperties(id);
+    const { position: playerPosition } = getPlayerDiscProperties(id)!;
 
     const distanceToBall = new DistanceCalculator()
       .calcDifference3D(playerPosition, ballPosition)
@@ -39,13 +39,13 @@ export const checkBallCarrierContact = (playerArray: PlayerObject[]) => {
   if (playerArray.length === 0 || ballCarrier === null) return null;
   // Player array will never include the ballcarrier, we will filter him out
   const { position: ballCarrierPosition, speed: ballCarrierSpeed } =
-    getPlayerDiscProperties(ballCarrier.id);
+    getPlayerDiscProperties(ballCarrier.id)!;
 
   for (const player of playerArray) {
     const { id } = player;
     if (id === ballCarrier.id) continue;
     const { position: playerPosition, speed: playerSpeed } =
-      getPlayerDiscProperties(id);
+      getPlayerDiscProperties(id)!;
 
     const distanceToBallCarrier = new DistanceCalculator()
       .calcDifference3D(playerPosition, ballCarrierPosition)

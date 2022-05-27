@@ -114,7 +114,7 @@ export default class DistanceCalculator {
    * @teamId RED Round to -759.5
    * @teamId BLUE Round to 759.5
    */
-  roundToTeamEndzone(teamId: PlayableTeamId) {
+  roundUpToYardIfBetweenTeamEndzoneAndOneYard(teamId: PlayableTeamId) {
     // We always round to the back of the player, but this can result
     // us in rounding to their endzone and causing a safety. We dont want that, so always to
     // the front in those cases.
@@ -135,9 +135,6 @@ export default class DistanceCalculator {
       teamsEndzone,
       teamId
     );
-
-    console.log("roundToTeamEndzone");
-    console.log(this._calculation);
 
     // If it is, change the calculation to the one yard line point, otherwise leave it be
     const isBetweenZeroAndOneYardLine =
