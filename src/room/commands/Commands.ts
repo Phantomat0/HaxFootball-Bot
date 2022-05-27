@@ -197,7 +197,7 @@ const commandsMap = new Collection<CommandName, Command>([
       usage: ["stats", "stats tda"],
       showCommand: false,
       permissions: {
-        level: 1,
+        level: 0,
         muted: true,
         game: true,
         notDuringPlay: false,
