@@ -2,6 +2,7 @@ import { PlayableTeamId, PlayerObjFlat, Position } from "../HBClient";
 import { MAP_POINTS } from "../utils/map";
 import { plural, truncateName } from "../utils/utils";
 import DistanceCalculator, { DistanceConverter } from "./DistanceCalculator";
+import MapReferee from "./MapReferee";
 
 interface Penalty {
   message: string;
@@ -158,6 +159,29 @@ export default class PenaltyDataGetter {
     return PENALTIES[penaltyName];
   }
 
+  /**
+   * Prevent a penalty causing the LOS to be set at the 0
+   */
+  private _maybeConstrainNewEndLosXToOneYardLine(losX: number) {
+    const endZoneLosXIsIn = MapReferee.getEndZonePositionIsIn({
+      x: losX,
+      y: 0,
+    });
+
+    // If its not in the endzone or at the 0, just return it
+    if (endZoneLosXIsIn === null) return losX;
+
+    // Otherwise get the one yardline of that endzone
+
+    const teamsEndzone = MapReferee.getTeamEndzone(endZoneLosXIsIn);
+
+    const teamsEndZoneOneYardLine = new DistanceCalculator()
+      .addByTeam(teamsEndzone, MAP_POINTS.YARD * 1, endZoneLosXIsIn)
+      .calculate();
+
+    return teamsEndZoneOneYardLine;
+  }
+
   getData<T extends PenaltyName>(
     penaltyName: T,
     player: PlayerObjFlat,
@@ -187,11 +211,26 @@ export default class PenaltyDataGetter {
       .addByTeam(losX, adjustedNetYards * MAP_POINTS.YARD, offenseTeamId)
       .calculate();
 
+    const constrainedLosXInCaseEndsInEndzone =
+      this._maybeConstrainNewEndLosXToOneYardLine(newEndLosX);
+
+    // Check if the constained LosX is in the offense team's own endzone
+    // otherwise they can get infinite penalties and waste time
+    // So we should add down in that case
+    const offenseEndzone = MapReferee.getTeamEndzone(offenseTeamId);
+
+    const offenseOneYardLine = new DistanceCalculator()
+      .addByTeam(offenseEndzone, MAP_POINTS.YARD * 1, offenseTeamId)
+      .calculate();
+
+    const addDownBecausePenaltyAtOwnOneYard =
+      constrainedLosXInCaseEndsInEndzone === offenseOneYardLine;
+
     return {
       penaltyYards: adjustedNetYards,
       isRedZonePenaltyOnDefense,
-      newEndLosX,
-      addDown,
+      newEndLosX: constrainedLosXInCaseEndsInEndzone,
+      addDown: addDown || addDownBecausePenaltyAtOwnOneYard,
       hasOwnHandler,
       penaltyMessage: message,
     };
