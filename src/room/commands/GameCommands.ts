@@ -105,7 +105,10 @@ const gameCommandsMap = new Map<string, GameCommand>([
         onlyDuringNoPlay: true,
       },
       run(player) {
-        // Room.game.setPlay(new Punt(Room.game.getTime()), player.playerObject!);
+        Room.game.setPlay(
+          new Punt(Room.game.getTime(), player.playerObject!),
+          player.playerObject!
+        );
       },
     },
   ],
