@@ -37,6 +37,10 @@ export default class RoomClient {
 
   startNewGame() {
     this._game = new Game();
+    const fieldedPlayers = this.players.getFielded();
+    fieldedPlayers.forEach((player) => {
+      this._game?.stats.maybeCreateStatProfile(player.playerObject!);
+    });
     this.game.setPlay(new KickOff(0), null);
   }
 
