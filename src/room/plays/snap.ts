@@ -68,8 +68,8 @@ export default class Snap extends SnapEvents {
   }
 
   prepare() {
-    this.crowdChecker.setCrowdBoxArea(Room.game.down.getLOS().x);
     this.crowdChecker.setOffenseTeam(Room.game.offenseTeamId);
+    this.crowdChecker.setCrowdBoxArea(Room.game.down.getLOS().x);
     this._setStartingPosition(Room.game.down.getLOS());
     this.setBallPositionOnSet(Ball.getPosition());
     Room.game.down.moveFieldMarkers();
@@ -105,9 +105,9 @@ export default class Snap extends SnapEvents {
   }
 
   findCrowder() {
-    const defensePlayer = Room.game.players.getDefense();
+    const fieldedPlayers = Room.game.players.getFielded();
     return this.crowdChecker.checkPlayersInCrowdBox(
-      defensePlayer,
+      fieldedPlayers,
       Room.game.down.getLOS().x,
       Room.game.getTime()
     );
@@ -221,7 +221,7 @@ export default class Snap extends SnapEvents {
       .subtractByTeam(
         Room.game.down.getLOS().x,
         MAP_POINTS.YARD * 10,
-        Room.game.defenseTeamId
+        Room.game.offenseTeamId
       )
       .calculate();
 
@@ -505,7 +505,7 @@ export default class Snap extends SnapEvents {
         Room.game.offenseTeamId
       ) &&
       this.stateExists("ballRan") === false &&
-      this.stateExists("ballCaught");
+      this.stateExists("ballCaught") === false;
 
     // No sacks on interceptions
     if (isSack && this.stateExists("ballIntercepted") === false) {

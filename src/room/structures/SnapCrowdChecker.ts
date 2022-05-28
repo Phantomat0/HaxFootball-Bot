@@ -8,9 +8,15 @@ import DistanceCalculator from "./DistanceCalculator";
 class PlayerCrowdData {
   playerId: PlayerObject["id"];
   timeGotInCrowdBox: number;
+  playerTeam: PlayableTeamId;
 
-  constructor(playerId: PlayerObject["id"], timeGotInCrowdBox: number) {
+  constructor(
+    playerId: PlayerObject["id"],
+    playerTeam: PlayableTeamId,
+    timeGotInCrowdBox: number
+  ) {
     this.playerId = playerId;
+    this.playerTeam = playerTeam;
     this.timeGotInCrowdBox = timeGotInCrowdBox;
   }
 }
@@ -27,7 +33,7 @@ export default class SnapCrowdChecker {
     return players.find((player) => {
       const inCrowd = this._checkIfPlayerInCrowdBox(player.id, losX);
       if (inCrowd) {
-        const index = this._maybeAddToCrowdBox(player.id, time);
+        const index = this._maybeAddToCrowdBox(player, time);
         const isCrowding = this._checkIfMeetsCrowdingCriteria(index, time);
         if (isCrowding) return true;
       } else {
@@ -42,6 +48,8 @@ export default class SnapCrowdChecker {
   }
 
   setCrowdBoxArea(losX: number) {
+    console.log(this._offenseTeamId);
+
     const crowdBoxFront = new DistanceCalculator()
       .addByTeam(
         losX,
@@ -62,6 +70,10 @@ export default class SnapCrowdChecker {
         y2: MAP_POINTS.BOT_HASH,
       };
 
+      console.log("OFFENSE IS RED");
+      console.log(boxArea);
+      console.log(losX);
+
       this._playCrowdBoxArea = boxArea;
     } else {
       const boxArea = {
@@ -70,6 +82,10 @@ export default class SnapCrowdChecker {
         x2: twoYardsBehindLos,
         y2: MAP_POINTS.BOT_HASH,
       };
+
+      console.log("OFFENSE IS BLUE");
+      console.log(boxArea);
+      console.log(losX);
 
       this._playCrowdBoxArea = boxArea;
     }
@@ -80,24 +96,41 @@ export default class SnapCrowdChecker {
     return isInRectangleArea(this._playCrowdBoxArea, position);
   }
 
-  private _maybeAddToCrowdBox(playerId: PlayerObject["id"], time: number) {
+  private _maybeAddToCrowdBox(player: PlayerObject, time: number) {
     // If already has a crowd thing, return
     const index = this._playersInCrowdBoxList.findIndex(
-      (player) => player.playerId === playerId
+      (crowdPlayerData) => crowdPlayerData.playerId === player.id
     );
 
     if (index !== -1) return index;
 
     return (
-      this._playersInCrowdBoxList.push(new PlayerCrowdData(playerId, time)) - 1
+      this._playersInCrowdBoxList.push(
+        new PlayerCrowdData(player.id, player.team as PlayableTeamId, time)
+      ) - 1
     );
   }
 
   private _checkIfMeetsCrowdingCriteria(index: number, timeNow: number) {
+    const offensivePlayerInCrowd = this._playersInCrowdBoxList.some(
+      (player) => player.playerTeam === this._offenseTeamId
+    );
+
+    if (offensivePlayerInCrowd) {
+      console.log(this._playersInCrowdBoxList);
+      this._playersInCrowdBoxList.forEach((player) => {
+        player.timeGotInCrowdBox = timeNow;
+      });
+      return false;
+    }
+
     const crowdingData = this._playersInCrowdBoxList[index];
 
     const differenceInCrowdingTime = timeNow - crowdingData.timeGotInCrowdBox;
-    return differenceInCrowdingTime >= this.MAX_CROWDING_SECONDS;
+    return (
+      differenceInCrowdingTime >= this.MAX_CROWDING_SECONDS &&
+      crowdingData.playerTeam !== this._offenseTeamId
+    );
   }
 
   private _maybeRemoveFromCrowdBoxList(playerId: PlayerObject["id"]) {
