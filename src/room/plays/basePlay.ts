@@ -14,9 +14,10 @@ import PreSetCalculators from "../structures/PreSetCalculators";
 import { flattenPlayer, quickPause } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
 import MapSectionFinder, { MapSectionName } from "../utils/MapSectionFinder";
-import { plural, truncateName } from "../utils/utils";
+import { addPlus, plural, truncateName } from "../utils/utils";
 import Snap from "./Snap";
 import BasePlayAbstract, { PLAY_TYPES } from "./BasePlayAbstract";
+import DistanceCalculator from "../structures/DistanceCalculator";
 
 export interface EndPlayData {
   /**
@@ -174,6 +175,9 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     endYardLine: number;
     endPosition: Position;
     mapSection: MapSectionName;
+    yardsAfterCatch: number;
+    yardsPassed: number;
+    netYardsStr: string;
     yardAndHalfStr: string;
   } {
     const { yardLine, netYards, adjustedEndPositionX } =
@@ -182,6 +186,28 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
         rawEndPosition,
         Room.game.offenseTeamId
       );
+
+    const yardsAfterCatch = this.stateExistsUnsafe("catchPosition")
+      ? new DistanceCalculator()
+          .calcNetDifferenceByTeam(
+            (this as unknown as Snap).getState("catchPosition").x,
+            adjustedEndPositionX,
+            Room.game.offenseTeamId
+          )
+          .calculateAndConvert().yards
+      : 0;
+
+    const yardsPassed = this.stateExistsUnsafe("catchPosition")
+      ? new DistanceCalculator()
+          .calcNetDifferenceByTeam(
+            Room.game.down.getLOS().x,
+            (this as unknown as Snap).getState("catchPosition").x,
+            Room.game.offenseTeamId
+          )
+          .calculateAndConvert().yards
+      : 0;
+
+    const netYardsStr = addPlus(netYards);
 
     const yardAndHalfStr = MessageFormatter.formatYardMessage(
       yardLine,
@@ -202,6 +228,9 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
       endYardLine: yardLine,
       endPosition: { x: adjustedEndPositionX, y: rawEndPosition.y },
       mapSection,
+      yardsAfterCatch,
+      yardsPassed,
+      netYardsStr,
       yardAndHalfStr,
     };
   }
