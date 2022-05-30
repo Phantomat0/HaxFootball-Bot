@@ -21,6 +21,7 @@ export interface SnapStore {
   ballPassed: true;
   ballCaught: true;
   catchPosition: Position;
+  nearestDefenderToCatch: PlayerObject;
   ballDeflected: true;
   ballRan: true;
   canBlitz: true;
@@ -35,6 +36,7 @@ export interface SnapStore {
   interceptionPlayerEndPosition: Position;
   interceptionTackler: PlayerObject;
   interceptionPlayerKickPosition: Position;
+  twoPointAttempt: true;
 }
 
 export default abstract class SnapEvents extends BasePlay<SnapStore> {
@@ -118,13 +120,19 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       ? this.getState("catchPosition")
       : this._startingPosition;
 
-    const { endPosition, netYards, yardAndHalfStr } =
-      this._getPlayDataOffense(ballCarrierPosition);
+    const {
+      endPosition,
+      netYards,
+      yardAndHalfStr,
+      netYardsStr,
+      yardsPassed,
+      yardsAfterCatch,
+    } = this._getPlayDataOffense(ballCarrierPosition);
 
     Chat.send(
       `${ICONS.Pushpin} ${
         this.getBallCarrier().name
-      } went out of bounds ${yardAndHalfStr}`
+      } went out of bounds ${yardAndHalfStr} | ${netYardsStr}`
     );
 
     const { isSafety } = GameReferee.checkIfSafetyOrTouchbackPlayer(
@@ -150,10 +158,20 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       Room.game.stats.updatePlayerStat(this._ballCarrier?.id!, {
         receptions: { [mapSection]: 1 },
         receivingYards: { [mapSection]: netYards },
+        receivingYardsAfterCatch: { [mapSection]: yardsAfterCatch },
       });
+
+      if (this.stateExists("nearestDefenderToCatch")) {
+        const nearestDefenerToCatch = this.getState("nearestDefenderToCatch");
+
+        Room.game.stats.updatePlayerStat(nearestDefenerToCatch.id, {
+          yardsAllowed: { [mapSection]: netYards },
+        });
+      }
 
       Room.game.stats.updatePlayerStat(this.getQuarterback().id, {
         passYards: { [mapSection]: netYards },
+        passYardsDistance: { [mapSection]: yardsPassed },
       });
     }
 
@@ -168,8 +186,33 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
 
     // fumbleCheck(playerSpeed, ballCarrierSpeed)
 
-    // Chat.send(`X: ${playerSpeed.x.toFixed(3)} Y: ${playerSpeed.y.toFixed(3)} || X: ${ballCarrierSpeed.x.toFixed(3)} Y: ${ballCarrierSpeed.y.toFixed(3)}`)
-    // Chat.send(`TOTAL: ${(Math.abs(playerSpeed.x) + Math.abs(playerSpeed.y) + Math.abs(ballCarrierSpeed.x) + Math.abs(ballCarrierSpeed.y)).toFixed(3)}`)
+    // // const { playerSpeed, ballCarrierSpeed } = playerContact;
+
+    // Chat.send(`X: ${Math.abs(playerSpeed.x).toFixed(3)}`);
+    // Chat.send(`Total: ${Math.abs(playerSpeed.x).toFixed(3)}`);
+
+    // Chat.send(`XBALLGUY: ${Math.abs(ballCarrierSpeed.x).toFixed(3)}`);
+    // Chat.send(
+    //   `TOTAL: ${(
+    //     Math.abs(ballCarrierSpeed.x) + Math.abs(playerSpeed.x)
+    //   ).toFixed(3)}`
+    // );
+
+    // Chat.send(
+    //   `X: ${playerSpeed.x.toFixed(3)} Y: ${playerSpeed.y.toFixed(
+    //     3
+    //   )} || X: ${ballCarrierSpeed.x.toFixed(3)} Y: ${ballCarrierSpeed.y.toFixed(
+    //     3
+    //   )}`
+    // );
+    // Chat.send(
+    //   `TOTAL: ${(
+    //     Math.abs(playerSpeed.x) +
+    //     Math.abs(playerSpeed.y) +
+    //     Math.abs(ballCarrierSpeed.x) +
+    //     Math.abs(ballCarrierSpeed.y)
+    //   ).toFixed(3)}`
+    // );
 
     const isBehindQuarterBack = MapReferee.checkIfBehind(
       playerPosition.x,
