@@ -7,6 +7,7 @@ export default class RoomClient {
   private _game: Game | null;
   readonly players: PlayerManager = new PlayerManager();
   private _isBotOn: boolean = true;
+  private _playerTestingId: number = 1;
 
   /**
    * Returs the game when we know its defined
@@ -25,6 +26,14 @@ export default class RoomClient {
 
   turnBotOn() {
     this._isBotOn = true;
+  }
+
+  getPlayerTestingId() {
+    return this._playerTestingId;
+  }
+
+  setPlayerTestingId(id: number) {
+    this._playerTestingId = id;
   }
 
   /**
