@@ -470,7 +470,7 @@ const HFL_MAP = `{
   
   "playerPhysics" : {
     "kickStrength" : 7.2,
-    "bCoef" : 0.95,
+    "bCoef" : 0.75,
     "invMass" : 0.8
   }
   }`;
