@@ -30,11 +30,21 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
   protected abstract _handleCatch(ballContactObj: BallContact): void;
 
   onBallCarrierContactDefense(playerContact: PlayerContact): void {
-    const { endPosition, netYards, yardAndHalfStr } = this._getPlayDataOffense(
-      playerContact.ballCarrierPosition
+    const { endPosition, netYards, yardAndHalfStr, netYardsStr } =
+      this._getPlayDataOffense(playerContact.ballCarrierPosition);
+
+    Chat.send(
+      `${ICONS.HandFingersSpread} Tackle ${yardAndHalfStr} | ${netYardsStr}`
     );
 
-    Chat.send(`${ICONS.HandFingersSpread} Tackle ${yardAndHalfStr}`);
+    Room.game.stats.updatePlayerStat(this._ballCarrier!.id, {
+      specReceptions: 1,
+      specReceivingYards: netYards,
+    });
+
+    Room.game.stats.updatePlayerStat(playerContact.player.id, {
+      specTackles: 1,
+    });
 
     const { isSafety, isTouchback } =
       GameReferee.checkIfSafetyOrTouchbackPlayer(
@@ -57,12 +67,19 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
   }
 
   onBallCarrierOutOfBounds(ballCarrierPosition: Position): void {
-    const { endPosition, yardAndHalfStr } =
+    const { endPosition, yardAndHalfStr, netYards, netYardsStr } =
       this._getPlayDataOffense(ballCarrierPosition);
 
     Chat.send(
-      `${this.getBallCarrier().name} went out of bounds ${yardAndHalfStr}`
+      `${
+        this.getBallCarrier().name
+      } went out of bounds ${yardAndHalfStr} | ${netYardsStr}`
     );
+
+    Room.game.stats.updatePlayerStat(this._ballCarrier!.id, {
+      specReceptions: 1,
+      specReceivingYards: netYards,
+    });
 
     const { isSafety, isTouchback } =
       GameReferee.checkIfSafetyOrTouchbackPlayer(
@@ -92,9 +109,9 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
     const fieldedPlayers = Room.game.players.getFielded();
 
     // We have to get the closest player to the ball to determine the kicker, since it could be anyone
-    const playerClosestToBall = MapReferee.getClosestPlayerToBall(
-      Ball.getPosition(),
-      fieldedPlayers
+    const playerClosestToBall = MapReferee.getNearestPlayerToPosition(
+      fieldedPlayers,
+      Ball.getPosition()
     );
 
     // We swap offense since the swap happens on the kick, and we haven't kicked it yet

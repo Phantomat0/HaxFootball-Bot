@@ -61,11 +61,25 @@ export default class FieldGoal extends FieldGoalEvents {
 
   handleSuccessfulFg(msg: string) {
     Chat.send(msg);
+
+    Room.game.stats.updatePlayerStat(this._kicker.id, {
+      fgAttempts: 1,
+      fgMade: 1,
+      fgYardsAttempted: Room.game.down.getLOSYard(),
+      fgYardsMade: Room.game.down.getLOSYard(),
+    });
+
     this.scorePlay(3, Room.game.offenseTeamId, Room.game.defenseTeamId);
   }
 
   handleUnsuccessfulFg(msg: string) {
     Chat.send(msg);
+
+    Room.game.stats.updatePlayerStat(this._kicker.id, {
+      fgAttempts: 1,
+      fgYardsAttempted: Room.game.down.getLOSYard(),
+    });
+
     this.endPlay({});
   }
 

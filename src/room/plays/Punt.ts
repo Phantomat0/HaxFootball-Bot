@@ -57,6 +57,14 @@ export default class Punt extends PuntEvents {
   }
 
   handleTouchdown(endPosition: Position): void {
+    const { netYards } = this._getPlayDataOffense(endPosition);
+
+    Room.game.stats.updatePlayerStat(this._ballCarrier!.id, {
+      specReceptions: 1,
+      specReceivingYards: netYards,
+      specTouchdowns: 1,
+    });
+
     super.handleTouchdown(endPosition);
   }
 

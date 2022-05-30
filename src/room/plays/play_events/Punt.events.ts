@@ -53,12 +53,19 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
   }
 
   onBallCarrierOutOfBounds(ballCarrierPosition: Position) {
-    const { endPosition, yardAndHalfStr } =
+    const { endPosition, yardAndHalfStr, netYards, netYardsStr } =
       this._getPlayDataOffense(ballCarrierPosition);
 
     Chat.send(
-      `${this.getBallCarrier().name} went out of bounds ${yardAndHalfStr}`
+      `${
+        this.getBallCarrier().name
+      } went out of bounds ${yardAndHalfStr} | ${netYardsStr}`
     );
+
+    Room.game.stats.updatePlayerStat(this._ballCarrier!.id, {
+      specReceptions: 1,
+      specReceivingYards: netYards,
+    });
 
     const { isSafety, isTouchback } =
       GameReferee.checkIfSafetyOrTouchbackPlayer(
@@ -76,11 +83,21 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
     // Nothing happens, runs cannot occur
   }
   onBallCarrierContactDefense(playerContact: PlayerContact) {
-    const { endPosition, netYards, yardAndHalfStr } = this._getPlayDataOffense(
-      playerContact.ballCarrierPosition
+    const { endPosition, netYards, yardAndHalfStr, netYardsStr } =
+      this._getPlayDataOffense(playerContact.ballCarrierPosition);
+
+    Chat.send(
+      `${ICONS.HandFingersSpread} Tackle ${yardAndHalfStr} | ${netYardsStr}`
     );
 
-    Chat.send(`${ICONS.HandFingersSpread} Tackle ${yardAndHalfStr}`);
+    Room.game.stats.updatePlayerStat(this._ballCarrier!.id, {
+      specReceptions: 1,
+      specReceivingYards: netYards,
+    });
+
+    Room.game.stats.updatePlayerStat(playerContact.player.id, {
+      specTackles: 1,
+    });
 
     const { isSafety, isTouchback } =
       GameReferee.checkIfSafetyOrTouchbackPlayer(
@@ -101,9 +118,9 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
     const fieldedPlayers = Room.game.players.getFielded();
 
     // We have to get the closest player to the ball to determine the kicker, since it could be anyone
-    const playerClosestToBall = MapReferee.getClosestPlayerToBall(
-      Ball.getPosition(),
-      fieldedPlayers
+    const playerClosestToBall = MapReferee.getNearestPlayerToPosition(
+      fieldedPlayers,
+      Ball.getPosition()
     );
     this._handleOffensePenalty(playerClosestToBall!, "puntDrag");
   }

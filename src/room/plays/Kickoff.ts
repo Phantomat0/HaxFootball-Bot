@@ -52,7 +52,14 @@ export default class KickOff extends KickOffEvents {
   }
 
   handleTouchdown(endPosition: Position): void {
-    // If we ever want to add stats for specials teams, would do it here
+    const { netYards } = this._getPlayDataOffense(endPosition);
+
+    Room.game.stats.updatePlayerStat(this._ballCarrier!.id, {
+      specReceptions: 1,
+      specReceivingYards: netYards,
+      specTouchdowns: 1,
+    });
+
     super.handleTouchdown(endPosition);
   }
 
