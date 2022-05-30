@@ -2,7 +2,7 @@ import Room, { client } from "..";
 import { FullPlayerObject, PlayerObject, Position } from "../HBClient";
 import { hexToAscii, truncateName } from "../utils/utils";
 
-type PlayerAdminLevel = 0 | 1 | 2 | 3 | 4;
+export type PlayerAdminLevel = 0 | 1 | 2 | 3 | 4;
 
 export default class Player {
   readonly name: FullPlayerObject["name"];
@@ -11,7 +11,7 @@ export default class Player {
   readonly ip: FullPlayerObject["conn"];
   private _adminLevel: PlayerAdminLevel;
   isAFK: boolean = false;
-  canPlay: boolean;
+  canPlay: boolean = true;
 
   constructor({ name, id, auth, conn }: FullPlayerObject) {
     this.name = name.trim();
