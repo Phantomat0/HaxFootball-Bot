@@ -56,7 +56,9 @@ const eventListeners: EventListener[] = [
         Room.game.offenseTeamId
       );
       if (successfulFieldGoal)
-        return Room.getPlay<FieldGoal>().handleSuccessfulFg("FG is good!");
+        return Room.getPlay<FieldGoal>().handleSuccessfulFg(
+          "Field goal is good!"
+        );
 
       const ballSpeed = Ball.getSpeed();
 
@@ -128,7 +130,7 @@ const eventListeners: EventListener[] = [
     // Runs
     name: "BallCarrier Player Contact Offense",
     runWhen: ["ballSnapped", "fieldGoal"],
-    stopWhen: ["ballPassed", "ballRan"],
+    stopWhen: ["ballPassed", "ballRan", "lineBlitzed"],
     run: () => {
       // Here we get the offensive team, filter out the QB or the kicker (which will always be he ball carrier in when the ball hasnt been passed or caught yet), and use as an argument to the function
       const offensePlayersNoQb = Room.game.players
