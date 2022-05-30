@@ -205,27 +205,28 @@ class MapReferee {
       : MAP_POINTS.RED_GOAL_LINE;
   };
 
-  getClosestPlayerToBall = (
-    ballPosition: Position,
-    players: PlayerObject[]
-  ) => {
-    const distancesOfEachPlayerFromBall = players.map((player) => {
-      const { position } = getPlayerDiscProperties(player.id)!;
-      const distanceToBall = new DistanceCalculator()
-        .calcDifference3D(ballPosition, position)
-        .calculate();
-      return {
-        player: player,
-        distanceToBall: distanceToBall,
-      };
-    });
-    const sortedLowestToHighest = distancesOfEachPlayerFromBall.sort((a, b) => {
-      return a.distanceToBall - b.distanceToBall;
-    });
-    const [obj] = sortedLowestToHighest;
-    const { player } = obj;
-    return player;
-  };
+  getNearestPlayerToPosition(players: PlayerObject[], position: Position) {
+    return players.reduce(
+      (prev: { player: PlayerObject | null; distanceToBall: number }, curr) => {
+        const { position: playerPosition } = getPlayerDiscProperties(curr.id)!;
+        const distanceToBall = new DistanceCalculator()
+          .calcDifference3D(position, playerPosition)
+          .calculate();
+
+        if (distanceToBall > prev.distanceToBall)
+          return {
+            player: curr,
+            distanceToBall: distanceToBall,
+          };
+
+        return prev;
+      },
+      {
+        player: null,
+        distanceToBall: 0,
+      }
+    ).player;
+  }
 }
 
 export default new MapReferee();
