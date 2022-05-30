@@ -19,48 +19,86 @@ type PartialMapSection = Partial<MapSectionStat>;
 type PartialMapSectionStatQuery = Partial<MapSectionStatQuery>;
 
 interface IPlayerStat {
+  // Receiving
   receptions: PartialMapSection;
   receivingYards: PartialMapSection;
+  receivingYardsAfterCatch: PartialMapSection;
   rushingAttempts: number;
   rushingYards: number;
   touchdownsReceived: number;
   touchdownsRushed: number;
-  fumbles: number;
+
+  // Passing
   passAttempts: PartialMapSection;
   passCompletions: PartialMapSection;
   passYards: PartialMapSection;
+  passYardsDistance: PartialMapSection;
   touchdownsThrown: number;
   interceptionsThrown: number;
+  qbSacks: number;
+
+  // Defense
   passDeflections: PartialMapSection;
   tackles: number;
   yardsAllowed: PartialMapSection;
   sacks: number;
-  qbSacks: number;
   forcedFumbles: number;
   interceptionsReceived: number;
+
+  // Special Teams
+  specReceptions: number;
+  specReceivingYards: number;
+  specTouchdowns: number;
+  specTackles: number;
+  fgAttempts: number;
+  fgYardsAttempted: number;
+  fgMade: number;
+  fgYardsMade: number;
+
+  // Misc
+  fumbles: number;
   penalties: number;
 }
 
 export interface PlayerStatQuery {
+  // Receiving
   receptions: PartialMapSectionStatQuery;
   receivingYards: PartialMapSection;
+  receivingYardsAfterCatch: PartialMapSectionStatQuery;
   rushingAttempts: 1;
   rushingYards: number;
   touchdownsReceived: 1;
   touchdownsRushed: 1;
-  fumbles: 1;
+
+  // Passing
   passAttempts: PartialMapSectionStatQuery;
   passCompletions: PartialMapSectionStatQuery;
   passYards: PartialMapSection;
+  passYardsDistance: PartialMapSectionStatQuery;
   touchdownsThrown: 1;
   interceptionsThrown: 1;
+  qbSacks: 1;
+
+  // Defense
   passDeflections: PartialMapSectionStatQuery;
   tackles: 1;
   yardsAllowed: PartialMapSection;
   sacks: 1;
-  qbSacks: 1;
   forcedFumbles: 1;
   interceptionsReceived: 1;
+
+  // Special Teams
+  specReceptions: 1;
+  specReceivingYards: number;
+  specTouchdowns: 1;
+  specTackles: 1;
+  fgAttempts: 1;
+  fgYardsAttempted: number;
+  fgMade: 1;
+  fgYardsMade: number;
+
+  // Misc
+  fumbles: 1;
   penalties: 1;
 }
 
@@ -86,19 +124,20 @@ export default class PlayerStats implements IPlayerStat {
       auth: auth,
     };
   }
-  // WR Stats
+  // Receiving
   receptions: MapSectionStat = new EMPTY_MAP_SECTION_STAT();
   receivingYards: MapSectionStat = new EMPTY_MAP_SECTION_STAT();
+  receivingYardsAfterCatch: MapSectionStat = new EMPTY_MAP_SECTION_STAT();
   rushingAttempts: number = 0;
   rushingYards: number = 0;
   touchdownsReceived: number = 0;
   touchdownsRushed: number = 0;
-  fumbles: number = 0;
 
-  // QB Stats
+  // Passing
   passAttempts: MapSectionStat = new EMPTY_MAP_SECTION_STAT();
   passCompletions: MapSectionStat = new EMPTY_MAP_SECTION_STAT();
   passYards: MapSectionStat = new EMPTY_MAP_SECTION_STAT();
+  passYardsDistance: MapSectionStat = new EMPTY_MAP_SECTION_STAT();
   touchdownsThrown: number = 0;
   interceptionsThrown: number = 0;
   qbSacks: number = 0;
@@ -111,7 +150,18 @@ export default class PlayerStats implements IPlayerStat {
   forcedFumbles: number = 0;
   interceptionsReceived: number = 0;
 
-  // Penalties
+  // Special Teams
+  specReceptions: number = 0;
+  specReceivingYards: number = 0;
+  specTouchdowns: number = 0;
+  specTackles: number = 0;
+  fgAttempts: number = 0;
+  fgYardsAttempted: number = 0;
+  fgMade: number = 0;
+  fgYardsMade: number = 0;
+
+  // Misc
+  fumbles: number = 0;
   penalties: number = 0;
 
   private get totalReceptions() {
@@ -128,6 +178,10 @@ export default class PlayerStats implements IPlayerStat {
 
   private get cornerReceivingYards() {
     return this.receivingYards.cornerBottom + this.receivingYards.cornerTop;
+  }
+
+  private get totalYardsAfterCatch() {
+    return sumObjectValues(this.receivingYardsAfterCatch);
   }
 
   private get totalPassAttempts() {
@@ -194,8 +248,7 @@ export default class PlayerStats implements IPlayerStat {
 
   getStatsStringNormal(): string {
     console.log(this);
-
-    const recStats = `Receiving | Rec: ${this.totalReceptions} ${ICONS.SmallBlackSquare} Yds: ${this.totalReceivingYards} ${ICONS.SmallBlackSquare} Ratt: ${this.rushingAttempts} ${ICONS.SmallBlackSquare} Ruyd: ${this.rushingYards} | TD: ${this.touchdownsReceived} ${ICONS.SmallBlackSquare} RuTD: ${this.touchdownsRushed}`;
+    const recStats = `Receiving | Rec: ${this.totalReceptions} ${ICONS.SmallBlackSquare} Yds: ${this.totalReceivingYards} ${ICONS.SmallBlackSquare} Yac: ${this.totalYardsAfterCatch} ${ICONS.SmallBlackSquare} Ratt: ${this.rushingAttempts} ${ICONS.SmallBlackSquare} Ruyd: ${this.rushingYards} | TD: ${this.touchdownsReceived} ${ICONS.SmallBlackSquare} RuTD: ${this.touchdownsRushed}`;
     const qbStats = `Quarterback | Cmp/Att: ${this.totalPassCompletions}/${this.totalPassAttempts} ${ICONS.SmallBlackSquare} Pyds: ${this.totalPassYards} | TD: ${this.touchdownsThrown} Ints: ${this.interceptionsThrown}`;
     const defensiveStats = `Defense | PD: ${this.totalPassDeflections} ${ICONS.SmallBlackSquare} Tak: ${this.tackles} ${ICONS.SmallBlackSquare} Sak: ${this.sacks} ${ICONS.SmallBlackSquare} Ints: ${this.interceptionsReceived}`;
 
