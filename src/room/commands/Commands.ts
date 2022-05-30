@@ -1,6 +1,6 @@
 import Room, { TEAMS } from "..";
 import CommandMessage from "../classes/CommandMessage";
-import Player from "../classes/Player";
+import Player, { PlayerAdminLevel } from "../classes/Player";
 import { PlayableTeamId } from "../HBClient";
 import Chat from "../roomStructures/Chat";
 import Ball from "../roomStructures/Ball";
@@ -27,7 +27,7 @@ export interface CommandPermissions {
   /**
    * The minimum admin level required
    */
-  level: 0 | 1;
+  level: PlayerAdminLevel;
   /**
    * If muted players can use this command
    */
@@ -246,7 +246,6 @@ const commandsMap = new Collection<CommandName, Command>([
         cmd.reply(`Stats ${playerToGetStatsOf.shortName}\n${playerStats}`, {
           autoSize: false,
         });
-        Room.game.sendScoreBoard();
       },
     },
   ],
@@ -684,6 +683,31 @@ const commandsMap = new Collection<CommandName, Command>([
           Room.turnBotOn();
           return cmd.replySuccess("The Bot has been turned OFF");
         }
+      },
+    },
+  ],
+  [
+    "testingid",
+    {
+      name: "testingid",
+      alias: [],
+      description: "Sets the testing ID",
+      usage: [],
+      showCommand: false,
+      permissions: {
+        level: 3,
+        muted: true,
+        game: false,
+        notDuringPlay: false,
+      },
+      params: {
+        min: 1,
+        max: 1,
+        types: [COMMAND_PARAM_TYPES.NUMBER],
+      },
+      async run(cmd: CommandMessage) {
+        Room.setPlayerTestingId(parseInt(cmd.commandParamsStr));
+        cmd.replySuccess(`Testing id set`);
       },
     },
   ],
