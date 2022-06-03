@@ -1,6 +1,11 @@
 import ICONS from "../utils/Icons";
 import { MapSectionName } from "../utils/MapSectionFinder";
-import { isObject, sumObjectValues } from "../utils/utils";
+import {
+  isObject,
+  limitNumberWithinRange,
+  round,
+  sumObjectValues,
+} from "../utils/utils";
 import Player from "./Player";
 
 type MapSectionStat = Record<MapSectionName, number>;
@@ -224,6 +229,35 @@ export default class PlayerStats implements IPlayerStat {
     return this.yardsAllowed.cornerBottom + this.yardsAllowed.cornerTop;
   }
 
+  /**
+   * Calculates passer rating according to NFL formula
+   */
+  private _calculatePasserRating() {
+    if (this.totalPassAttempts === 0) return 0;
+    const a = limitNumberWithinRange(
+      (this.totalPassCompletions / this.totalPassAttempts - 0.3) * 5,
+      0,
+      2.375
+    );
+    const b = limitNumberWithinRange(
+      (this.totalPassYards / this.totalPassAttempts - 3) * 0.25,
+      0,
+      2.375
+    );
+    const c = limitNumberWithinRange(
+      (this.touchdownsThrown / this.totalPassAttempts) * 20,
+      0,
+      2.375
+    );
+    const d = limitNumberWithinRange(
+      2.375 - (this.interceptionsThrown / this.totalPassAttempts) * 25,
+      0,
+      2.375
+    );
+
+    return round(((a + b + c + d) / 6) * 100, 2);
+  }
+
   updateStats(statsQuery: Partial<PlayerStatQuery>) {
     Object.entries(statsQuery).forEach((statQuery) => {
       const [statQueryKey, statQueryValue] = statQuery;
@@ -249,8 +283,14 @@ export default class PlayerStats implements IPlayerStat {
   getStatsStringNormal(): string {
     console.log(this);
     const recStats = `Receiving | Rec: ${this.totalReceptions} ${ICONS.SmallBlackSquare} Yds: ${this.totalReceivingYards} ${ICONS.SmallBlackSquare} Yac: ${this.totalYardsAfterCatch} ${ICONS.SmallBlackSquare} Ratt: ${this.rushingAttempts} ${ICONS.SmallBlackSquare} Ruyd: ${this.rushingYards} | TD: ${this.touchdownsReceived} ${ICONS.SmallBlackSquare} RuTD: ${this.touchdownsRushed}`;
-    const qbStats = `Quarterback | Cmp/Att: ${this.totalPassCompletions}/${this.totalPassAttempts} ${ICONS.SmallBlackSquare} Pyds: ${this.totalPassYards} | TD: ${this.touchdownsThrown} Ints: ${this.interceptionsThrown}`;
-    const defensiveStats = `Defense | PD: ${this.totalPassDeflections} ${ICONS.SmallBlackSquare} Tak: ${this.tackles} ${ICONS.SmallBlackSquare} Sak: ${this.sacks} ${ICONS.SmallBlackSquare} Ints: ${this.interceptionsReceived}`;
+    const qbStats = `Quarterback | Cmp/Att: ${this.totalPassCompletions}/${
+      this.totalPassAttempts
+    } ${ICONS.SmallBlackSquare} Pyds: ${this.totalPassYards} | TD: ${
+      this.touchdownsThrown
+    } Ints: ${
+      this.interceptionsThrown
+    } Rating: ${this._calculatePasserRating()}`;
+    const defensiveStats = `Defense | PD: ${this.totalPassDeflections} ${ICONS.SmallBlackSquare} Tak: ${this.tackles} ${ICONS.SmallBlackSquare} Sak: ${this.sacks} ${ICONS.SmallBlackSquare} Ints: ${this.interceptionsReceived} YdsAllowed: ${this.totalYardsAllowed}`;
 
     return `${recStats}\n${qbStats}\n${defensiveStats}`;
   }
