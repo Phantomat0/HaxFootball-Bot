@@ -16,15 +16,16 @@ import ICONS from "../utils/Icons";
 import MapSectionFinder, { MapSectionName } from "../utils/MapSectionFinder";
 import SnapEvents from "./play_events/Snap.events";
 import { GameCommandError } from "../commands/GameCommandHandler";
-import {
+import PenaltyDataGetter, {
   PenaltyName,
   AdditionalPenaltyData,
 } from "../structures/PenaltyDataGetter";
-import { getPlayerDiscProperties } from "../utils/haxUtils";
+import { getPlayerDiscProperties, quickPause } from "../utils/haxUtils";
 import { MAP_POINTS } from "../utils/map";
 import SnapCrowdChecker from "../structures/SnapCrowdChecker";
 import DistanceCalculator from "../structures/DistanceCalculator";
 import { PlayerStatQuery } from "../classes/PlayerStats";
+import { EndPlayData } from "./BasePlay";
 
 export type BadIntReasons =
   | "Blocked by offense"
@@ -38,8 +39,12 @@ export default class Snap extends SnapEvents {
   private _quarterback: PlayerObject;
   private _blitzClock: NodeJS.Timer | null;
   private _blitzClockTime: number = 0;
+  private _ballMoveBlitzClock: NodeJS.Timer | null;
+  private _ballMoveBlitzClockTime: number = 0;
   private readonly BLITZ_TIME_SECONDS: number = 12;
+  private readonly BALL_MOVE_BLITZ_TIME_SECONDS: number = 3;
   private readonly crowdChecker: SnapCrowdChecker = new SnapCrowdChecker();
+  MAX_DRAG_DISTANCE: number = 10;
   constructor(time: number, quarterback: PlayerObject) {
     super(time);
     this._quarterback = quarterback;
@@ -71,6 +76,10 @@ export default class Snap extends SnapEvents {
   prepare() {
     this.crowdChecker.setOffenseTeam(Room.game.offenseTeamId);
     this.crowdChecker.setCrowdBoxArea(Room.game.down.getLOS().x);
+
+    const isCurvePass = Room.game.stateExists("curvePass");
+    const isTwoPointAttempt = Room.game.stateExists("twoPointAttempt");
+
     this._setStartingPosition(Room.game.down.getLOS());
     this.setBallPositionOnSet(Ball.getPosition());
     Room.game.down.moveFieldMarkers();
@@ -78,10 +87,9 @@ export default class Snap extends SnapEvents {
     this._getAllOffsideDefenseAndMove();
     this._startBlitzClock();
 
-    const isCurvePass = Room.game.stateExists("curvePass");
-    const isTwoPointAttempt = Room.game.stateExists("twoPointAttempt");
-
-    if (isTwoPointAttempt) this.setState("twoPointAttempt");
+    if (isTwoPointAttempt) {
+      this.setState("twoPointAttempt");
+    }
 
     if (isCurvePass) this.setState("curvePass");
   }
@@ -98,6 +106,7 @@ export default class Snap extends SnapEvents {
 
   cleanUp() {
     this._stopBlitzClock();
+    this._stopBallMoveBlitzClock();
   }
 
   getQuarterback() {
@@ -112,9 +121,74 @@ export default class Snap extends SnapEvents {
     const fieldedPlayers = Room.game.players.getFielded();
     return this.crowdChecker.checkPlayersInCrowdBox(
       fieldedPlayers,
-      Room.game.down.getLOS().x,
       Room.game.getTime()
     );
+  }
+
+  protected _handlePenalty<T extends PenaltyName>(
+    penaltyName: T,
+    player: PlayerObjFlat,
+    penaltyData: AdditionalPenaltyData = {}
+  ): void {
+    console.log(this.readAllState());
+    console.log("CUSTOM RAN YESSIR");
+    // We have to check the room and play state, since play state may not be sent on a snap penalty
+    if (
+      this.stateExists("twoPointAttempt") ||
+      Room.game.stateExists("twoPointAttempt")
+    ) {
+      console.log("YUP");
+      quickPause();
+
+      const losX = Room.game.down.getLOS().x;
+
+      const isInDefenseRedzone =
+        MapReferee.checkIfInRedzone(losX) === Room.game.defenseTeamId;
+
+      const { penaltyMessage } = new PenaltyDataGetter().getData(
+        penaltyName,
+        player,
+        isInDefenseRedzone,
+        losX,
+        Room.game.offenseTeamId,
+        penaltyData
+      );
+
+      // Lets send the penalty!
+      Chat.send(`${ICONS.YellowSquare} ${penaltyMessage}`);
+
+      // Now if the penalty was on an offensive player, handle failed two point
+      if (player.team === Room.game.offenseTeamId)
+        return this._handleFailedTwoPointConversion();
+
+      return this._handleTwoPointTouchdown();
+    }
+
+    super._handlePenalty(penaltyName, player, penaltyData);
+  }
+
+  endPlay(endPlayData: EndPlayData) {
+    console.log(this.readAllState());
+    if (this.stateExists("twoPointAttempt")) {
+      // Endplay will only run when we didn't score a touchdown, so means unsuccessful fg
+      return this._handleFailedTwoPointConversion();
+    }
+    super.endPlay(endPlayData);
+  }
+
+  /**
+   * Have to redeclare since we only add one point to defensive team for a safety during a two point
+   */
+  handleSafety() {
+    if (this.stateExists("twoPointAttempt")) {
+      this._setLivePlay(false);
+      Chat.send(`${ICONS.Loudspeaker} Conversion safety!`);
+      // Defense gets one point
+      Room.game.addScore(Room.game.defenseTeamId, 1);
+      return this._handleFailedTwoPointConversion();
+    }
+
+    super.handleSafety();
   }
 
   /**
@@ -125,8 +199,7 @@ export default class Snap extends SnapEvents {
       sound: 2,
     });
 
-    // Allow for a two point attempt
-    Room.game.setState("canTwoPoint");
+    this.allowForTwoPointAttempt();
 
     this.scorePlay(7, Room.game.offenseTeamId, Room.game.defenseTeamId);
   }
@@ -146,7 +219,7 @@ export default class Snap extends SnapEvents {
     this._handlePenalty("illegalBlitz", player, { time: this._blitzClockTime });
   }
 
-  updateStatsIfNotTwoPoint(
+  protected _updateStatsIfNotTwoPoint(
     playerId: PlayerObject["id"],
     statsQuery: Partial<PlayerStatQuery>
   ) {
@@ -154,8 +227,46 @@ export default class Snap extends SnapEvents {
     Room.game.stats.updatePlayerStat(playerId, statsQuery);
   }
 
+  handleBallInFrontOfLOS() {
+    this._handlePenalty("illegalPass", this._quarterback);
+  }
+
   protected _startBlitzClock() {
     this._blitzClock = setInterval(this._blitzTimerInterval.bind(this), 1000);
+  }
+
+  private _blitzTimerInterval() {
+    this._blitzClockTime++;
+    if (this._blitzClockTime >= this.BLITZ_TIME_SECONDS) {
+      this.setState("canBlitz");
+      return this._stopBlitzClock();
+    }
+  }
+
+  private _stopBlitzClock() {
+    if (this._blitzClock === null) return;
+    clearInterval(this._blitzClock);
+  }
+
+  protected _startBallMoveBlitzClock() {
+    this._ballMoveBlitzClock = setInterval(
+      this._ballMoveBlitzTimerInterval.bind(this),
+      1000
+    );
+  }
+
+  private _ballMoveBlitzTimerInterval() {
+    this._ballMoveBlitzClockTime++;
+    if (this._ballMoveBlitzClockTime >= this.BALL_MOVE_BLITZ_TIME_SECONDS) {
+      this.setState("canBlitz");
+      Chat.send("Can blitz");
+      return this._stopBallMoveBlitzClock();
+    }
+  }
+
+  private _stopBallMoveBlitzClock() {
+    if (this._ballMoveBlitzClock === null) return;
+    clearInterval(this._ballMoveBlitzClock);
   }
 
   protected _getStatInfo(endPosition: Position): {
@@ -182,7 +293,7 @@ export default class Snap extends SnapEvents {
 
     const { mapSection, quarterback } = this._getStatInfo(playerPosition);
 
-    this.updateStatsIfNotTwoPoint(quarterback.id, {
+    this._updateStatsIfNotTwoPoint(quarterback.id, {
       passAttempts: { [mapSection]: 1 },
     });
 
@@ -208,7 +319,7 @@ export default class Snap extends SnapEvents {
 
     this.setState("nearestDefenderToCatch", nearestDefender!);
 
-    this.updateStatsIfNotTwoPoint(quarterback.id, {
+    this._updateStatsIfNotTwoPoint(quarterback.id, {
       passCompletions: { [mapSection]: 1 },
     });
 
@@ -446,11 +557,11 @@ export default class Snap extends SnapEvents {
 
     const interceptingPlayer = this.getState("interceptingPlayer")!;
 
-    this.updateStatsIfNotTwoPoint(interceptingPlayer.id, {
+    this._updateStatsIfNotTwoPoint(interceptingPlayer.id, {
       interceptionsReceived: 1,
     });
 
-    this.updateStatsIfNotTwoPoint(this._quarterback.id, {
+    this._updateStatsIfNotTwoPoint(this._quarterback.id, {
       interceptionsThrown: 1,
     });
 
@@ -525,7 +636,7 @@ export default class Snap extends SnapEvents {
       yardsPassed,
     } = this._getPlayDataOffense(playerContact.ballCarrierPosition);
 
-    this.updateStatsIfNotTwoPoint(playerContact.player.id, {
+    this._updateStatsIfNotTwoPoint(playerContact.player.id, {
       tackles: 1,
     });
 
@@ -557,11 +668,11 @@ export default class Snap extends SnapEvents {
         `${ICONS.HandFingersSpread} ${playerContact.player.name} with the SACK!`
       );
 
-      this.updateStatsIfNotTwoPoint(playerContact.player.id, {
+      this._updateStatsIfNotTwoPoint(playerContact.player.id, {
         sacks: 1,
       });
 
-      this.updateStatsIfNotTwoPoint(playerContact.player.id, {
+      this._updateStatsIfNotTwoPoint(playerContact.player.id, {
         qbSacks: 1,
       });
     } else {
@@ -572,7 +683,7 @@ export default class Snap extends SnapEvents {
 
     // Tackle on a run
     if (this.stateExists("ballRan")) {
-      this.updateStatsIfNotTwoPoint(this._ballCarrier!.id, {
+      this._updateStatsIfNotTwoPoint(this._ballCarrier!.id, {
         rushingAttempts: 1,
         rushingYards: netYards,
       });
@@ -581,7 +692,7 @@ export default class Snap extends SnapEvents {
     } else if (this.stateExists("ballCaught")) {
       const { mapSection } = this._getStatInfo(this.getState("catchPosition"));
 
-      this.updateStatsIfNotTwoPoint(this._ballCarrier!.id, {
+      this._updateStatsIfNotTwoPoint(this._ballCarrier!.id, {
         receptions: { [mapSection]: 1 },
         receivingYards: { [mapSection]: netYards },
         receivingYardsAfterCatch: { [mapSection]: yardsAfterCatch },
@@ -590,12 +701,12 @@ export default class Snap extends SnapEvents {
       if (this.stateExists("nearestDefenderToCatch")) {
         const nearestDefenerToCatch = this.getState("nearestDefenderToCatch");
 
-        this.updateStatsIfNotTwoPoint(nearestDefenerToCatch.id, {
+        this._updateStatsIfNotTwoPoint(nearestDefenerToCatch.id, {
           yardsAllowed: { [mapSection]: netYards },
         });
       }
 
-      this.updateStatsIfNotTwoPoint(this._quarterback!.id, {
+      this._updateStatsIfNotTwoPoint(this._quarterback!.id, {
         passYards: { [mapSection]: netYards },
         passYardsDistance: { [mapSection]: yardsPassed },
       });
@@ -645,8 +756,21 @@ export default class Snap extends SnapEvents {
   //  * Handles a touchdown after a two point conversion
   //  */
   private _handleTwoPointTouchdown() {
-    Room.game.addScore(Room.game.offenseTeamId, 7);
-    Ball.score(Room.game.defenseTeamId);
+    Chat.send(`${ICONS.Fire} Two point conversion!`, {
+      sound: 2,
+    });
+    // Room.game.clearState();
+    // Add only one, since we add 7 not 6 after a TD
+    this.scorePlay(1, Room.game.offenseTeamId, Room.game.defenseTeamId);
+  }
+
+  // /**
+  //  * Handles unsuccessful two point conversion
+  //  */
+  private _handleFailedTwoPointConversion() {
+    // Remove one point
+    // Room.game.clearState();
+    this.scorePlay(-1, Room.game.offenseTeamId, Room.game.defenseTeamId);
   }
 
   /**
@@ -662,7 +786,7 @@ export default class Snap extends SnapEvents {
       this.stateExistsUnsafe("ballRan") ||
       this._ballCarrier?.id === this._quarterback.id
     ) {
-      this.updateStatsIfNotTwoPoint(this._ballCarrier?.id!, {
+      this._updateStatsIfNotTwoPoint(this._ballCarrier?.id!, {
         rushingAttempts: 1,
         rushingYards: netYards,
         touchdownsRushed: 1,
@@ -672,22 +796,22 @@ export default class Snap extends SnapEvents {
       const catchPosition = this.getState("catchPosition");
       const { mapSection } = this._getStatInfo(catchPosition);
 
-      this.updateStatsIfNotTwoPoint(this._ballCarrier?.id!, {
+      this._updateStatsIfNotTwoPoint(this._ballCarrier?.id!, {
         receptions: { [mapSection]: 1 },
         receivingYards: { [mapSection]: netYards },
         receivingYardsAfterCatch: { [mapSection]: yardsAfterCatch },
-        touchdownsRushed: 1,
+        touchdownsReceived: 1,
       });
 
       if (this.stateExists("nearestDefenderToCatch")) {
         const nearestDefenerToCatch = this.getState("nearestDefenderToCatch");
 
-        this.updateStatsIfNotTwoPoint(nearestDefenerToCatch.id, {
+        this._updateStatsIfNotTwoPoint(nearestDefenerToCatch.id, {
           yardsAllowed: { [mapSection]: netYards },
         });
       }
 
-      this.updateStatsIfNotTwoPoint(this._quarterback?.id!, {
+      this._updateStatsIfNotTwoPoint(this._quarterback?.id!, {
         passYards: { [mapSection]: netYards },
         passYardsDistance: { [mapSection]: yardsPassed },
         touchdownsThrown: 1,
@@ -695,19 +819,6 @@ export default class Snap extends SnapEvents {
     }
 
     super.handleTouchdown(endPosition);
-  }
-
-  private _blitzTimerInterval() {
-    this._blitzClockTime++;
-    if (this._blitzClockTime >= this.BLITZ_TIME_SECONDS) {
-      this.setState("canBlitz");
-      return this._stopBlitzClock();
-    }
-  }
-
-  private _stopBlitzClock() {
-    if (this._blitzClock === null) return;
-    clearInterval(this._blitzClock);
   }
 }
 

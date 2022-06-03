@@ -1,6 +1,7 @@
 import Room from "../..";
 import BallContact from "../../classes/BallContact";
 import PlayerContact from "../../classes/PlayerContact";
+import { PlayerStatQuery } from "../../classes/PlayerStats";
 import {
   PlayableTeamId,
   PlayerObject,
@@ -24,6 +25,7 @@ export interface SnapStore {
   nearestDefenderToCatch: PlayerObject;
   ballDeflected: true;
   ballRan: true;
+  ballDragged: true;
   canBlitz: true;
   ballBlitzed: true;
   lineBlitzed: true;
@@ -66,6 +68,11 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     mapSection: MapSectionName;
   };
   protected abstract _startBlitzClock(): void;
+  protected abstract _startBallMoveBlitzClock(): void;
+  protected abstract _updateStatsIfNotTwoPoint(
+    playerId: PlayerObject["id"],
+    statsQuery: Partial<PlayerStatQuery>
+  ): void;
 
   /**
    * Determines whether the ball contact was offense or defense and handles
@@ -101,7 +108,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
 
     const { mapSection } = this._getStatInfo(ballPosition);
 
-    Room.game.stats.updatePlayerStat(this.getQuarterback().id, {
+    this._updateStatsIfNotTwoPoint(this.getQuarterback().id, {
       passAttempts: {
         [mapSection]: 1,
       },
@@ -146,7 +153,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       this.getQuarterback().id === this._ballCarrier?.id ||
       this.stateExists("ballRan")
     ) {
-      Room.game.stats.updatePlayerStat(this._ballCarrier?.id!, {
+      this._updateStatsIfNotTwoPoint(this._ballCarrier?.id!, {
         rushingAttempts: 1,
         rushingYards: netYards,
       });
@@ -155,7 +162,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
 
       const { mapSection } = this._getStatInfo(catchPosition);
 
-      Room.game.stats.updatePlayerStat(this._ballCarrier?.id!, {
+      this._updateStatsIfNotTwoPoint(this._ballCarrier?.id!, {
         receptions: { [mapSection]: 1 },
         receivingYards: { [mapSection]: netYards },
         receivingYardsAfterCatch: { [mapSection]: yardsAfterCatch },
@@ -164,12 +171,12 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       if (this.stateExists("nearestDefenderToCatch")) {
         const nearestDefenerToCatch = this.getState("nearestDefenderToCatch");
 
-        Room.game.stats.updatePlayerStat(nearestDefenerToCatch.id, {
+        this._updateStatsIfNotTwoPoint(nearestDefenerToCatch.id, {
           yardsAllowed: { [mapSection]: netYards },
         });
       }
 
-      Room.game.stats.updatePlayerStat(this.getQuarterback().id, {
+      this._updateStatsIfNotTwoPoint(this.getQuarterback().id, {
         passYards: { [mapSection]: netYards },
         passYardsDistance: { [mapSection]: yardsPassed },
       });
@@ -234,7 +241,9 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
   }
 
   onKickDrag(player: PlayerObjFlat | null) {
-    this._handlePenalty("snapDrag", player!);
+    // this._handlePenalty("snapDrag", player!);
+    this.setState("ballDragged");
+    this._startBallMoveBlitzClock();
   }
 
   protected _onBallContactDefense(ballContactObj: BallContact) {
@@ -243,11 +252,11 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
 
     const { mapSection } = this._getStatInfo(ballContactObj.playerPosition);
 
-    Room.game.stats.updatePlayerStat(ballContactObj.player.id, {
+    this._updateStatsIfNotTwoPoint(ballContactObj.player.id, {
       passDeflections: { [mapSection]: 1 },
     });
 
-    Room.game.stats.updatePlayerStat(this.getQuarterback().id, {
+    this._updateStatsIfNotTwoPoint(this.getQuarterback().id, {
       passAttempts: { [mapSection]: 1 },
     });
 
