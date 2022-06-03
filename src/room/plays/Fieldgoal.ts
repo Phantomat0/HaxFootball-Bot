@@ -1,12 +1,14 @@
 import Room, { client } from "..";
 import BallContact from "../classes/BallContact";
 import PlayerContact from "../classes/PlayerContact";
+import { GameCommandError } from "../commands/GameCommandHandler";
 import { PlayerObject, Position } from "../HBClient";
 import Ball from "../roomStructures/Ball";
 import Chat from "../roomStructures/Chat";
 import DistanceCalculator from "../structures/DistanceCalculator";
 import GameReferee from "../structures/GameReferee";
 import MapReferee from "../structures/MapReferee";
+import PreSetCalculators from "../structures/PreSetCalculators";
 import { quickPause } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
 import { MAP_POINTS } from "../utils/map";
@@ -22,7 +24,23 @@ export default class FieldGoal extends FieldGoalEvents {
   }
 
   validateBeforePlayBegins() {
-    // No real validation
+    // If they are behind their own twentyYardLine, invalid FG
+    const offenseTwentyYardLine = PreSetCalculators.getPositionOfTeamYard(
+      20,
+      Room.game.offenseTeamId
+    );
+
+    const isBehindTwentyYardLine = MapReferee.checkIfBehind(
+      Room.game.down.getLOS().x,
+      offenseTwentyYardLine,
+      Room.game.offenseTeamId
+    );
+
+    if (isBehindTwentyYardLine)
+      throw new GameCommandError(
+        "You are too far away to attempt a field goal",
+        true
+      );
   }
 
   prepare() {
