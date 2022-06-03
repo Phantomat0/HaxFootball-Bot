@@ -98,6 +98,16 @@ class MapReferee {
     return isOutOfBounds ? ballPosition : null;
   };
 
+  checkIfBallInFrontOfLOS(
+    ballPosition: Position,
+    losX: number,
+    offenseTeamId: PlayableTeamId
+  ) {
+    const isInFront = this.checkIfInFront(ballPosition.x, losX, offenseTeamId);
+
+    return isInFront;
+  }
+
   checkIfBallDragged(
     ballPositionOnSet: Position,
     ballPosition: Position,
