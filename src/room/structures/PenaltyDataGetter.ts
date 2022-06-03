@@ -21,6 +21,7 @@ export type PenaltyName =
   | "offsidesOffense"
   | "offsidesDefense"
   | "crowding"
+  | "illegalPass"
   | "snapDrag"
   | "fgDrag"
   | "puntDrag"
@@ -77,6 +78,11 @@ export default class PenaltyDataGetter {
         message: `Crowding ${playerName}, 15 yard penalty, repeat the down`,
         netYards: 15,
         addDown: false,
+      },
+      illegalPass: {
+        message: `Illegal Pass in front of the line of scrimmage, automatic loss of down`,
+        netYards: 0,
+        addDown: true,
       },
       fgDrag: {
         message: `Field Goal Kick Drag, automatic loss of down`,
@@ -160,7 +166,7 @@ export default class PenaltyDataGetter {
   }
 
   /**
-   * Prevent a penalty causing the LOS to be set at the 0
+   * Prevents a penalty causing the LOS to be set at the 0
    */
   private _maybeConstrainNewEndLosXToOneYardLine(losX: number) {
     const endZoneLosXIsIn = MapReferee.getEndZonePositionIsIn({

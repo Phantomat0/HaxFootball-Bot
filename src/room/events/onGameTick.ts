@@ -221,6 +221,7 @@ const eventListeners: EventListener[] = [
       "ballPassed",
       "ballBlitzed",
       "ballRan",
+      "ballDragged",
       "fieldGoalKicked",
       "fieldGoalBlitzed",
       "puntKicked",
@@ -231,12 +232,12 @@ const eventListeners: EventListener[] = [
 
       if (!ballPositionOnSet) return;
       // Each Play has a this.MAX_DRAG_DISTANCE
-      const MAX_DRAG_DISTANCE = 15;
+      const maxDragDistance = Room.getPlay().MAX_DRAG_DISTANCE;
 
       const ballDragged = MapReferee.checkIfBallDragged(
         ballPositionOnSet,
         Ball.getPosition(),
-        MAX_DRAG_DISTANCE
+        maxDragDistance
       );
       if (ballDragged)
         return Room.getPlay().onKickDrag(Room.getPlay().getBallCarrierSafe());
@@ -295,6 +296,23 @@ const eventListeners: EventListener[] = [
 
       if (foundACrowder)
         return Room.getPlay<Snap>().handleCrowdingPenalty(foundACrowder);
+    },
+  },
+  {
+    // Ball cant be moved infront of LOS
+    name: "Ball Position Before Pass",
+    runWhen: ["ballSnapped"],
+    stopWhen: ["ballPassed", "lineBlitzed", "ballBlitzed", "ballRan"],
+    run: () => {
+      const ballPosition = Ball.getPosition();
+
+      const ballInFrontOfLOS = MapReferee.checkIfBallInFrontOfLOS(
+        ballPosition,
+        Room.game.down.getLOS().x,
+        Room.game.offenseTeamId
+      ); // This returns either null or the ballPosition,
+      if (ballInFrontOfLOS)
+        return Room.getPlay<Snap>().handleBallInFrontOfLOS();
     },
   },
 ];
