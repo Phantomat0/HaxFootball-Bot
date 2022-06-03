@@ -52,6 +52,10 @@ client.onPositionsReset = () => {
   Room.game.setPlay(new KickOff(Room.game.getTime()), null);
 };
 
+client.onTeamGoal = () => {
+  Room.game.deleteState("canTwoPoint");
+};
+
 client.onPlayerTeamChange = onPlayerTeamChange;
 
 client.onPlayerBallKick = onBallKick;
