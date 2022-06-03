@@ -21,8 +21,6 @@ export default abstract class BasePlayAbstract<T> extends WithStateStore<
   T,
   PlayStorageKeys
 > {
-  /* ABSTRACT */
-
   /**
    * Validation before the game sets the play
    * @return Throws a GameCommandError in the case of an error
@@ -49,36 +47,36 @@ export default abstract class BasePlayAbstract<T> extends WithStateStore<
   /* Game Tick Events */
 
   /**
-   * Handled ball out of bounds
+   * Handle ball out of bounds
    */
   abstract onBallOutOfBounds(ballPosition: Position): void;
 
   /**
-   * Handled ball carrier out of bounds
+   * Handle ball carrier out of bounds
    */
   abstract onBallCarrierOutOfBounds(ballCarrierPosition: Position): void;
 
   /**
-   * Handled offense touching ball carrier (runs)
+   * Handle offense touching ball carrier (runs)
    */
   abstract onBallCarrierContactOffense(playerContact: PlayerContact): void;
 
   /**
-   * Handled defense touching ball carrier (tackles)
+   * Handle defense touching ball carrier (tackles)
    */
   abstract onBallCarrierContactDefense(playerContact: PlayerContact): void;
 
   /**
-   * Handles a drag on a kick
+   * Handle a drag on a kick
    */
   abstract onKickDrag(player: PlayerObjFlat | null): void;
   /**
-   * Handles an offensive player touching the ball
+   * Handle offensive player touching the ball
    */
   protected abstract _onBallContactOffense(ballContactObj: BallContact): void;
 
   /**
-   * Handles a defensive player touching the ball
+   * Handle defensive player touching the ball
    */
   protected abstract _onBallContactDefense(ballContactObj: BallContact): void;
 }
