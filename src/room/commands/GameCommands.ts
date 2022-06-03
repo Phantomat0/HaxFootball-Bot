@@ -4,9 +4,12 @@ import { PlayableTeamId } from "../HBClient";
 import FieldGoal from "../plays/FieldGoal";
 import Punt from "../plays/Punt";
 import Snap from "../plays/Snap";
+import Ball from "../roomStructures/Ball";
 import Chat from "../roomStructures/Chat";
+import PreSetCalculators from "../structures/PreSetCalculators";
 import COLORS from "../utils/colors";
 import ICONS from "../utils/Icons";
+import { GameCommandError } from "./GameCommandHandler";
 
 export interface GameCommandPermissions {
   /**
@@ -22,6 +25,11 @@ export interface GameCommandPermissions {
    * This sets a play, and can only be used when there is no play present
    */
   onlyDuringNoPlay: boolean;
+
+  /**
+   * Can run this when a two point attempt is possible
+   */
+  canRunDuringTwoPointAttempt?: boolean;
 }
 
 export interface GameCommand {
@@ -42,6 +50,7 @@ const gameCommandsMap = new Map<string, GameCommand>([
         adminLevel: 0,
         onlyOffense: true,
         onlyDuringNoPlay: true,
+        canRunDuringTwoPointAttempt: true,
       },
       run(player) {
         Room.game.setPlay(
@@ -59,6 +68,7 @@ const gameCommandsMap = new Map<string, GameCommand>([
         adminLevel: 0,
         onlyOffense: true,
         onlyDuringNoPlay: true,
+        canRunDuringTwoPointAttempt: true,
       },
       run(player) {
         Room.game.setState("curvePass");
@@ -120,8 +130,46 @@ const gameCommandsMap = new Map<string, GameCommand>([
         adminLevel: 0,
         onlyOffense: true,
         onlyDuringNoPlay: true,
+        canRunDuringTwoPointAttempt: true,
       },
-      run(player) {},
+      run(player) {
+        const canTwoPoint = Room.game.stateExists("canTwoPoint");
+
+        if (!canTwoPoint)
+          throw new GameCommandError(
+            `You can only attempt a two point conversion after a touchdown`
+          );
+
+        const isAlreadyTwoPointAttempt =
+          Room.game.stateExists("twoPointAttempt");
+
+        if (isAlreadyTwoPointAttempt)
+          throw new GameCommandError(
+            `There is already a two point attempt in progress`
+          );
+        Room.game.setState("twoPointAttempt");
+
+        Chat.send(`${ICONS.BrownCircle} Two Point Attempt!`);
+
+        const TWO_POINT_ATTEMPT_YARD_LINE: number = 3;
+
+        /**
+         * Set the LOS at the defensive team's 2 yard line
+         */
+        const defensiveTwoYardLine = PreSetCalculators.getPositionOfTeamYard(
+          TWO_POINT_ATTEMPT_YARD_LINE,
+          Room.game.defenseTeamId
+        );
+
+        Room.game.down.setLOS(defensiveTwoYardLine);
+        Room.game.down.setYardsToGet(TWO_POINT_ATTEMPT_YARD_LINE);
+        Room.game.down.moveFieldMarkers();
+        Room.game.startSnapDelay();
+        Room.game.down.hardSetPlayers();
+        Ball.setPosition(Room.game.down.getSnapPosition());
+        Ball.setGravity({ y: 0 });
+        //
+      },
     },
   ],
   [
@@ -132,6 +180,7 @@ const gameCommandsMap = new Map<string, GameCommand>([
         adminLevel: 0,
         onlyOffense: true,
         onlyDuringNoPlay: false,
+        canRunDuringTwoPointAttempt: true,
       },
       run(player) {
         // Increment team timeout
