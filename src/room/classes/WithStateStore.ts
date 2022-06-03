@@ -36,6 +36,10 @@ export default class WithStateStore<
     return this._stateStore[state] as unknown as T[K];
   }
 
+  deleteState<K extends keyof T>(state: K) {
+    delete this._stateStore[state];
+  }
+
   /**
    * Checks if the state is plotted, regardless of value
    */
