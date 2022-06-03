@@ -54,7 +54,8 @@ export default class Snap extends SnapEvents {
   validateBeforePlayBegins(player: PlayerObject | null) {
     if (Room.game.canStartSnapPlay === false)
       throw new GameCommandError(
-        "Please wait a second before snapping the ball"
+        "Please wait a second before snapping the ball",
+        true
       );
 
     Room.game.updateStaticPlayers();

@@ -449,10 +449,10 @@
 //     "yardline" : { "vis" : true, "color" : "c7e6bd", "cMask" : [ ]},
 //     "centerline" : { "vis" : true, "color" : "c7e6bd", "cMask" : [ ] },
 //     "goalmarker" : { "vis" : true, "color" : "FFA500", "cMask" : [ ], "radius" : 3 },
-//     "losmarker" : { "vis" : true, "color" : "2c47f5", "cMask" : [ ], "radius" : 3 },
+//     "losmarker" : { "vis" : true, "color" : "273d6b", "cMask" : [ ], "radius" : 3 },
 //     "yardtogetmarker" : { "vis" : true, "color" : "b4eb34", "cMask" : [ ], "radius" : 3 },
 //     "cameraball" : { "vis" : true, color: "000000", "cMask" : [ ], "radius" : 30 },
-//     "losline" : { "vis" : true, "color" : "2c47f5" },
+//     "losline" : { "vis" : true, "color" : "273d6b" },
 //     "yardtogetline" : { "color" : "b4eb34" },
 //     "goal" : { "vis" : true, "color" : "FFA500" }
 
@@ -924,12 +924,12 @@ const HFL_MAP = `{
 		"kickOffBarrier" : { "vis" : false, "bCoef" : 0.1, "cGroup" : ["redKO","blueKO" ], "cMask" : ["red","blue","c0" ] },
 		"goalline" : { "vis" : true, "color" : "FFA500", "cMask" : ["c0","wall" ] },
 		"yardline" : { "vis" : true, "color" : "c7e6bd", "cMask" : [ ] },
-		"centerline" : { "vis" : true, "color" : "c7e6bd", "cMask" : [ ] },
+		"centerline" : { "vis" : true, "color" : "FFA500", "cMask" : [ ] },
 		"goalmarker" : { "vis" : true, "color" : "FFA500", "cMask" : [ ], "radius" : 3 },
-		"losmarker" : { "vis" : true, "color" : "2c47f5", "cMask" : [ ], "radius" : 3 },
+		"losmarker" : { "vis" : true, "color" : "273d6b", "cMask" : [ ], "radius" : 3 },
 		"yardtogetmarker" : { "vis" : true, "color" : "b4eb34", "cMask" : [ ], "radius" : 3 },
 		"cameraball" : { "vis" : true, "color" : "000000", "cMask" : [ ], "radius" : 30 },
-		"losline" : { "vis" : true, "color" : "2c47f5" },
+		"losline" : { "vis" : true, "color" : "273d6b" },
 		"yardtogetline" : { "color" : "b4eb34" },
 		"goal" : { "vis" : true, "color" : "FFA500" }
 

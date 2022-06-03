@@ -16,13 +16,13 @@ const eventListeners: EventListener[] = [
   {
     // Pass Incompletes, Punts/Kickoffs Out Of Bounds, Interceptions
     name: "Ball Position",
-    runWhen: ["ballSnapped", "punt", "kickOff"],
+    runWhen: ["ballSnapped", "punt", "kickOff", "onsideKick"],
     stopWhen: [
       "ballCaught",
       "ballRan",
       "ballBlitzed",
       "puntCaught",
-      "kickOffCaught",
+      "onsideKickCaught",
       "interceptionRuling",
     ],
     run: () => {
@@ -81,6 +81,7 @@ const eventListeners: EventListener[] = [
       "fieldGoalBlitzed",
       "puntCaught",
       "kickOffCaught",
+      "onsideKickCaught",
       "interceptionRuling",
     ],
     run: () => {
@@ -91,7 +92,13 @@ const eventListeners: EventListener[] = [
   {
     // Player Out Of Bounds and Player Touchdowns
     name: "BallCarrier Position Tracker",
-    runWhen: ["ballSnapped", "fieldGoal", "puntCaught", "kickOffCaught"],
+    runWhen: [
+      "ballSnapped",
+      "fieldGoal",
+      "puntCaught",
+      "kickOffCaught",
+      "onsideKick",
+    ],
     stopWhen: ["fieldGoalKicked", "interceptionPlayerEndPosition"],
     run: function () {
       const ballCarrier = Room.getPlay().getBallCarrierSafe();
@@ -115,7 +122,13 @@ const eventListeners: EventListener[] = [
   {
     // Tackles, Sacks, Fumbles, Interception Tackles
     name: "BallCarrier Player Contact Defense",
-    runWhen: ["ballSnapped", "fieldGoal", "puntCaught", "kickOffCaught"],
+    runWhen: [
+      "ballSnapped",
+      "fieldGoal",
+      "puntCaught",
+      "kickOffCaught",
+      "onsideKickCaught",
+    ],
     stopWhen: ["interceptionPlayerEndPosition"],
     run: () => {
       // Here we get the defensive team, and use as an argument to the function
@@ -226,6 +239,7 @@ const eventListeners: EventListener[] = [
       "fieldGoalBlitzed",
       "puntKicked",
       "kickOffKicked",
+      "onsideKickKicked",
     ],
     run: () => {
       const ballPositionOnSet = Room.getPlay().getBallPositionOnSet();

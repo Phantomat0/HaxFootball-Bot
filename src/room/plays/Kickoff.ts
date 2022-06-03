@@ -63,6 +63,20 @@ export default class KickOff extends KickOffEvents {
     super.handleTouchdown(endPosition);
   }
 
+  checkIfCanOnside(): { canOnside: boolean; reason?: string } {
+    const isSafetyKickOff = this.stateExists("safetyKickoff");
+
+    if (isSafetyKickOff)
+      return {
+        canOnside: false,
+        reason: "Cannot perform an onside kick after a safety",
+      };
+
+    return {
+      canOnside: true,
+    };
+  }
+
   protected _handleOffensePenalty(
     player: PlayerObjFlat,
     penaltyName: "offsidesOffense" | "drag" | "ballOutOfBounds"
@@ -108,7 +122,6 @@ export default class KickOff extends KickOffEvents {
 
   protected _handleCatch(ballContactObj: BallContact) {
     // Adjust the position and set it
-
     const adjustedCatchPosition = PreSetCalculators.adjustRawEndPosition(
       ballContactObj.playerPosition,
       Room.game.offenseTeamId
@@ -122,8 +135,9 @@ export default class KickOff extends KickOffEvents {
     );
 
     if (isOutOfBounds) {
+      const kicker = this.getState("KickOffKicker");
       Chat.send(`${ICONS.DoNotEnter} Caught out of bounds`);
-      return this.endPlay({});
+      return this._handleOffensePenalty(kicker, "ballOutOfBounds");
     }
 
     Chat.send(`${ICONS.Football} Ball Caught`);

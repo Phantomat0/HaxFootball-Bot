@@ -25,6 +25,7 @@ export type PenaltyName =
   | "snapDrag"
   | "fgDrag"
   | "puntDrag"
+  | "onsideKickDrag"
   | "puntOffsidesOffense"
   | "illegalTouch"
   | "illegalRun"
@@ -94,12 +95,6 @@ export default class PenaltyDataGetter {
         netYards: -10,
         addDown: false,
       },
-      puntOffsidesOffense: {
-        message: `Offsides Offense, automatic offense 40 yard line`,
-        netYards: 0,
-        addDown: false,
-        hasOwnHandler: true,
-      },
       illegalTouch: {
         message: `Illegal touching of the ball by ${playerName}, automatic loss of down`,
         netYards: 0,
@@ -125,8 +120,20 @@ export default class PenaltyDataGetter {
         addDown: false,
       },
       // These have their own handlers
+      onsideKickDrag: {
+        message: `Onside Kick Drag, automatic receiving team 40 yard line`,
+        netYards: 0,
+        addDown: false,
+        hasOwnHandler: true,
+      },
+      puntOffsidesOffense: {
+        message: `Offsides Offense, automatic offense 40 yard line`,
+        netYards: 0,
+        addDown: false,
+        hasOwnHandler: true,
+      },
       kickOffDrag: {
-        message: `Kickoff Drag, automatic offense 40 yard line`,
+        message: `Kickoff Drag, automatic receiving team 40 yard line`,
         netYards: 0,
         addDown: false,
         hasOwnHandler: true,

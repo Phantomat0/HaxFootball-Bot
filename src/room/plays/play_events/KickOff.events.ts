@@ -12,7 +12,6 @@ import BasePlay from "../BasePlay";
 export interface KickOffStore {
   kickOff: true;
   kickOffCaught: true;
-  catchPosition: true;
   kickOffKicked: true;
   KickOffKicker: PlayerObjFlat;
   safetyKickoff: true;

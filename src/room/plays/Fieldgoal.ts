@@ -15,7 +15,7 @@ import { MAP_POINTS } from "../utils/map";
 import FieldGoalEvents from "./play_events/FieldGoal.events";
 
 export default class FieldGoal extends FieldGoalEvents {
-  private _kicker: PlayerObject;
+  protected _kicker: PlayerObject;
 
   constructor(time: number, kicker: PlayerObject) {
     super(time);

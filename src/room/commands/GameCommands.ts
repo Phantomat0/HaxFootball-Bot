@@ -2,6 +2,8 @@ import Room, { TEAMS } from "..";
 import Player from "../classes/Player";
 import { PlayableTeamId } from "../HBClient";
 import FieldGoal from "../plays/FieldGoal";
+import KickOff from "../plays/Kickoff";
+import OnsideKick from "../plays/OnsideKick";
 import Punt from "../plays/Punt";
 import Snap from "../plays/Snap";
 import Ball from "../roomStructures/Ball";
@@ -137,7 +139,8 @@ const gameCommandsMap = new Map<string, GameCommand>([
 
         if (!canTwoPoint)
           throw new GameCommandError(
-            `You can only attempt a two point conversion after a touchdown`
+            `You can only attempt a two point conversion after a touchdown`,
+            true
           );
 
         const isAlreadyTwoPointAttempt =
@@ -145,7 +148,8 @@ const gameCommandsMap = new Map<string, GameCommand>([
 
         if (isAlreadyTwoPointAttempt)
           throw new GameCommandError(
-            `There is already a two point attempt in progress`
+            `There is already a two point attempt in progress`,
+            true
           );
         Room.game.setState("twoPointAttempt");
 
@@ -169,6 +173,45 @@ const gameCommandsMap = new Map<string, GameCommand>([
         Ball.setPosition(Room.game.down.getSnapPosition());
         Ball.setGravity({ y: 0 });
         //
+      },
+    },
+  ],
+  [
+    "onside",
+    {
+      showCommand: true,
+      permissions: {
+        adminLevel: 0,
+        onlyOffense: true,
+        onlyDuringNoPlay: false,
+        canRunDuringTwoPointAttempt: false,
+      },
+      run(player) {
+        const isPlay = Room.game.play !== null;
+
+        if (!isPlay)
+          throw new GameCommandError(
+            "An onside kick can only be performed during a kickoff",
+            true
+          );
+
+        const isKickOff = Room.getPlay().stateExistsUnsafe("kickOff");
+
+        if (!isKickOff)
+          throw new GameCommandError(
+            "An onside kick can only be performed during a kickoff",
+            true
+          );
+
+        const { canOnside, reason } =
+          Room.getPlay<KickOff>().checkIfCanOnside();
+
+        if (canOnside === false) throw new GameCommandError(reason!, true);
+
+        Room.game.setPlay(
+          new OnsideKick(Room.game.getTime(), player.playerObject!),
+          player.playerObject!
+        );
       },
     },
   ],

@@ -4,18 +4,24 @@ import WithStateStore from "../classes/WithStateStore";
 import { PlayerObject, Position, PlayerObjFlat } from "../HBClient";
 import FieldGoal from "./FieldGoal";
 import KickOff from "./Kickoff";
+import OnsideKick from "./OnsideKick";
 import { FieldGoalStore } from "./play_events/FieldGoal.events";
 import { KickOffStore } from "./play_events/KickOff.events";
+import { OnsideKickStore } from "./play_events/OnsideKick.events";
 import { PuntStore } from "./play_events/Punt.events";
 import { SnapStore } from "./play_events/Snap.events";
 import Punt from "./Punt";
 import Snap from "./Snap";
 
-export type PLAY_TYPES = Snap | FieldGoal | KickOff | Punt;
+export type PLAY_TYPES = Snap | FieldGoal | KickOff | Punt | OnsideKick;
 
-type PlayStorages = SnapStore & FieldGoalStore & PuntStore & KickOffStore;
+type PlayStorages = SnapStore &
+  FieldGoalStore &
+  PuntStore &
+  KickOffStore &
+  OnsideKickStore;
 
-export type PlayStorageKeys = keyof PlayStorages | "twoPointAttempt";
+export type PlayStorageKeys = keyof PlayStorages;
 
 export default abstract class BasePlayAbstract<T> extends WithStateStore<
   T,

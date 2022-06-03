@@ -17,7 +17,7 @@ export interface FieldGoalStore {
 }
 
 export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
-  protected abstract _getKicker(): PlayerObjFlat;
+  protected abstract _kicker: PlayerObjFlat;
   protected abstract _setPlayersInPosition(): void;
   protected abstract _handleTackle(playerContactObj: PlayerContact): void;
   protected abstract _handleRun(playerContact: PlayerContact): void;
@@ -91,7 +91,7 @@ export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
   }
 
   onKickDrag(): void {
-    this._handlePenalty("fgDrag", this._getKicker());
+    this._handlePenalty("fgDrag", this._kicker);
   }
 
   protected _onBallContactDefense(ballContactObj: BallContact): void {
@@ -113,7 +113,7 @@ export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
   protected _onBallContactOffense(ballContactObj: BallContact): void {
     const { player } = ballContactObj;
 
-    if (player.id === this._getKicker().id)
+    if (player.id === this._kicker.id)
       return this._handleBallContactKicker(ballContactObj);
 
     // If offense touches the ball at anytime, its an incomplete field goal

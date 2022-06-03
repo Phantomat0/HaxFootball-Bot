@@ -63,6 +63,8 @@ interface IPlayerStat {
   // Misc
   fumbles: number;
   penalties: number;
+  onsideKicksAttempted: number;
+  onsideKicksConverted: number;
 }
 
 export interface PlayerStatQuery {
@@ -105,6 +107,8 @@ export interface PlayerStatQuery {
   // Misc
   fumbles: 1;
   penalties: 1;
+  onsideKicksAttempted: 1;
+  onsideKicksConverted: 1;
 }
 
 export default class PlayerStats implements IPlayerStat {
@@ -168,6 +172,8 @@ export default class PlayerStats implements IPlayerStat {
   // Misc
   fumbles: number = 0;
   penalties: number = 0;
+  onsideKicksAttempted: number = 0;
+  onsideKicksConverted: number = 0;
 
   private get totalReceptions() {
     return sumObjectValues(this.receptions);

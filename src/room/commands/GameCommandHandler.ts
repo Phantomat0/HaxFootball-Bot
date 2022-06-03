@@ -5,7 +5,7 @@ import { GameCommand } from "./GameCommands";
 export class GameCommandError {
   message: string;
   sendToPlayer: boolean;
-  constructor(msg: string, sendToPlayer = true) {
+  constructor(msg: string, sendToPlayer) {
     this.message = msg;
     this.sendToPlayer = sendToPlayer;
   }
@@ -39,19 +39,22 @@ export default class GameCommandHandler {
       this.chatObj.author.team === Room.game.offenseTeamId;
 
     if (this.gameCommand.permissions.onlyOffense && playerIsOnOffense === false)
-      throw new GameCommandError("You are not on offense");
+      throw new GameCommandError("You are not on offense", true);
 
     if (
       this.gameCommand.permissions.adminLevel > this.chatObj.author.adminLevel
     )
-      throw new GameCommandError("Too low admin level to use that command");
+      throw new GameCommandError(
+        "Too low admin level to use that command",
+        true
+      );
   }
 
   private _validatePlay() {
     const playAlreadyInProgess = Boolean(Room.game.play);
 
     if (playAlreadyInProgess && this.gameCommand.permissions.onlyDuringNoPlay)
-      throw new GameCommandError("There is already a play in progress");
+      throw new GameCommandError("There is already a play in progress", true);
 
     const isTwoPointAttempt = Room.game.stateExists("twoPointAttempt");
 
@@ -60,7 +63,10 @@ export default class GameCommandHandler {
       Boolean(this.gameCommand.permissions.canRunDuringTwoPointAttempt) ===
         false
     )
-      throw new GameCommandError("Cannot be called during a two point attempt");
+      throw new GameCommandError(
+        "Cannot be called during a two point attempt",
+        true
+      );
   }
 
   validateAndRun() {
