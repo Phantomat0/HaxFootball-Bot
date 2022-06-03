@@ -41,11 +41,33 @@ export interface EndPlayData {
 }
 
 export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
+  /**
+   * Starts play and fires event listeners
+   */
   protected _isLivePlay: boolean = false;
+  /**
+   * The current play with possession of the ball, can be null
+   */
   protected _ballCarrier: ReturnType<typeof flattenPlayer> | null = null;
+  /**
+   * The starting position of the ball
+   */
   protected _ballPositionOnSet: Position | null = null;
+
+  /**
+   * The starting position to determine net yards
+   */
   protected _startingPosition: Position;
+
+  /**
+   * The game time the play began
+   */
   time: number;
+
+  /**
+   * Max drag distance for the onKickDrag method to fire
+   */
+  MAX_DRAG_DISTANCE: number = 15;
 
   constructor(time: number) {
     super();
@@ -80,17 +102,12 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
   }
 
   /**
-   * Constrains and adjusts a position by doing the following:
-   *
-   * 1. Adjust forward for player radius depending on team
-   * 2. Prevent rounding down to 0 yard line, 775 or -775. Will round to 759.5 in that case
-   * 3. Round to yard by team
-   * 4. Constrain to team endzones
+   * Sets the game state allowing the two point command to be ran
    */
-  adjustAndConstrainPlayerPositionToCorrectYard(
-    position: Position,
-    offenseTeamid: PlayableTeamId
-  ) {}
+  allowForTwoPointAttempt() {
+    // Allow for a two point attempt
+    Room.game.setState("canTwoPoint");
+  }
 
   /**
    * Sends the touchdown announcement, scores the play, and sets "canTwoPoint"
@@ -113,8 +130,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
 
     this.scorePlay(7, Room.game.offenseTeamId, Room.game.defenseTeamId);
 
-    // Allow for a two point attempt
-    Room.game.setState("canTwoPoint");
+    this.allowForTwoPointAttempt();
   }
 
   /**
@@ -335,8 +351,6 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
       addDown,
       setNewDown,
     });
-
-    console.log({ netYards, newLosX, addDown, setNewDown });
 
     // Set the new LOS position if it is present
     if (newLosX !== null) Room.game.down.setLOS(newLosX);
