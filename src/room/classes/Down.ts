@@ -85,16 +85,6 @@ export default class Down {
     };
   }
 
-  private _getLineToGainPoint() {
-    return new DistanceCalculator()
-      .addByTeam(
-        this._los.x,
-        MAP_POINTS.YARD * this._yardsToGet,
-        Room.game.offenseTeamId
-      )
-      .calculate();
-  }
-
   incrementRedZonePenalties() {
     this._redZonePenalties++;
   }
@@ -292,5 +282,15 @@ export default class Down {
     this._moveLOSMarkers();
     this._moveLineToGainMarkers(options);
     return this;
+  }
+
+  private _getLineToGainPoint() {
+    return new DistanceCalculator()
+      .addByTeam(
+        this._los.x,
+        MAP_POINTS.YARD * this._yardsToGet,
+        Room.game.offenseTeamId
+      )
+      .calculate();
   }
 }

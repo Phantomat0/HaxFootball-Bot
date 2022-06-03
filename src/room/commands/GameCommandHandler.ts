@@ -52,6 +52,15 @@ export default class GameCommandHandler {
 
     if (playAlreadyInProgess && this.gameCommand.permissions.onlyDuringNoPlay)
       throw new GameCommandError("There is already a play in progress");
+
+    const isTwoPointAttempt = Room.game.stateExists("twoPointAttempt");
+
+    if (
+      isTwoPointAttempt &&
+      Boolean(this.gameCommand.permissions.canRunDuringTwoPointAttempt) ===
+        false
+    )
+      throw new GameCommandError("Cannot be called during a two point attempt");
   }
 
   validateAndRun() {

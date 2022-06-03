@@ -135,8 +135,6 @@ export default class MapSectionFinder {
         losX,
         offenseTeamId
       );
-
-      console.log(rectangleArea, positionToCheck, losX, section.name);
       return isInRectangleArea(rectangleArea, positionToCheck);
     });
 

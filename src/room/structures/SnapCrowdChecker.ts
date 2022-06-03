@@ -29,9 +29,9 @@ export default class SnapCrowdChecker {
   private _offenseTeamId: PlayableTeamId;
   private _playCrowdBoxArea: { x1: number; y1: number; x2: number; y2: number };
 
-  checkPlayersInCrowdBox(players: PlayerObject[], losX: number, time: number) {
+  checkPlayersInCrowdBox(players: PlayerObject[], time: number) {
     return players.find((player) => {
-      const inCrowd = this._checkIfPlayerInCrowdBox(player.id, losX);
+      const inCrowd = this._checkIfPlayerInCrowdBox(player.id);
       if (inCrowd) {
         const index = this._maybeAddToCrowdBox(player, time);
         const isCrowding = this._checkIfMeetsCrowdingCriteria(index, time);
@@ -48,8 +48,6 @@ export default class SnapCrowdChecker {
   }
 
   setCrowdBoxArea(losX: number) {
-    console.log(this._offenseTeamId);
-
     const crowdBoxFront = new DistanceCalculator()
       .addByTeam(
         losX,
@@ -70,10 +68,6 @@ export default class SnapCrowdChecker {
         y2: MAP_POINTS.BOT_HASH,
       };
 
-      console.log("OFFENSE IS RED");
-      console.log(boxArea);
-      console.log(losX);
-
       this._playCrowdBoxArea = boxArea;
     } else {
       const boxArea = {
@@ -83,15 +77,11 @@ export default class SnapCrowdChecker {
         y2: MAP_POINTS.BOT_HASH,
       };
 
-      console.log("OFFENSE IS BLUE");
-      console.log(boxArea);
-      console.log(losX);
-
       this._playCrowdBoxArea = boxArea;
     }
   }
 
-  private _checkIfPlayerInCrowdBox(playerId: PlayerObject["id"], losX: number) {
+  private _checkIfPlayerInCrowdBox(playerId: PlayerObject["id"]) {
     const { position } = getPlayerDiscProperties(playerId)!;
     return isInRectangleArea(this._playCrowdBoxArea, position);
   }
@@ -117,7 +107,6 @@ export default class SnapCrowdChecker {
     );
 
     if (offensivePlayerInCrowd) {
-      console.log(this._playersInCrowdBoxList);
       this._playersInCrowdBoxList.forEach((player) => {
         player.timeGotInCrowdBox = timeNow;
       });

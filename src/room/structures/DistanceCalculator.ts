@@ -110,7 +110,7 @@ export default class DistanceCalculator {
   }
 
   /**
-   * Rounds our calculation if the calculation is between 0 and 1 yardline. In that case we will always round to the one yard liine
+   * Rounds our calculation if the calculation is between 0 and 1 yardline. In that case we will always round to the one yard line
    * @teamId RED Round to -759.5
    * @teamId BLUE Round to 759.5
    */
