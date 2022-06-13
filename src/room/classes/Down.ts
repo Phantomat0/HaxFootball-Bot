@@ -7,7 +7,10 @@ import DistanceCalculator, {
 } from "../structures/DistanceCalculator";
 import DownAndDistanceFormatter from "../structures/DownAndDistanceFormatter";
 import { DISC_IDS, MAP_POINTS } from "../utils/map";
-import { getRandomIntInRange } from "../utils/utils";
+import { getRandomIntInRange, sleep } from "../utils/utils";
+import Punt from "../plays/Punt";
+import MapReferee from "../structures/MapReferee";
+import { quickPause } from "../utils/haxUtils";
 
 export default class Down {
   static CONFIG = {
@@ -220,6 +223,37 @@ export default class Down {
     Room.game.startSnapDelay();
   }
 
+  private async _setPuntIfFourthAndLong() {
+    const FOURTH_DOWN = 4;
+    // How many yards need to be left for there to be an auto punt
+    const MIN_YARDS_FOR_AUTO_PUNT = 15;
+    // Dont do auto punt after this time
+    const MAX_TIME_FOR_AUTO_PUNT = 60 * 6;
+    if (this.getDown() !== FOURTH_DOWN) return;
+
+    if (Room.game.getTime() > MAX_TIME_FOR_AUTO_PUNT) return;
+
+    if (this.getYardsToGet() < MIN_YARDS_FOR_AUTO_PUNT) return;
+
+    quickPause();
+
+    await sleep(100);
+
+    Chat.send(`⚠️ Automatic punt! 4th & LONG`);
+
+    const offensePlayers = Room.game.players.getOffense();
+
+    const closestPlayerToBall = MapReferee.getNearestPlayerToPosition(
+      offensePlayers,
+      Ball.getPosition()
+    );
+
+    Room.game.setPlay(
+      new Punt(Room.game.getTime(), closestPlayerToBall!),
+      closestPlayerToBall
+    );
+  }
+
   resetAfterDown() {
     this.sendDownAndDistance();
     this.setPlayers();
@@ -227,10 +261,32 @@ export default class Down {
     Room.game.endPlay();
     this.setBallAndFieldMarkersPlayEnd();
     Room.game.startSnapDelay();
+    this._setPuntIfFourthAndLong();
   }
 
   resetAfterScore() {
     Room.game.endPlay();
+  }
+
+  maybeMovePlayerBehindLosOnField(player: PlayerObject) {
+    // Dont set their position if they are mid play
+    if (Room.game.play) return;
+
+    const fifteenYardsBehindLosX = new DistanceCalculator()
+      .subtractByTeam(
+        this.getLOS().x,
+        MAP_POINTS.YARD * 15,
+        player.team as PlayableTeamId
+      )
+      .calculate();
+
+    const playerPositionToSet = {
+      x: fifteenYardsBehindLosX,
+      xspeed: 0,
+      yspeed: 0,
+    };
+
+    client.setPlayerDiscProperties(player.id, playerPositionToSet);
   }
 
   private _moveLOSMarkers() {
