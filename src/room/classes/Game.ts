@@ -1,4 +1,4 @@
-import { client, TEAMS } from "..";
+import Room, { client, TEAMS } from "..";
 import { PlayableTeamId, PlayerObject } from "../HBClient";
 import { PLAY_TYPES } from "../plays/BasePlayAbstract";
 import Chat from "../roomStructures/Chat";
@@ -132,6 +132,7 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   endPlay() {
     // Play might be null because play could be ended before it even starts like off a snap penalty
     this.play?.cleanUp();
+    this.resetPlayersPhysics();
     this.play = null;
   }
 
@@ -164,5 +165,30 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     Chat.send(
       `${ICONS.RedSquare} ${this.score.red} -  ${this.score.blue} ${ICONS.BlueSquare}`
     );
+  }
+
+  sendManOfTheMatch() {
+    const manOfTheMatchObj = this.stats.determineManOfTheMatch();
+
+    if (manOfTheMatchObj === null) return;
+
+    const { auth, pointTotal } = manOfTheMatchObj;
+
+    const player = Room.players.playerCollection.findOne({
+      auth: auth,
+    });
+
+    if (player === null) return;
+
+    Chat.send(`${ICONS.Star} MVP: ${player.name} | ${pointTotal} points`);
+  }
+
+  /**
+   * Resets all special physics that were applied during a play
+   */
+  private resetPlayersPhysics() {
+    Room.players.getFielded().forEach((player) => {
+      client.setDiscProperties(player.id, { bCoeff: 0.75, invMass: 0.8 });
+    });
   }
 }
