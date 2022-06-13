@@ -142,7 +142,10 @@ export default class CommandHandler {
 
     if (this.commandMsg.commandParamsArray.length < min)
       throw new CommandError(`Command ${cmdName} requires ${minArgStr}.`);
-    if (this.commandMsg.commandParamsArray.length > max) {
+    if (
+      this.commandMsg.commandParamsArray.length > max &&
+      skipMaxCheck === false
+    ) {
       if (max === 0)
         throw new CommandError(
           `Command ${cmdName} does not accept any options.`
@@ -158,9 +161,6 @@ export default class CommandHandler {
     // Return if no type is specified or no arguments were passed into the call
     if (types.length === 0 || this.commandMsg.commandParamsArray.length === 0)
       return this;
-
-    // Return if we explicitely skip the check
-    if (skipMaxCheck) return this;
 
     // Validate each argument that is passed in
     this.commandMsg.commandParamsArray.forEach((param, index) => {
@@ -199,6 +199,7 @@ export default class CommandHandler {
 
         this.commandMsg.replyError(commandError.errorMsg);
       } else {
+        console.log(error);
         Chat.sendBotError(error.message);
       }
     });
