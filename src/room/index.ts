@@ -4,16 +4,20 @@ import onGameTick from "./events/onGameTick";
 import onJoin from "./events/onJoin";
 import onLeave from "./events/onLeave";
 import onPlayerTeamChange from "./events/onPlayerTeamChange";
-import HBClient, { TeamId } from "./HBClient";
+import HBClient, { HBClientConfig, TeamId } from "./HBClient";
 import KickOff from "./plays/Kickoff";
 import roomConfig from "./roomConfig";
 import RoomClient from "./roomStructures/Room";
+import Marquee from "./structures/Marquee";
 import HFL_MAP from "./utils/map";
 
-//@ts-ignore
-export const client: HBClient = HBInit(roomConfig);
+declare function HBInit(clientConfig: HBClientConfig): HBClient;
+
+export const client = HBInit(roomConfig);
 
 const Room = new RoomClient();
+
+Marquee.run();
 
 export default Room;
 
@@ -30,7 +34,7 @@ export const TEAMS: TeamIdEnum = {
 };
 
 client.setCustomStadium(HFL_MAP);
-client.setTimeLimit(13);
+client.setTimeLimit(9);
 client.setScoreLimit(0);
 client.setTeamsLock(true);
 
@@ -41,6 +45,7 @@ client.onGameStart = () => {
 
 client.onGameStop = () => {
   if (!Room.isBotOn) return;
+  Room.game.sendManOfTheMatch();
   Room.endGame();
 };
 
