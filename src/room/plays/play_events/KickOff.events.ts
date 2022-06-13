@@ -32,6 +32,10 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
     const { endPosition, netYards, yardAndHalfStr, netYardsStr } =
       this._getPlayDataOffense(playerContact.ballCarrierPosition);
 
+    const isFumble = this._checkForFumble(playerContact);
+
+    if (isFumble) this._handleFumble(playerContact, this._ballCarrier!);
+
     Chat.send(
       `${ICONS.HandFingersSpread} Tackle ${yardAndHalfStr} | ${netYardsStr}`
     );
@@ -52,8 +56,8 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
         Room.game.offenseTeamId
       );
 
-    if (isSafety) return super.handleSafety();
-    if (isTouchback) return super.handleTouchback();
+    if (isSafety) return super._handleSafety();
+    if (isTouchback) return super._handleTouchback();
 
     this.endPlay({
       newLosX: endPosition.x,
@@ -87,8 +91,8 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
         Room.game.offenseTeamId
       );
 
-    if (isSafety) return super.handleSafety();
-    if (isTouchback) return super.handleTouchback();
+    if (isSafety) return super._handleSafety();
+    if (isTouchback) return super._handleTouchback();
 
     this.endPlay({ newLosX: endPosition.x });
   }
@@ -100,6 +104,13 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
 
   onBallOutOfBounds(ballPosition: Position): void {
     const kicker = this.getState("KickOffKicker");
+
+    const isTouchback = GameReferee.checkIfTouchbackBall(
+      ballPosition,
+      Room.game.offenseTeamId
+    );
+
+    if (isTouchback) return this._handleTouchback();
 
     this._handleOffensePenalty(kicker, "ballOutOfBounds");
   }
@@ -138,7 +149,7 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
       Room.game.offenseTeamId
     );
 
-    if (isTouchback) return this.handleTouchback();
+    if (isTouchback) return this._handleTouchback();
 
     this.endPlay({ newLosX: endPosition.x });
   }

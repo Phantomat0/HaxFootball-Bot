@@ -103,6 +103,7 @@ export default class OnsideKick extends OnsideKickEvents {
   }
 
   protected _handleUnsuccessfulOnsideKick(msg: string | null) {
+    // If theres a message for the reason for the invalid offside kick, send it
     if (msg) {
       Chat.send(`Unsuccessful onside kick - ${msg}`);
     }

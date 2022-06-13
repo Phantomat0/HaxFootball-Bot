@@ -246,6 +246,11 @@ export interface PlayerObject {
 }
 
 /**
+ * Flattened player
+ */
+export type PlayerObjFlat = Pick<PlayerObject, "name" | "id" | "team">;
+
+/**
  * PlayerObject with connection or auth
  */
 
@@ -259,8 +264,6 @@ interface FullPlayerObject extends PlayerObject {
    */
   conn: string;
 }
-
-export type PlayerObjFlat = Pick<PlayerObject, "name" | "id" | "team">;
 
 export default interface HBClient {
   /**
