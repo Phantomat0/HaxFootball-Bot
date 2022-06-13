@@ -1,4 +1,4 @@
-import Room, { client } from "..";
+import Room, { client, TEAMS } from "..";
 import BallContact from "../classes/BallContact";
 import PlayerContact from "../classes/PlayerContact";
 import {
@@ -6,6 +6,7 @@ import {
   PlayerObject,
   PlayerObjFlat,
   Position,
+  Speed,
 } from "../HBClient";
 import Chat from "../roomStructures/Chat";
 import Ball from "../roomStructures/Ball";
@@ -119,7 +120,9 @@ export default class Snap extends SnapEvents {
   }
 
   findCrowder() {
-    const fieldedPlayers = Room.game.players.getFielded();
+    const fieldedPlayers = Room.game.players
+      .getFielded()
+      .filter((player) => player.id !== this._quarterback.id);
     return this.crowdChecker.checkPlayersInCrowdBox(
       fieldedPlayers,
       Room.game.getTime()
@@ -131,14 +134,11 @@ export default class Snap extends SnapEvents {
     player: PlayerObjFlat,
     penaltyData: AdditionalPenaltyData = {}
   ): void {
-    console.log(this.readAllState());
-    console.log("CUSTOM RAN YESSIR");
     // We have to check the room and play state, since play state may not be sent on a snap penalty
     if (
       this.stateExists("twoPointAttempt") ||
       Room.game.stateExists("twoPointAttempt")
     ) {
-      console.log("YUP");
       quickPause();
 
       const losX = Room.game.down.getLOS().x;
@@ -169,7 +169,6 @@ export default class Snap extends SnapEvents {
   }
 
   endPlay(endPlayData: EndPlayData) {
-    console.log(this.readAllState());
     if (this.stateExists("twoPointAttempt")) {
       // Endplay will only run when we didn't score a touchdown, so means unsuccessful fg
       return this._handleFailedTwoPointConversion();
@@ -189,7 +188,7 @@ export default class Snap extends SnapEvents {
       return this._handleFailedTwoPointConversion();
     }
 
-    super.handleSafety();
+    super._handleSafety();
   }
 
   /**
@@ -260,8 +259,14 @@ export default class Snap extends SnapEvents {
     this._ballMoveBlitzClockTime++;
     if (this._ballMoveBlitzClockTime >= this.BALL_MOVE_BLITZ_TIME_SECONDS) {
       this.setState("canBlitz");
-      Chat.send("Can blitz");
-      return this._stopBallMoveBlitzClock();
+
+      const playAlreadyDead =
+        this.stateExists("ballPassed") ||
+        this.stateExists("ballRan") ||
+        this.stateExists("ballBlitzed");
+      this._stopBallMoveBlitzClock();
+      if (playAlreadyDead) return;
+      Chat.send(`${ICONS.Bell} Can Blitz`, { sound: 2 });
     }
   }
 
@@ -330,9 +335,11 @@ export default class Snap extends SnapEvents {
   }
 
   protected _handleRun(playerContactObj: PlayerContact) {
-    const { player } = playerContactObj;
+    const { player, playerSpeed } = playerContactObj;
 
     Chat.send(`${ICONS.Running} Ball Ran!`);
+    // this._giveRunnerSpeedBoost(player, playerSpeed);
+    this._makeOffenseBouncy();
 
     this.setBallCarrier(player).setState("ballRan");
   }
@@ -585,8 +592,8 @@ export default class Snap extends SnapEvents {
         Room.game.offenseTeamId
       );
 
-    if (isSafety) return this.handleSafety();
-    if (isTouchback) return this.handleTouchback();
+    if (isSafety) return this._handleSafety();
+    if (isTouchback) return this._handleTouchback();
 
     return this.endPlay({ newLosX: adjustedEndPosition.x, setNewDown: true });
   }
@@ -615,7 +622,7 @@ export default class Snap extends SnapEvents {
         );
 
       if (isSafety) return this.handleSafety();
-      if (isTouchback) return this.handleTouchback();
+      if (isTouchback) return this._handleTouchback();
 
       return this.endPlay({
         newLosX: endPosition.x,
@@ -651,17 +658,9 @@ export default class Snap extends SnapEvents {
       this.stateExists("ballRan") === false &&
       this.stateExists("ballCaught") === false;
 
-    const { playerSpeed, ballCarrierSpeed } = playerContact;
+    const isFumble = this._checkForFumble(playerContact);
 
-    Chat.send(`X: ${Math.abs(playerSpeed.x).toFixed(3)}`, {
-      id: Room.getPlayerTestingId(),
-    });
-    Chat.send(
-      `Total: ${(
-        Math.abs(playerSpeed.x) + Math.abs(ballCarrierSpeed.x)
-      ).toFixed(3)}`,
-      { id: Room.getPlayerTestingId() }
-    );
+    if (isFumble) this._handleFumble(playerContact, this._ballCarrier!);
 
     // No sacks on interceptions
     if (isSack && this.stateExists("ballIntercepted") === false) {
@@ -772,6 +771,39 @@ export default class Snap extends SnapEvents {
     // Remove one point
     // Room.game.clearState();
     this.scorePlay(-1, Room.game.offenseTeamId, Room.game.defenseTeamId);
+  }
+
+  private _giveRunnerSpeedBoost(runner: PlayerObjFlat, speed: Speed) {
+    console.log(speed);
+
+    const isMovingDown = speed.y > 0;
+
+    if (isMovingDown) {
+      client.setPlayerDiscProperties(runner.id, { yspeed: 6 });
+    } else {
+      client.setPlayerDiscProperties(runner.id, { yspeed: -6 });
+    }
+
+    // if (runner.team === TEAMS.RED) {
+    //   client.setPlayerDiscProperties(runner.id, { xspeed: 8 });
+    // } else {
+    //   client.setPlayerDiscProperties(runner.id, { xspeed: -8 });
+    // }
+  }
+
+  /**
+   * Makes the offense bouncy so they can block for the runner
+   */
+  private _makeOffenseBouncy() {
+    const offensePlayers = Room.game.players.getOffense();
+
+    offensePlayers.forEach((player) => {
+      client.setPlayerDiscProperties(player.id, {
+        bCoeff: 0.99,
+        // damping: 0.55,
+        invMass: 0.5,
+      });
+    });
   }
 
   /**
