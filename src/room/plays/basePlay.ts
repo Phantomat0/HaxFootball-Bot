@@ -18,6 +18,7 @@ import { addPlus, plural, truncateName } from "../utils/utils";
 import Snap from "./Snap";
 import BasePlayAbstract, { PLAY_TYPES } from "./BasePlayAbstract";
 import DistanceCalculator from "../structures/DistanceCalculator";
+import PlayerContact from "../classes/PlayerContact";
 
 export interface EndPlayData {
   /**
@@ -131,6 +132,70 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     this.scorePlay(7, Room.game.offenseTeamId, Room.game.defenseTeamId);
 
     this.allowForTwoPointAttempt();
+  }
+
+  protected _checkForFumble(playerContact: PlayerContact) {
+    if (this.stateExistsUnsafe("twoPointAttempt")) return false;
+
+    // We want a max speed just incase the player is moving fast
+    // because he got hit with the ball, it will mess with our
+    // speed
+    const MAX_SPEED = 3;
+
+    // A fumble is
+
+    const MIN_SUM_SPEED_FOR_FUMBLE = 5;
+
+    const { playerSpeed, ballCarrierSpeed } = playerContact;
+
+    // Adjusts the speeds, since we can have negative speeds
+    const playerXSpeed = Math.min(Math.abs(playerSpeed.x), MAX_SPEED);
+    const playerYSpeed = Math.min(Math.abs(playerSpeed.y), MAX_SPEED);
+
+    const ballCarrierXSpeed = Math.min(Math.abs(ballCarrierSpeed.x), MAX_SPEED);
+    const ballCarrierYSpeed = Math.min(Math.abs(ballCarrierSpeed.y), MAX_SPEED);
+
+    Chat.send(`X: ${playerXSpeed.toFixed(3)}`, {
+      id: Room.getPlayerTestingId(),
+    });
+
+    Chat.send(`Total: ${(playerXSpeed + ballCarrierXSpeed).toFixed(3)}`, {
+      id: Room.getPlayerTestingId(),
+    });
+
+    const sumSpeed = playerXSpeed + ballCarrierXSpeed;
+
+    if (sumSpeed >= MIN_SUM_SPEED_FOR_FUMBLE) return true;
+
+    return false;
+  }
+
+  protected _handleFumble(
+    playerContact: PlayerContact,
+    ballCarrier: PlayerObjFlat
+  ) {
+    Chat.send(`Would have been a fumble`, {
+      id: Room.getPlayerTestingId(),
+      sound: 2,
+      icon: ICONS.Dizzy,
+    });
+    // const { player } = playerContact;
+    // // Announce it
+    // Chat.send(`${ICONS.Dizzy} Fumble! Recovered by ${player.name}`, {
+    //   sound: 2,
+    // });
+
+    // // Update stats
+    // Room.game.stats.updatePlayerStat(player.id, { forcedFumbles: 1 });
+    // Room.game.stats.updatePlayerStat(ballCarrier.id, { fumbles: 1 });
+
+    // // Swap offense
+    // Room.game.swapOffenseAndUpdatePlayers();
+
+    // // Check for a touchback or a safety
+
+    // //End the play if neither
+    // this.endPlay({ setNewDown: true });
   }
 
   /**
@@ -254,7 +319,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
   /**
    * Handles a safety
    */
-  handleSafety() {
+  _handleSafety() {
     this._setLivePlay(false);
     Chat.send(`${ICONS.Loudspeaker} Safety - kickoff from the 20 yard line`);
 
@@ -267,7 +332,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
   /**
    * Handles a touchback, only callable on punts or kickoffs
    */
-  handleTouchback() {
+  protected _handleTouchback() {
     Chat.send(
       `${ICONS.Loudspeaker} Touchback - ball placed at the receiving team's 20 yard line.`
     );

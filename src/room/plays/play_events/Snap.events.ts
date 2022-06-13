@@ -182,7 +182,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       });
     }
 
-    if (isSafety) return this.handleSafety();
+    if (isSafety) return this._handleSafety();
 
     this.endPlay({ newLosX: endPosition.x, netYards });
   }
