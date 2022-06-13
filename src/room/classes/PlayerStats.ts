@@ -23,7 +23,7 @@ class EMPTY_MAP_SECTION_STAT {
 type PartialMapSection = Partial<MapSectionStat>;
 type PartialMapSectionStatQuery = Partial<MapSectionStatQuery>;
 
-interface IPlayerStat {
+export interface IPlayerStat {
   // Receiving
   receptions: PartialMapSection;
   receivingYards: PartialMapSection;
@@ -175,63 +175,63 @@ export default class PlayerStats implements IPlayerStat {
   onsideKicksAttempted: number = 0;
   onsideKicksConverted: number = 0;
 
-  private get totalReceptions() {
+  get totalReceptions() {
     return sumObjectValues(this.receptions);
   }
 
-  private get cornerReceptions() {
+  get cornerReceptions() {
     return this.receptions.cornerBottom + this.receptions.cornerTop;
   }
 
-  private get totalReceivingYards() {
+  get totalReceivingYards() {
     return sumObjectValues(this.receivingYards);
   }
 
-  private get cornerReceivingYards() {
+  get cornerReceivingYards() {
     return this.receivingYards.cornerBottom + this.receivingYards.cornerTop;
   }
 
-  private get totalYardsAfterCatch() {
+  get totalYardsAfterCatch() {
     return sumObjectValues(this.receivingYardsAfterCatch);
   }
 
-  private get totalPassAttempts() {
+  get totalPassAttempts() {
     return sumObjectValues(this.passAttempts);
   }
 
-  private get cornerPassAttempts() {
+  get cornerPassAttempts() {
     return this.passAttempts.cornerBottom + this.passAttempts.cornerTop;
   }
 
-  private get totalPassCompletions() {
+  get totalPassCompletions() {
     return sumObjectValues(this.passCompletions);
   }
 
-  private get cornerPassCompletions() {
+  get cornerPassCompletions() {
     return this.passCompletions.cornerBottom + this.passCompletions.cornerTop;
   }
 
-  private get totalPassYards() {
+  get totalPassYards() {
     return sumObjectValues(this.passYards);
   }
 
-  private get cornerPassYards() {
+  get cornerPassYards() {
     return this.passYards.cornerBottom + this.passYards.cornerTop;
   }
 
-  private get totalPassDeflections() {
+  get totalPassDeflections() {
     return sumObjectValues(this.passDeflections);
   }
 
-  private get cornerPassDeflections() {
+  get cornerPassDeflections() {
     return this.passDeflections.cornerBottom + this.passDeflections.cornerTop;
   }
 
-  private get totalYardsAllowed() {
+  get totalYardsAllowed() {
     return sumObjectValues(this.yardsAllowed);
   }
 
-  private get cornerYardsAllowed() {
+  get cornerYardsAllowed() {
     return this.yardsAllowed.cornerBottom + this.yardsAllowed.cornerTop;
   }
 
@@ -293,10 +293,10 @@ export default class PlayerStats implements IPlayerStat {
       this.totalPassAttempts
     } ${ICONS.SmallBlackSquare} Pyds: ${this.totalPassYards} | TD: ${
       this.touchdownsThrown
-    } Ints: ${
-      this.interceptionsThrown
+    } ${ICONS.SmallBlackSquare} Ints: ${this.interceptionsThrown} ${
+      ICONS.SmallBlackSquare
     } Rating: ${this._calculatePasserRating()}`;
-    const defensiveStats = `Defense | PD: ${this.totalPassDeflections} ${ICONS.SmallBlackSquare} Tak: ${this.tackles} ${ICONS.SmallBlackSquare} Sak: ${this.sacks} ${ICONS.SmallBlackSquare} Ints: ${this.interceptionsReceived} YdsAllowed: ${this.totalYardsAllowed}`;
+    const defensiveStats = `Defense | PD: ${this.totalPassDeflections} ${ICONS.SmallBlackSquare} Tak: ${this.tackles} ${ICONS.SmallBlackSquare} Sak: ${this.sacks} ${ICONS.SmallBlackSquare} Ints: ${this.interceptionsReceived} ${ICONS.SmallBlackSquare} YdsAllowed: ${this.totalYardsAllowed}`;
 
     return `${recStats}\n${qbStats}\n${defensiveStats}`;
   }
