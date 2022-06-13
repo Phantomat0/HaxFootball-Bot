@@ -22,7 +22,8 @@ class PlayerCrowdData {
 }
 
 export default class SnapCrowdChecker {
-  private CROWD_BOX_YARDS: number = 5;
+  private CROWD_BOX_YARDS_FRONT: number = 5;
+  private CROWD_BOX_YARDS_BEHIND: number = 4;
   private MAX_CROWDING_SECONDS: number = 3;
 
   private _playersInCrowdBoxList: PlayerCrowdData[] = [];
@@ -51,18 +52,22 @@ export default class SnapCrowdChecker {
     const crowdBoxFront = new DistanceCalculator()
       .addByTeam(
         losX,
-        MAP_POINTS.YARD * this.CROWD_BOX_YARDS,
+        MAP_POINTS.YARD * this.CROWD_BOX_YARDS_FRONT,
         this._offenseTeamId
       )
       .calculate();
 
-    const twoYardsBehindLos = new DistanceCalculator()
-      .subtractByTeam(losX, MAP_POINTS.YARD * 2, this._offenseTeamId)
+    const crowdBoxBehind = new DistanceCalculator()
+      .subtractByTeam(
+        losX,
+        MAP_POINTS.YARD * this.CROWD_BOX_YARDS_BEHIND,
+        this._offenseTeamId
+      )
       .calculate();
 
     if (this._offenseTeamId === TEAMS.RED) {
       const boxArea = {
-        x1: twoYardsBehindLos,
+        x1: crowdBoxBehind,
         y1: MAP_POINTS.TOP_HASH,
         x2: crowdBoxFront,
         y2: MAP_POINTS.BOT_HASH,
@@ -73,7 +78,7 @@ export default class SnapCrowdChecker {
       const boxArea = {
         x1: crowdBoxFront,
         y1: MAP_POINTS.TOP_HASH,
-        x2: twoYardsBehindLos,
+        x2: crowdBoxBehind,
         y2: MAP_POINTS.BOT_HASH,
       };
 
