@@ -23,6 +23,7 @@ const eventListeners: EventListener[] = [
       "ballBlitzed",
       "puntCaught",
       "onsideKickCaught",
+      "kickOffCaught",
       "interceptionRuling",
     ],
     run: () => {
