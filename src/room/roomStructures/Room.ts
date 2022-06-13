@@ -4,7 +4,7 @@ import KickOff from "../plays/Kickoff";
 import PlayerManager from "./Players";
 
 export default class RoomClient {
-  private _game: Game | null;
+  private _game: Game | null = null;
   readonly players: PlayerManager = new PlayerManager();
   private _isBotOn: boolean = true;
   private _playerTestingId: number = 1;
