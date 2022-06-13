@@ -189,6 +189,58 @@ const commandsMap = new Collection<CommandName, Command>([
     },
   ],
   [
+    "rules",
+    {
+      name: "rules",
+      alias: [],
+      description: "Returns the rules of the game",
+      usage: [],
+      showCommand: false,
+      permissions: {
+        level: 0,
+        muted: true,
+        game: false,
+        notDuringPlay: false,
+      },
+      params: {
+        min: 0,
+        max: 0,
+        types: [],
+      },
+      async run(cmd: CommandMessage) {
+        cmd.reply(
+          `Rules of the game\n ${ICONS.SmallBlackSquare} Offense | One player is a passer, while the rest of the team runs to get open for a catch. Catch the ball by touching it after a pass and run to the opposing team's goal.\n${ICONS.SmallBlackSquare} Defense | Guard the receivers and prevent them from catching the ball. Defense has to be behind the blue line at all times.\n${ICONS.YellowSquare} It is illegal for a defender to stand right infront of the blue line without defending another player \n${ICONS.Running} Run the ball by touching the back of the quarterback.\n ${ICONS.Target} Intercept the ball by kicking the ball through the goal posts after a pass\n ${ICONS.Dizzy} Rush the quarterback after 12 seconds or 3 seconds after he has moved the ball `
+        );
+      },
+    },
+  ],
+  [
+    "cre",
+    {
+      name: "cre",
+      alias: [],
+      description: "Explains crowding",
+      usage: [],
+      showCommand: false,
+      permissions: {
+        level: 1,
+        muted: true,
+        game: false,
+        notDuringPlay: false,
+      },
+      params: {
+        min: 0,
+        max: 0,
+        types: [],
+      },
+      async run(cmd: CommandMessage) {
+        cmd.announce(
+          `You cannot stand in front of the blue line for more than 3 seconds without an offensive player being present.`
+        );
+      },
+    },
+  ],
+  [
     "stats",
     {
       name: "stats",
