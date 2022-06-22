@@ -2,13 +2,6 @@ import Chat from "../roomStructures/Chat";
 import ChatMessage from "./ChatMessage";
 import Player from "./Player";
 
-// class CommandError {
-//   message: string;
-//   constructor(message: string) {
-//     this.message = message;
-//   }
-// }
-
 export default class CommandMessage extends ChatMessage {
   /**
    * The name of the attempted command, doesn't have to be a legal command name
