@@ -1,8 +1,8 @@
-import Room from "..";
 import BallContact from "../classes/BallContact";
-import { PlayerObject } from "../HBClient";
+import HBClient from "../HBClient";
+import Room from "../roomStructures/Room";
 
-export default function onBallKick(player: PlayerObject) {
+const onBallKick: HBClient["onPlayerBallKick"] = (player) => {
   if (!Room.isBotOn) return;
   if (!Room?.game?.play?.isLivePlay) return;
 
@@ -10,4 +10,6 @@ export default function onBallKick(player: PlayerObject) {
   const ballContact = new BallContact("kick", player, position);
 
   Room.game.play!.onBallContact(ballContact);
-}
+};
+
+export default onBallKick;

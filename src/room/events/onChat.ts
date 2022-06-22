@@ -1,9 +1,9 @@
-import Room from "..";
 import ChatMessage from "../classes/ChatMessage";
-import { PlayerObject } from "../HBClient";
-import ChatHandler from "../structures/ChatHandler";
+import HBClient from "../HBClient";
+import Room from "../roomStructures/Room";
+import ChatHandler from "../roomStructures/ChatHandler";
 
-export default function onChat(player: PlayerObject, message: string) {
+const onChat: HBClient["onPlayerChat"] = (player, message) => {
   const playerProfile = Room.players.playerCollection.get(player.id);
 
   if (!playerProfile || playerProfile.canPlay === false) return false;
@@ -28,4 +28,6 @@ export default function onChat(player: PlayerObject, message: string) {
     return ChatHandler.maybeHandleCommand(chatObj);
 
   return true;
-}
+};
+
+export default onChat;

@@ -1,9 +1,17 @@
-import Room, { client } from "..";
-import { FullPlayerObject } from "../HBClient";
+import client from "..";
+import HBClient, { FullPlayerObject } from "../HBClient";
 import { SHOW_DEBUG_CHAT } from "../roomConfig";
-import Greeter from "../structures/Greeter";
+import Room from "../roomStructures/Room";
+import Greeter from "../roomStructures/Greeter";
 
-export default function onJoin(player: FullPlayerObject) {
+const alreadyHasAuthInRoom = (auth: FullPlayerObject["auth"]) => {
+  if (Room.players.findOne({ auth: auth })) return true;
+  return false;
+};
+
+const onJoin: HBClient["onPlayerJoin"] = (player) => {
+  if (alreadyHasAuthInRoom(player.auth))
+    return client.kickPlayer(player.id, "Conn already exists in room", false);
   Room.players.createAndAdd(player);
 
   Greeter.greetPlayer(player);
@@ -20,4 +28,6 @@ export default function onJoin(player: FullPlayerObject) {
       client.setPlayerDiscProperties(player.id, { x: 150, y: 0 });
     }
   }
-}
+};
+
+export default onJoin;

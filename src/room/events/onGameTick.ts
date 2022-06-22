@@ -1,16 +1,16 @@
 import { getPlayerDiscProperties } from "../utils/haxUtils";
-import Room from "..";
 import MapReferee from "../structures/MapReferee";
 import GameReferee from "../structures/GameReferee";
 import { checkBallCarrierContact, checkBallContact } from "./tickEvents";
 import Chat from "../roomStructures/Chat";
-import { PlayableTeamId } from "../HBClient";
+import HBClient, { PlayableTeamId } from "../HBClient";
 import Snap from "../plays/Snap";
 import Ball from "../roomStructures/Ball";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import FieldGoal from "../plays/FieldGoal";
 import { MAP_POINTS } from "../utils/map";
 import { PlayStorageKeys } from "../plays/BasePlayAbstract";
+import Room from "../roomStructures/Room";
 
 const eventListeners: EventListener[] = [
   {
@@ -305,12 +305,9 @@ const eventListeners: EventListener[] = [
     // Crowd
     name: "Crowd",
     runWhen: ["ballSnapped"],
-    stopWhen: ["ballPassed", "lineBlitzed", "ballRan"],
+    stopWhen: ["ballPassed", "ballRan", "canBlitz"],
     run: () => {
-      const foundACrowder = Room.getPlay<Snap>().findCrowder();
-
-      if (foundACrowder)
-        return Room.getPlay<Snap>().handleCrowdingPenalty(foundACrowder);
+      Room.getPlay<Snap>().findCrowderAndHandle();
     },
   },
   {
@@ -332,7 +329,7 @@ const eventListeners: EventListener[] = [
   },
 ];
 
-export default function onGameTick() {
+const onGameTick: HBClient["onGameTick"] = () => {
   // Check if bot is even on or if we have a game
   if (!Room.isBotOn || !Room.game) return;
 
@@ -348,7 +345,7 @@ export default function onGameTick() {
     Chat.sendBotError(error.message);
     Room.game.down.hardReset();
   }
-}
+};
 
 interface EventListener {
   name: string;
@@ -364,3 +361,5 @@ const checkIfRunListener = (listenerObj: EventListener) =>
 
 const checkIfStopListener = (listenerObj: EventListener) =>
   listenerObj.stopWhen.some((state) => Room.getPlay().stateExistsUnsafe(state));
+
+export default onGameTick;
