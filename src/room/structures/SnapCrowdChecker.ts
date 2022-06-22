@@ -1,4 +1,4 @@
-import { PlayableTeamId, PlayerObject, TeamId } from "../HBClient";
+import { PlayableTeamId, PlayerObject } from "../HBClient";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
 import { MAP_POINTS } from "../utils/map";
 import { TEAMS } from "../utils/types";
@@ -27,7 +27,7 @@ class PlayerCrowdData {
 
 export default class SnapCrowdChecker {
   private CROWD_BOX_YARDS_FRONT: number = 5;
-  private CROWD_BOX_YARDS_BEHIND: number = 4;
+  private CROWD_BOX_YARDS_BEHIND: number = 5;
   private MAX_CROWDING_SECONDS: number = 3;
   private MAX_CROWD_ABUSE_SECONDS: number = 2.25;
 
@@ -35,11 +35,18 @@ export default class SnapCrowdChecker {
   private _offenseTeamId: PlayableTeamId;
   private _playCrowdBoxArea: { x1: number; y1: number; x2: number; y2: number };
 
-  checkPlayersInCrowdBox(players: PlayerObject[], time: number) {
+  checkPlayersInCrowdBox(
+    players: PlayerObject[],
+    time: number
+  ): {
+    isCrowding: boolean;
+    crowder: PlayerObject | null;
+    crowdingData: PlayerCrowdData | null;
+  } {
     const crowder = players.find((player) => {
       const inCrowd = this._checkIfPlayerInCrowdBox(player.id);
       if (inCrowd) {
-        const index = this._maybeAddToCrowdBox(player, time);
+        const index = this._addToCrowdBoxIfNotAlready(player, time);
         const isCrowding = this._checkIfMeetsCrowdingCriteria(index, time);
         if (isCrowding) return true;
       } else {
@@ -51,7 +58,7 @@ export default class SnapCrowdChecker {
     if (crowder) {
       const crowdingData = this._playersInCrowdBoxList.find(
         (crowdData) => crowdData.playerId === crowder.id
-      );
+      )!;
 
       return {
         isCrowding: true,
@@ -78,9 +85,12 @@ export default class SnapCrowdChecker {
   private _determineCrowdBoxFrontYards(losX: number) {
     const losYardLine = DistanceConverter.toYardLine(losX);
     const isNextToEndzone = losX <= this.CROWD_BOX_YARDS_FRONT;
+
+    const teamLosIsIn = MapReferee.getMapHalfFromPoint(losX);
+
+    // TeamLosIsIn could return 0 if its at the 0
     const isInDefenseEndzone =
-      MapReferee.getEndZonePositionIsIn({ x: losX, y: 0 }) !==
-      this._offenseTeamId;
+      teamLosIsIn && teamLosIsIn !== this._offenseTeamId;
 
     if (isNextToEndzone && isInDefenseEndzone) return losYardLine;
     return this.CROWD_BOX_YARDS_FRONT;
@@ -89,6 +99,7 @@ export default class SnapCrowdChecker {
   setCrowdBoxArea(losX: number) {
     const crowdBoxFrontYards = this._determineCrowdBoxFrontYards(losX);
 
+    console.log(crowdBoxFrontYards);
     const crowdBoxFront = new DistanceCalculator()
       .addByTeam(
         losX,
@@ -131,7 +142,10 @@ export default class SnapCrowdChecker {
     return isInRectangleArea(this._playCrowdBoxArea, position);
   }
 
-  private _maybeAddToCrowdBox(player: PlayerObject, time: number) {
+  private _addToCrowdBoxIfNotAlready(
+    player: PlayerObject,
+    time: number
+  ): number {
     // If already has a crowd thing, return
     const index = this._playersInCrowdBoxList.findIndex(
       (crowdPlayerData) => crowdPlayerData.playerId === player.id
@@ -157,19 +171,20 @@ export default class SnapCrowdChecker {
     );
   }
 
-  private _checkIfMeetsCrowdingCriteria(index: number, timeNow: number) {
+  private _checkIfMeetsCrowdingCriteria(
+    index: number,
+    timeNow: number
+  ): boolean {
     const offensivePlayerInCrowd = this._playersInCrowdBoxList.some(
       (player) => player.playerTeam === this._offenseTeamId
     );
 
+    // Reset everyones time
     if (offensivePlayerInCrowd) {
       this._playersInCrowdBoxList.forEach((player) => {
         player.timeGotInCrowdBox = timeNow;
       });
-      return {
-        isCrowding: false,
-        crowdingData: null,
-      };
+      return false;
     }
 
     const crowdingData = this._playersInCrowdBoxList[index];
@@ -184,10 +199,7 @@ export default class SnapCrowdChecker {
       differenceInCrowdingTime >= crowdingSeconds &&
       crowdingData.playerTeam !== this._offenseTeamId;
 
-    return {
-      isCrowding,
-      crowdingData,
-    };
+    return isCrowding;
   }
 
   private _maybeRemoveFromCrowdBoxList(playerId: PlayerObject["id"]) {
