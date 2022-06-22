@@ -1,13 +1,22 @@
 import Game from "../classes/Game";
 import { PLAY_TYPES } from "../plays/BasePlayAbstract";
 import KickOff from "../plays/Kickoff";
-import PlayerManager from "./Players";
+import { getRandomChars } from "../utils/utils";
+import Marquee from "./Marquee";
+import PlayerManager from "./Players/Players";
 
-export default class RoomClient {
+class RoomManager {
+  // private _roomLink: string | null = null;
+  readonly sessionId: string = getRandomChars(4).toLowerCase();
+  readonly roomId: 1 = 1;
   private _game: Game | null = null;
   readonly players: PlayerManager = new PlayerManager();
   private _isBotOn: boolean = true;
   private _playerTestingId: number = 1;
+
+  onRoomLoad() {
+    Marquee.run();
+  }
 
   /**
    * Returs the game when we know its defined
@@ -47,8 +56,10 @@ export default class RoomClient {
   startNewGame() {
     this._game = new Game();
     const fieldedPlayers = this.players.getFielded();
+    this._game.players.updateStaticPlayerList(this.game.offenseTeamId);
     fieldedPlayers.forEach((player) => {
-      this._game?.stats.maybeCreateStatProfile(player.playerObject!);
+      this._game!.stats.maybeCreateStatProfile(player.playerObject!);
+      this._game!.players.subIn(player.playerObject!, 0);
     });
     this.game.setPlay(new KickOff(0), null);
   }
@@ -57,3 +68,5 @@ export default class RoomClient {
     this._game = null;
   }
 }
+
+export default new RoomManager();
