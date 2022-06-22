@@ -1,7 +1,7 @@
-import { TEAMS } from "..";
 import { PlayableTeamId, Position } from "../HBClient";
 import DistanceCalculator from "../structures/DistanceCalculator";
 import { MAP_POINTS } from "./map";
+import { TEAMS } from "./types";
 import { isInRectangleArea } from "./utils";
 
 export type MapSectionName =

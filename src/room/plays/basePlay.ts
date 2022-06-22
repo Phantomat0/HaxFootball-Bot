@@ -1,4 +1,3 @@
-import Room from "..";
 import BallContact from "../classes/BallContact";
 import { PlayableTeamId, PlayerObjFlat, Position } from "../HBClient";
 import { SHOW_DEBUG_CHAT } from "../roomConfig";
@@ -19,6 +18,7 @@ import Snap from "./Snap";
 import BasePlayAbstract, { PLAY_TYPES } from "./BasePlayAbstract";
 import DistanceCalculator from "../structures/DistanceCalculator";
 import PlayerContact from "../classes/PlayerContact";
+import Room from "../roomStructures/Room";
 
 export interface EndPlayData {
   /**
@@ -140,11 +140,11 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     // We want a max speed just incase the player is moving fast
     // because he got hit with the ball, it will mess with our
     // speed
-    const MAX_SPEED = 3;
+    const MAX_SPEED = 2.5;
 
     // A fumble is
 
-    const MIN_SUM_SPEED_FOR_FUMBLE = 5;
+    const MIN_SUM_SPEED_FOR_FUMBLE = 3.8;
 
     const { playerSpeed, ballCarrierSpeed } = playerContact;
 

@@ -1,4 +1,3 @@
-import Room from "../..";
 import BallContact from "../../classes/BallContact";
 import PlayerContact from "../../classes/PlayerContact";
 import { PlayerObject, PlayerObjFlat, Position } from "../../HBClient";
@@ -8,6 +7,7 @@ import GameReferee from "../../structures/GameReferee";
 import MapReferee from "../../structures/MapReferee";
 import ICONS from "../../utils/Icons";
 import BasePlay from "../BasePlay";
+import Room from "../../roomStructures/Room";
 
 export interface KickOffStore {
   kickOff: true;

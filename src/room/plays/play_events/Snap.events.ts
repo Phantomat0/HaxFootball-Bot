@@ -1,4 +1,3 @@
-import Room from "../..";
 import BallContact from "../../classes/BallContact";
 import PlayerContact from "../../classes/PlayerContact";
 import { PlayerStatQuery } from "../../classes/PlayerStats";
@@ -9,6 +8,7 @@ import {
   Position,
 } from "../../HBClient";
 import Chat from "../../roomStructures/Chat";
+import Room from "../../roomStructures/Room";
 import GameReferee from "../../structures/GameReferee";
 import MapReferee from "../../structures/MapReferee";
 import ICONS from "../../utils/Icons";
@@ -39,30 +39,33 @@ export interface SnapStore {
   interceptionTackler: PlayerObject;
   interceptionPlayerKickPosition: Position;
   twoPointAttempt: true;
+  runFirstTackler: PlayerObjFlat;
+  canSecondTackle: true;
 }
 
 export default abstract class SnapEvents extends BasePlay<SnapStore> {
   abstract getQuarterback(): any;
-  protected abstract _handleCatch(ballContactObj: BallContact): any;
-  protected abstract _handleRun(playerContactObj: PlayerContact): any;
-  protected abstract _handleIllegalTouch(ballContactObj: BallContact): any;
+  protected abstract _handleCatch(ballContactObj: BallContact): void;
+  protected abstract _handleRun(playerContactObj: PlayerContact): void;
+  protected abstract _handleIllegalTouch(ballContactObj: BallContact): void;
   protected abstract _handleBallContactQuarterback(
     ballContactObj: BallContact
-  ): any;
-  protected abstract _handleSuccessfulInterception(): any;
+  ): void;
+  protected abstract _handleSuccessfulInterception(): void;
   protected abstract _handleInterceptionTackle(
     playerContactObj: PlayerContact
-  ): any;
-  protected abstract _handleTackle(playerContactObj: PlayerContact): any;
+  ): void;
+  protected abstract _handleRunTackle(playerContactObj: PlayerContact): void;
+  protected abstract _handleTackle(playerContactObj: PlayerContact): void;
   protected abstract _handleBallContactDuringInterception(
     ballContactObj: BallContact
-  ): any;
+  ): void;
   protected abstract _handleInterceptionBallCarrierOutOfBounds(
     ballCarrierPosition: Position
-  ): any;
+  ): void;
   protected abstract _handleInterceptionAttempt(ballContactObj: BallContact);
 
-  abstract handleUnsuccessfulInterception(message: BadIntReasons): any;
+  abstract handleUnsuccessfulInterception(message: BadIntReasons): void;
   protected abstract _getStatInfo(endPosition: Position): {
     quarterback: PlayerObject;
     mapSection: MapSectionName;
@@ -189,38 +192,10 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
 
   onBallCarrierContactOffense(playerContact: PlayerContact) {
     const { player, playerPosition, ballCarrierPosition } = playerContact;
+
+    // return this._handleRun(playerContact);
+
     // Verify that its a legal run
-
-    // fumbleCheck(playerSpeed, ballCarrierSpeed)
-
-    // // const { playerSpeed, ballCarrierSpeed } = playerContact;
-
-    // Chat.send(`X: ${Math.abs(playerSpeed.x).toFixed(3)}`);
-    // Chat.send(`Total: ${Math.abs(playerSpeed.x).toFixed(3)}`);
-
-    // Chat.send(`XBALLGUY: ${Math.abs(ballCarrierSpeed.x).toFixed(3)}`);
-    // Chat.send(
-    //   `TOTAL: ${(
-    //     Math.abs(ballCarrierSpeed.x) + Math.abs(playerSpeed.x)
-    //   ).toFixed(3)}`
-    // );
-
-    // Chat.send(
-    //   `X: ${playerSpeed.x.toFixed(3)} Y: ${playerSpeed.y.toFixed(
-    //     3
-    //   )} || X: ${ballCarrierSpeed.x.toFixed(3)} Y: ${ballCarrierSpeed.y.toFixed(
-    //     3
-    //   )}`
-    // );
-    // Chat.send(
-    //   `TOTAL: ${(
-    //     Math.abs(playerSpeed.x) +
-    //     Math.abs(playerSpeed.y) +
-    //     Math.abs(ballCarrierSpeed.x) +
-    //     Math.abs(ballCarrierSpeed.y)
-    //   ).toFixed(3)}`
-    // );
-
     const isBehindQuarterBack = MapReferee.checkIfBehind(
       playerPosition.x,
       ballCarrierPosition.x,
@@ -236,6 +211,9 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
   onBallCarrierContactDefense(playerContact: PlayerContact) {
     if (this.stateExists("interceptingPlayer"))
       return this._handleInterceptionTackle(playerContact);
+
+    if (this.stateExists("ballRan"))
+      return this._handleRunTackle(playerContact);
 
     this._handleTackle(playerContact);
   }

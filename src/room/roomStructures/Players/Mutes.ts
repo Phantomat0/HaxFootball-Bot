@@ -1,11 +1,8 @@
-import Player from "../classes/Player";
-import { PlayerObject, FullPlayerObject } from "../HBClient";
-import Collection from "../utils/Collection";
+import Player from "../../classes/Player";
+import { FullPlayerObject } from "../../HBClient";
+import Collection from "../../utils/Collection";
 
-interface IMute {
-  name: PlayerObject["name"];
-  auth: FullPlayerObject["auth"];
-}
+type IMute = Pick<FullPlayerObject, "name" | "auth" | "id">;
 
 export default class MuteManager {
   readonly mutedCollection: Collection<FullPlayerObject["auth"], IMute> =
@@ -15,6 +12,7 @@ export default class MuteManager {
     const mutedInfo = {
       name: playerBeingMuted.name,
       auth: playerBeingMuted.auth,
+      id: playerBeingMuted.id,
     };
 
     this.mutedCollection.set(playerBeingMuted.auth, mutedInfo);

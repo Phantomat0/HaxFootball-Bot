@@ -1,8 +1,8 @@
-import Room from "..";
 import BallContact from "../classes/BallContact";
 import PlayerContact from "../classes/PlayerContact";
 import { PlayerObject } from "../HBClient";
 import Ball from "../roomStructures/Ball";
+import Room from "../roomStructures/Room";
 import DistanceCalculator from "../structures/DistanceCalculator";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
 import { MAP_POINTS } from "../utils/map";

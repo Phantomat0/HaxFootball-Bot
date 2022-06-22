@@ -1,9 +1,9 @@
-import { client } from "..";
+import client from "..";
 import { PlayerObject } from "../HBClient";
 import MessageFormatter from "../structures/MessageFormatter";
 import COLORS from "../utils/colors";
 import ICONS from "../utils/Icons";
-import { ValueOf } from "../utils/types";
+import { ValueOf } from "../utils/helperTypes";
 
 export const MESSAGE_STYLE = {
   Bold: "bold",

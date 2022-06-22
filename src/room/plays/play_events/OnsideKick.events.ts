@@ -1,8 +1,8 @@
-import Room from "../..";
 import BallContact from "../../classes/BallContact";
 import PlayerContact from "../../classes/PlayerContact";
 import { PlayerObjFlat, Position } from "../../HBClient";
 import Chat from "../../roomStructures/Chat";
+import Room from "../../roomStructures/Room";
 import GameReferee from "../../structures/GameReferee";
 import ICONS from "../../utils/Icons";
 import BasePlay from "../BasePlay";
@@ -48,7 +48,7 @@ export default abstract class OnsideKickEvents extends BasePlay<OnsideKickStore>
       Room.game.offenseTeamId
     );
 
-    if (isSafety) return super.handleSafety();
+    if (isSafety) return super._handleSafety();
 
     this.endPlay({
       newLosX: endPosition.x,
@@ -81,7 +81,7 @@ export default abstract class OnsideKickEvents extends BasePlay<OnsideKickStore>
       Room.game.offenseTeamId
     );
 
-    if (isSafety) return super.handleSafety();
+    if (isSafety) return super._handleSafety();
 
     this.endPlay({ newLosX: endPosition.x });
   }

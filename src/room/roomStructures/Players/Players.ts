@@ -1,9 +1,10 @@
-import { client, TEAMS } from "..";
-import Player from "../classes/Player";
-import { FullPlayerObject, PlayerObject } from "../HBClient";
-import Collection from "../utils/Collection";
+import client from "../..";
+import Player from "../../classes/Player";
+import { FullPlayerObject, PlayerObject } from "../../HBClient";
+import Collection from "../../utils/Collection";
+import { TEAMS } from "../../utils/types";
 import BanManager from "./Bans";
-import MuteManager from "./Muted";
+import MuteManager from "./Mutes";
 
 export default class PlayerManager {
   readonly playerCollection: Collection<PlayerObject["id"], Player> =
@@ -11,27 +12,12 @@ export default class PlayerManager {
   readonly muted = new MuteManager();
   readonly bans = new BanManager();
 
-  private _createPlayer(player: FullPlayerObject): Player {
-    return new Player(player);
+  findOne(searchQuery: Partial<Player>) {
+    return this.playerCollection.findOne(searchQuery);
   }
 
-  /**
-   * Sort them by the order they appear in the list, that way we know who is higher in the specs list for example
-   */
-  private _sortByOrderInPlayerList(playerArr: Player[]) {
-    const clientPlayerList = client.getPlayerList();
-
-    const idToPositionMap: { [key: PlayerObject["id"]]: number } =
-      clientPlayerList.reduce((acc, currPlayer) => {
-        acc[currPlayer.id] = clientPlayerList.findIndex(
-          (player) => player.id === currPlayer.id
-        );
-        return acc;
-      }, {});
-
-    return playerArr.sort((a, b) => {
-      return idToPositionMap[a.id] - idToPositionMap[b.id];
-    });
+  find(searchQuery?: Partial<Player>) {
+    return this.playerCollection.find(searchQuery);
   }
 
   /**
@@ -117,5 +103,28 @@ export default class PlayerManager {
         .find()
         .filter((player) => player.team !== TEAMS.SPECTATORS)
     );
+  }
+
+  private _createPlayer(player: FullPlayerObject): Player {
+    return new Player(player);
+  }
+
+  /**
+   * Sort them by the order they appear in the list, that way we know who is higher in the specs list for example
+   */
+  private _sortByOrderInPlayerList(playerArr: Player[]) {
+    const clientPlayerList = client.getPlayerList();
+
+    const idToPositionMap: { [key: PlayerObject["id"]]: number } =
+      clientPlayerList.reduce((acc, currPlayer) => {
+        acc[currPlayer.id] = clientPlayerList.findIndex(
+          (player) => player.id === currPlayer.id
+        );
+        return acc;
+      }, {});
+
+    return playerArr.sort((a, b) => {
+      return idToPositionMap[a.id] - idToPositionMap[b.id];
+    });
   }
 }

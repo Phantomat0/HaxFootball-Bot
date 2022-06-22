@@ -1,11 +1,13 @@
-import Room, { client, TEAMS } from "..";
+import client from "..";
 import { PlayableTeamId, PlayerObject } from "../HBClient";
 import { PLAY_TYPES } from "../plays/BasePlayAbstract";
 import Chat from "../roomStructures/Chat";
-import PlayerRecorder from "../structures/PlayerRecorder";
+import Room from "../roomStructures/Room";
+import PlayerRecorder from "../roomStructures/PlayerRecorder";
 import PlayerStatManager from "../structures/PlayerStatManager";
 import { toClock } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
+import { TEAMS } from "../utils/types";
 import Down from "./Down";
 import WithStateStore from "./WithStateStore";
 
@@ -188,7 +190,7 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
    */
   private resetPlayersPhysics() {
     Room.players.getFielded().forEach((player) => {
-      client.setDiscProperties(player.id, { bCoeff: 0.75, invMass: 0.8 });
+      client.setPlayerDiscProperties(player.id, { bCoeff: 0.75, invMass: 0.8 });
     });
   }
 }

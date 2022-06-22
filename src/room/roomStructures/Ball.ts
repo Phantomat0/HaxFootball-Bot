@@ -1,6 +1,7 @@
 import { PlayableTeamId, Position } from "../HBClient";
 import { DISC_IDS, MAP_POINTS } from "../utils/map";
-import { client, TEAMS } from "..";
+import client from "..";
+import { TEAMS } from "../utils/types";
 
 class Ball {
   private IMMOVABLE_INV_MASS: number = 0.00001;

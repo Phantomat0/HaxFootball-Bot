@@ -1,4 +1,4 @@
-import { client } from "..";
+import client from "..";
 import { PlayerObject, TeamId } from "../HBClient";
 import { leftpad } from "./utils";
 

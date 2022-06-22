@@ -1,8 +1,9 @@
-import Room, { client } from "..";
+import client from "..";
 import BallContact from "../classes/BallContact";
 import { PlayerObject, Position } from "../HBClient";
 import Ball from "../roomStructures/Ball";
 import Chat from "../roomStructures/Chat";
+import Room from "../roomStructures/Room";
 import DistanceCalculator from "../structures/DistanceCalculator";
 import MapReferee from "../structures/MapReferee";
 import PreSetCalculators from "../structures/PreSetCalculators";

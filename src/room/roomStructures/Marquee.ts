@@ -1,9 +1,10 @@
-import Chat from "../roomStructures/Chat";
+import Chat from "./Chat";
 import { randFromArray } from "../utils/utils";
 
 const ANNOUNCEMENTS: string[] = [
   "!stats or !stats partialplayername to view your stats or that of another player",
   "You can rush the field goal kicker before he kicks the fieldgoal",
+  "Join our Discord discord.gg/VdrD2p7",
 ];
 
 export default class Marquee {

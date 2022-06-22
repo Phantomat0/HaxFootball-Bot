@@ -1,7 +1,7 @@
-import { TEAMS } from "..";
 import { PlayableTeamId, PlayerObject, Position } from "../HBClient";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
 import { MAP_POINTS } from "../utils/map";
+import { TEAMS } from "../utils/types";
 import { extrapolateLine } from "../utils/utils";
 import DistanceCalculator from "./DistanceCalculator";
 import PreSetCalculators from "./PreSetCalculators";
@@ -236,6 +236,12 @@ class MapReferee {
         distanceToBall: 0,
       }
     ).player;
+  }
+
+  getMapHalfFromPoint(x: Position["x"]) {
+    if (x > MAP_POINTS.KICKOFF) return TEAMS.BLUE;
+    if (x < MAP_POINTS.KICKOFF) return TEAMS.RED;
+    return 0;
   }
 }
 

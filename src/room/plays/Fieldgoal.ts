@@ -1,10 +1,11 @@
-import Room, { client } from "..";
+import client from "..";
 import BallContact from "../classes/BallContact";
 import PlayerContact from "../classes/PlayerContact";
 import { GameCommandError } from "../commands/GameCommandHandler";
 import { PlayerObject, Position } from "../HBClient";
 import Ball from "../roomStructures/Ball";
 import Chat from "../roomStructures/Chat";
+import Room from "../roomStructures/Room";
 import DistanceCalculator from "../structures/DistanceCalculator";
 import GameReferee from "../structures/GameReferee";
 import MapReferee from "../structures/MapReferee";
@@ -244,8 +245,8 @@ export default class FieldGoal extends FieldGoalEvents {
         Room.game.offenseTeamId
       );
 
-    if (isSafety) return this.handleSafety();
-    if (isTouchback) return this.handleTouchback();
+    if (isSafety) return this._handleSafety();
+    if (isTouchback) return this._handleTouchback();
 
     this.endPlay({
       newLosX: endPosition.x,

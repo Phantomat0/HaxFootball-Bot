@@ -1,7 +1,7 @@
-import Room from "..";
 import CommandMessage from "../classes/CommandMessage";
 import Player from "../classes/Player";
 import Chat from "../roomStructures/Chat";
+import Room from "../roomStructures/Room";
 import { plural, toOrdinalSuffix } from "../utils/utils";
 import {
   Command,

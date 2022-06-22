@@ -1,6 +1,6 @@
-import { TEAMS } from "..";
 import { PlayableTeamId, Position } from "../HBClient";
 import { MAP_POINTS } from "../utils/map";
+import { TEAMS } from "../utils/types";
 import MapReferee from "./MapReferee";
 import PreSetCalculators from "./PreSetCalculators";
 

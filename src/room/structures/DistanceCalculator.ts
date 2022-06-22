@@ -1,6 +1,6 @@
-import { TEAMS } from "..";
 import { PlayableTeamId, Position } from "../HBClient";
 import { MAP_POINTS } from "../utils/map";
+import { TEAMS } from "../utils/types";
 import { limitNumberWithinRange } from "../utils/utils";
 import MapReferee from "./MapReferee";
 

@@ -1,4 +1,3 @@
-import Room, { client } from "..";
 import { PlayableTeamId, PlayerObject, Position } from "../HBClient";
 import Chat from "../roomStructures/Chat";
 import Ball from "../roomStructures/Ball";
@@ -11,6 +10,8 @@ import { getRandomIntInRange, sleep } from "../utils/utils";
 import Punt from "../plays/Punt";
 import MapReferee from "../structures/MapReferee";
 import { quickPause } from "../utils/haxUtils";
+import client from "..";
+import Room from "../roomStructures/Room";
 
 export default class Down {
   static CONFIG = {
@@ -230,6 +231,11 @@ export default class Down {
     // Dont do auto punt after this time
     const MAX_TIME_FOR_AUTO_PUNT = 60 * 6;
     if (this.getDown() !== FOURTH_DOWN) return;
+
+    // If they are not in their own half, return
+    const teamHalf = MapReferee.getMapHalfFromPoint(this._los.x);
+
+    if (teamHalf !== Room.game.offenseTeamId) return;
 
     if (Room.game.getTime() > MAX_TIME_FOR_AUTO_PUNT) return;
 

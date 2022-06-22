@@ -1,8 +1,8 @@
-import Room from "../..";
 import BallContact from "../../classes/BallContact";
 import PlayerContact from "../../classes/PlayerContact";
 import { PlayableTeamId, PlayerObjFlat, Position } from "../../HBClient";
 import Chat from "../../roomStructures/Chat";
+import Room from "../../roomStructures/Room";
 import GameReferee from "../../structures/GameReferee";
 import MapReferee from "../../structures/MapReferee";
 import ICONS from "../../utils/Icons";
@@ -63,8 +63,8 @@ export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
       rushingYards: netYards,
     });
 
-    if (isSafety) return this.handleSafety();
-    if (isTouchback) return this.handleTouchback();
+    if (isSafety) return this._handleSafety();
+    if (isTouchback) return this._handleTouchback();
 
     this.endPlay({ newLosX: endPosition.x, netYards });
   }

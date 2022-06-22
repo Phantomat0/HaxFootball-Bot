@@ -1,4 +1,3 @@
-import Room, { TEAMS } from "..";
 import Player from "../classes/Player";
 import { PlayableTeamId } from "../HBClient";
 import FieldGoal from "../plays/FieldGoal";
@@ -8,9 +7,11 @@ import Punt from "../plays/Punt";
 import Snap from "../plays/Snap";
 import Ball from "../roomStructures/Ball";
 import Chat from "../roomStructures/Chat";
+import Room from "../roomStructures/Room";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import COLORS from "../utils/colors";
 import ICONS from "../utils/Icons";
+import { TEAMS } from "../utils/types";
 import { GameCommandError } from "./GameCommandHandler";
 
 export interface GameCommandPermissions {
@@ -76,10 +77,7 @@ const gameCommandsMap = new Map<string, GameCommand>([
         Room.game.setState("curvePass");
         // We probs should inform all the team members
 
-        const offensePlayers =
-          Room.game.offenseTeamId === TEAMS.RED
-            ? Room.players.getRed()
-            : Room.players.getBlue();
+        const offensePlayers = Room.game.players.getOffense();
 
         offensePlayers.forEach((teamPlayer) => {
           Chat.send(`${ICONS.Frisbee} Curve pass enabled`, {

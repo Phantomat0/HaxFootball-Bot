@@ -1,9 +1,9 @@
-import Room from "../..";
 import BallContact from "../../classes/BallContact";
 import PlayerContact from "../../classes/PlayerContact";
 import { PlayerObject, PlayerObjFlat, Position } from "../../HBClient";
 import Ball from "../../roomStructures/Ball";
 import Chat from "../../roomStructures/Chat";
+import Room from "../../roomStructures/Room";
 import GameReferee from "../../structures/GameReferee";
 import MapReferee from "../../structures/MapReferee";
 import PreSetCalculators from "../../structures/PreSetCalculators";
@@ -41,12 +41,16 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
         Room.game.offenseTeamId
       );
 
+    const { yardAndHalfStr } = this._getPlayDataOffense(ballPosition);
+
+    Chat.send(`${ICONS.Pushpin} ball went out of bounds ${yardAndHalfStr}`);
+
     // Check if touchback, mathematically can't be a safety since the ball cant travel from one endzone to the other
     const isTouchback = GameReferee.checkIfTouchbackBall(
       ballPosition,
       Room.game.offenseTeamId
     );
-    if (isTouchback) return this.handleTouchback();
+    if (isTouchback) return this._handleTouchback();
 
     // Otherwise just set the endPosition as the distance
     this.endPlay({ newLosX: adjustedBallPositionForTeam.x });
@@ -74,8 +78,8 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
         Room.game.offenseTeamId
       );
 
-    if (isSafety) return super.handleSafety();
-    if (isTouchback) return super.handleTouchback();
+    if (isSafety) return super._handleSafety();
+    if (isTouchback) return super._handleTouchback();
 
     this.endPlay({ newLosX: endPosition.x });
   }
@@ -106,8 +110,8 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
         Room.game.offenseTeamId
       );
 
-    if (isSafety) return super.handleSafety();
-    if (isTouchback) return super.handleTouchback();
+    if (isSafety) return super._handleSafety();
+    if (isTouchback) return super._handleTouchback();
 
     this.endPlay({
       newLosX: endPosition.x,
@@ -173,7 +177,7 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
       Room.game.offenseTeamId
     );
 
-    if (isTouchback) return this.handleTouchback();
+    if (isTouchback) return this._handleTouchback();
 
     this.endPlay({ newLosX: endPosition.x });
   }

@@ -1,5 +1,6 @@
-import Room, { TEAMS } from "..";
 import ChatMessage from "../classes/ChatMessage";
+import Room from "../roomStructures/Room";
+import { TEAMS } from "../utils/types";
 import { GameCommand } from "./GameCommands";
 
 export class GameCommandError {

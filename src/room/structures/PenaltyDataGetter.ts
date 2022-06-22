@@ -21,6 +21,7 @@ export type PenaltyName =
   | "offsidesOffense"
   | "offsidesDefense"
   | "crowding"
+  | "crowdAbuse"
   | "illegalPass"
   | "snapDrag"
   | "fgDrag"
@@ -78,6 +79,11 @@ export default class PenaltyDataGetter {
       crowding: {
         message: `Crowding ${playerName}, 15 yard penalty, repeat the down`,
         netYards: 15,
+        addDown: false,
+      },
+      crowdAbuse: {
+        message: `Crowd Abuse ${playerName}, 20 yard penalty, repeat the down`,
+        netYards: 20,
         addDown: false,
       },
       illegalPass: {
