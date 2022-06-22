@@ -1,5 +1,6 @@
-import Room, { client } from "..";
-import { FullPlayerObject, PlayerObject, Position } from "../HBClient";
+import client from "..";
+import { FullPlayerObject, PlayerObject, Position, TeamId } from "../HBClient";
+import Room from "../roomStructures/Room";
 import { hexToAscii, truncateName } from "../utils/utils";
 
 export type PlayerAdminLevel = 0 | 1 | 2 | 3 | 4;
@@ -10,6 +11,7 @@ export default class Player {
   readonly auth: FullPlayerObject["auth"];
   readonly ip: FullPlayerObject["conn"];
   private _adminLevel: PlayerAdminLevel;
+  dbUser: any;
   isAFK: boolean = false;
   canPlay: boolean = true;
 
@@ -54,10 +56,6 @@ export default class Player {
     }
 
     return adminLevel;
-  }
-
-  get admin(): boolean {
-    return client.getPlayer(this.id).admin;
   }
 
   /**
@@ -118,52 +116,18 @@ export default class Player {
   }
 
   /**
-   * Can this player moderate said player?
-   */
-
-  canModerate(player: Player): boolean {
-    return this.adminLevel > player.adminLevel;
-  }
-
-  /**
    * Set the player's team
    */
-
-  setTeam(teamID: PlayerObject["team"]) {
+  setTeam(teamID: TeamId) {
     const player = client.getPlayer(this.id);
     if (player) client.setPlayerTeam(this.id, teamID);
   }
 
   /**
-   * Mute or unmute the player
+   * Can this player moderate said player?
    */
-  //   setMute(makeMuted: boolean, playerMuting: Player | "bot") {
-  //     return makeMuted
-  //       ? this.room.players.addMute(this, playerMuting)
-  //       : this.room.players.removeMute(this.auth);
-  //   }
-
-  /**
-   * Move the player to a position
-   */
-
-  setPosition(position: Partial<Position>) {
-    if ("x" in position && "y" in position) {
-      return client.setPlayerDiscProperties(this.id, {
-        x: position.x,
-        y: position.y,
-      });
-    }
-    if ("x" in position) {
-      return client.setPlayerDiscProperties(this.id, {
-        x: position.x,
-      });
-    }
-    if ("y" in position) {
-      return client.setPlayerDiscProperties(this.id, {
-        y: position.y,
-      });
-    }
+  canModerate(player: Player): boolean {
+    return this.adminLevel > player.adminLevel;
   }
 
   /**
@@ -172,67 +136,4 @@ export default class Player {
   setAFK(makeAFK: boolean) {
     this.isAFK = makeAFK;
   }
-
-  /**
-   * Kick the player from the room
-   */
-  async kick(reason?: string) {
-    // await this.room.players.bans.setRecentPlayerKicked(this);
-    // await this.room.client.kickPlayer(this.id, reason, false);
-  }
-
-  //   /**
-  //    * Ban the player from the room
-  //    * @param byPlayer Player Banning
-  //    * @param reason Reason for ban
-  //    * @param duration Duration of ban in MS, defaults to -1 which is permanent
-  //    */
-  //   async ban({
-  //     byPlayer = null,
-  //     reason = "Unspecified",
-  //     description = null,
-  //     durationInMS = -1,
-  //   }: {
-  //     byPlayer?: PlayerObject | Player | null;
-  //     reason?: string;
-  //     description?: string;
-  //     durationInMS?: number;
-  //   } = {}) {
-  //     await this.room.players.bans.setRecentPlayerKicked(this);
-  //     console.log("this ran");
-  //     await this.room.client.kickPlayer(this.id, reason, true);
-  //     await this.room.players.bans.addBanThroughRoom(
-  //       reason,
-  //       byPlayer,
-  //       durationInMS,
-  //       description
-  //     );
-  //   }
-
-  //   /**
-  //    * Send the player a private message
-  //    */
-  //   sendMessage(msg: string, options: MessageOptions = {}) {
-  //     options.id = this.id;
-  //     this.room.chat.send(msg, options);
-  //   }
-
-  //   /**
-  //    * Send the player a private notification
-  //    */
-  //   sendNotification(msg: string, options: MessageOptions = {}) {
-  //     this.room.chat.sendNotification(msg, { id: this.id });
-  //   }
-
-  //   /**
-  //    * Send the player a private warning
-  //    */
-  //   sendWarning(msg: string, options: MessageOptions = {}) {
-  //     options.icon = ICONS.RedTriangle;
-  //     options.color = COLORS.LightRed;
-  //     options.sound = 2;
-  //     options.style = MESSAGE_STYLE.Bold;
-  //     options.id = this.id;
-  //     this.room.chat.send(msg, options);
-  //   }
 }
