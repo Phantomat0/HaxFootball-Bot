@@ -1,13 +1,16 @@
-import Room from "..";
-import { PlayerObject } from "../HBClient";
+import HBClient from "../HBClient";
+import Room from "../roomStructures/Room";
 
-export default function onPlayerTeamChange(player: PlayerObject) {
+const onPlayerTeamChange: HBClient["onPlayerTeamChange"] = (player) => {
   if (!Room.isBotOn || !Room.game) return;
   Room.game.updateStaticPlayers();
+  Room.game.players.handlePlayerTeamChange(player, Room.game.getTime());
 
   if (player.team === 1 || player.team === 2) {
     if (!Room.game.stats) return;
     Room.game.stats.maybeCreateStatProfile(player);
     Room.game.down.maybeMovePlayerBehindLosOnField(player);
   }
-}
+};
+
+export default onPlayerTeamChange;
