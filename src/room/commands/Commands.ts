@@ -356,7 +356,7 @@ const commandsMap = new Collection<CommandName, Command>([
     "setscore",
     {
       name: "setscore",
-      alias: ["sscore"],
+      alias: ["ss"],
       description: "Sets the score for a team",
       usage: ["setscore blue 7", "setscore r 10"],
       showCommand: true,
@@ -443,6 +443,42 @@ const commandsMap = new Collection<CommandName, Command>([
         Room.game.down.hardSetPlayers();
 
         cmd.announce(`LOS moved by ${cmd.author.shortName}`);
+        Room.game.down.sendDownAndDistance();
+      },
+    },
+  ],
+  [
+    "revert",
+    {
+      name: "revert",
+      alias: ["rv"],
+      description: "Reverts the LOS, down, and distance",
+      usage: [],
+      showCommand: true,
+      permissions: {
+        level: 1,
+        muted: true,
+        game: true,
+        notDuringPlay: true,
+      },
+      params: {
+        skipMaxCheck: false,
+        min: 0,
+        max: 0,
+        types: [],
+      },
+      async run(cmd: CommandMessage) {
+        const { down, losX, yardsToGet } = Room.game.down.previousDown;
+
+        console.log(losX);
+        Room.game.down.setDown(down);
+        Room.game.down.setYardsToGet(yardsToGet);
+
+        Room.game.down.setLOS(losX);
+        Room.game.down.setBallAndFieldMarkersPlayEnd();
+        Room.game.down.hardSetPlayers();
+
+        cmd.announce(`Play reverted by ${cmd.author.shortName}`);
         Room.game.down.sendDownAndDistance();
       },
     },
