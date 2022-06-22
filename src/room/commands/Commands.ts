@@ -1,4 +1,3 @@
-import Room, { TEAMS } from "..";
 import CommandMessage from "../classes/CommandMessage";
 import Player, { PlayerAdminLevel } from "../classes/Player";
 import { PlayableTeamId } from "../HBClient";
@@ -8,9 +7,11 @@ import PreSetCalculators from "../structures/PreSetCalculators";
 import Collection from "../utils/Collection";
 import { getTeamStringFromId } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
-import { ValueOf } from "../utils/types";
+import { ValueOf } from "../utils/helperTypes";
 import { getRandomInt } from "../utils/utils";
 import CommandHandler, { CommandError } from "./CommandHandler";
+import Room from "../roomStructures/Room";
+import { TEAMS } from "../utils/types";
 
 export type CommandName = string;
 
@@ -185,6 +186,30 @@ const commandsMap = new Collection<CommandName, Command>([
         cmd.reply(
           `cp | Curved pass\n!setlos (yard) | Sets the line of scrimmage position\n!setdown (down) (yard) | Sets the down and distance \n!setscore (team) (score) | Sets the score of a team\n!setplayers | Sets the players in front of ball | !dd | Returns the down and distance \n!swapo | Swaps offense and defense`
         );
+      },
+    },
+  ],
+  [
+    "discord",
+    {
+      name: "discord",
+      alias: [],
+      description: "Returns the discord server link",
+      usage: [],
+      showCommand: false,
+      permissions: {
+        level: 0,
+        muted: true,
+        game: false,
+        notDuringPlay: false,
+      },
+      params: {
+        min: 0,
+        max: 0,
+        types: [],
+      },
+      async run(cmd: CommandMessage) {
+        cmd.reply(`Discord: discord.gg/VdrD2p7`);
       },
     },
   ],
