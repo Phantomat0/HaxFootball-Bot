@@ -30,6 +30,11 @@ export default class Down {
   private _redZonePenalties: 0 | 1 | 2 | 3 = 0;
   _MAX_REZONE_PENALTIES: number = 3;
 
+  previousDown: {
+    down: 1 | 2 | 3 | 4 | 5;
+    yardsToGet: number;
+    losX: number;
+  };
   getLOS() {
     return this._los;
   }
@@ -61,7 +66,7 @@ export default class Down {
     return this._currentDown;
   }
 
-  setDown(down: 1 | 2 | 3 | 4) {
+  setDown(down: 1 | 2 | 3 | 4 | 5) {
     this._currentDown = down;
     return this;
   }
@@ -258,6 +263,14 @@ export default class Down {
       new Punt(Room.game.getTime(), closestPlayerToBall!),
       closestPlayerToBall
     );
+  }
+
+  setPreviousDownAsCurrentDown() {
+    this.previousDown = {
+      down: this._currentDown,
+      yardsToGet: this._yardsToGet,
+      losX: this._los.x,
+    };
   }
 
   resetAfterDown() {
