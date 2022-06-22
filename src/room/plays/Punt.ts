@@ -1,4 +1,4 @@
-import Room, { client, TEAMS } from "..";
+import client from "..";
 import BallContact from "../classes/BallContact";
 import {
   PlayableTeamId,
@@ -8,12 +8,14 @@ import {
 } from "../HBClient";
 import Ball from "../roomStructures/Ball";
 import Chat from "../roomStructures/Chat";
+import Room from "../roomStructures/Room";
 import DistanceCalculator from "../structures/DistanceCalculator";
 import MapReferee from "../structures/MapReferee";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
 import { MAP_POINTS } from "../utils/map";
+import { TEAMS } from "../utils/types";
 import { EndPlayData } from "./BasePlay";
 import PuntEvents from "./play_events/Punt.events";
 
@@ -46,7 +48,10 @@ export default class Punt extends PuntEvents {
     Ball.release();
   }
 
-  cleanUp(): void {}
+  cleanUp(): void {
+    // Sometimes this wont be called when the ball hasn't been kicked such as a drag punt kick
+    this._releaseInvisibleWallForDefense();
+  }
 
   /**
    * Extension to our regular endPlay, but in a kickoff we always want to set a new down
