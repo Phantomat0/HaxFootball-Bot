@@ -1,3 +1,6 @@
+import { ParamType } from "./commands/Commands";
+import { onFunctions } from "./utils/helperTypes";
+
 export type HBRecording = string;
 
 type TeamId = 0 | 1 | 2;
@@ -277,7 +280,11 @@ export default interface HBClient {
   /**
    * Kicks the specified player from the room.
    */
-  kickPlayer(playerId: PlayerObject["id"], reason: string, ban: boolean): void;
+  kickPlayer(
+    playerId: PlayerObject["id"],
+    reason: string | null,
+    ban: boolean
+  ): void;
   /**
    * Clears the ban for a playerId that belonged to a player that was previously banned.
    */
@@ -434,7 +441,7 @@ export default interface HBClient {
    * Event called when a player sends a chat message.
    * @return The event function can return false in order to filter the chat message. This prevents the chat message from reaching other players in the room.
    */
-  set onPlayerChat(func: (player: PlayerObject, message: string) => void);
+  set onPlayerChat(func: (player: PlayerObject, message: string) => boolean);
 
   /**
    * Event called when a player kicks the ball.
