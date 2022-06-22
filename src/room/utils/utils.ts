@@ -254,3 +254,13 @@ export const extrapolateLine = <T extends number>(
   // Equivalent: x = (y - p.y) / slope + p.x
   return { x: maxX, y: y };
 };
+
+export const averageOfArray = (array: number[]) =>
+  array.reduce((a, b) => a + b) / array.length;
+
+export const getRandomChars = (numbOfChars: number) => {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  return [...Array(numbOfChars)]
+    .map(() => chars.charAt(Math.floor(Math.random() * chars.length)))
+    .join("");
+};
