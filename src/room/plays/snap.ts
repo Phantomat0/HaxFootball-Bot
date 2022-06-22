@@ -309,6 +309,12 @@ export default class Snap extends SnapEvents {
       passAttempts: { [mapSection]: 1 },
     });
 
+    if (this.stateExists("curvePass")) {
+      this._updateStatsIfNotTwoPoint(this.getQuarterback().id, {
+        curvedPassAttempts: 1,
+      });
+    }
+
     const isOutOfBounds = MapReferee.checkIfPlayerOutOfBounds(playerPosition);
 
     if (isOutOfBounds) {
@@ -337,6 +343,12 @@ export default class Snap extends SnapEvents {
     this._updateStatsIfNotTwoPoint(quarterback.id, {
       passCompletions: { [mapSection]: 1 },
     });
+
+    if (this.stateExists("curvePass")) {
+      this._updateStatsIfNotTwoPoint(this.getQuarterback().id, {
+        curvedPassCompletions: 1,
+      });
+    }
 
     this.setState("ballCaught");
     Chat.send(`${ICONS.Football} Pass caught!`);

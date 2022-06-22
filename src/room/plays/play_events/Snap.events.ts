@@ -117,6 +117,12 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       },
     });
 
+    if (this.stateExists("curvePass")) {
+      this._updateStatsIfNotTwoPoint(this.getQuarterback().id, {
+        curvedPassAttempts: 1,
+      });
+    }
+
     Chat.send(`${ICONS.DoNotEnter} Incomplete - Pass out of bounds!`);
     return this.endPlay({});
   }
@@ -237,6 +243,12 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     this._updateStatsIfNotTwoPoint(this.getQuarterback().id, {
       passAttempts: { [mapSection]: 1 },
     });
+
+    if (this.stateExists("curvePass")) {
+      this._updateStatsIfNotTwoPoint(this.getQuarterback().id, {
+        curvedPassAttempts: 1,
+      });
+    }
 
     Chat.send(`${ICONS.DoNotEnter} Incomplete - Pass Deflected`);
     this.setState("ballDeflected");

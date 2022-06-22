@@ -44,6 +44,8 @@ export interface IPlayerStat {
   qbSacks: number;
   distanceMovedBeforePassArr: number[];
   timeToPassArr: number[];
+  curvedPassAttempts: number;
+  curvedPassCompletions: number;
 
   // Defense
   passDeflections: PartialMapSection;
@@ -91,6 +93,8 @@ export interface PlayerStatQuery {
   qbSacks: 1;
   distanceMovedBeforePassArr: [number];
   timeToPassArr: [number];
+  curvedPassAttempts: 1;
+  curvedPassCompletions: 1;
 
   // Defense
   passDeflections: PartialMapSectionStatQuery;
@@ -139,6 +143,8 @@ export default class PlayerStats implements IPlayerStat {
   qbSacks: number = 0;
   distanceMovedBeforePassArr: number[] = [];
   timeToPassArr: number[] = [];
+  curvedPassAttempts: number = 0;
+  curvedPassCompletions: number = 0;
 
   // Defense
   passDeflections: MapSectionStat = new EMPTY_MAP_SECTION_STAT();
