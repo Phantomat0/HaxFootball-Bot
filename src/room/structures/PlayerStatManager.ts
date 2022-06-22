@@ -1,9 +1,9 @@
-import Room from "..";
 import Player from "../classes/Player";
 import PlayerStats, { PlayerStatQuery } from "../classes/PlayerStats";
 import { PlayerObject } from "../HBClient";
 import { SHOW_DEBUG_CHAT } from "../roomConfig";
 import Chat from "../roomStructures/Chat";
+import Room from "../roomStructures/Room";
 import Collection from "../utils/Collection";
 
 export default class PlayerStatManager {
@@ -21,11 +21,7 @@ export default class PlayerStatManager {
 
     if (hasStatProfile) return;
 
-    const playerStats = new PlayerStats({
-      name: playerProfile.name,
-      auth: playerProfile.auth,
-      id: playerProfile.id,
-    });
+    const playerStats = new PlayerStats(playerProfile.auth);
 
     this.statsCollection.set(playerProfile.auth, playerStats);
   }
@@ -34,12 +30,16 @@ export default class PlayerStatManager {
     playerId: PlayerObject["id"],
     statQuery: Partial<PlayerStatQuery>
   ) {
-    const playerProfile = Room.players.playerCollection.get(playerId);
-    if (!playerProfile) throw Error("Player is not in the room anymore");
+    console.log(Room.game.players.records);
+    console.log(playerId);
+    const playerRecord = Room.game.players.records.findOne({ id: playerId });
+
+    // if (!playerRecord) return;
+    if (!playerRecord) throw Error("Error finding player record");
 
     if (SHOW_DEBUG_CHAT) Chat.send(`STAT UPDATE: ${JSON.stringify(statQuery)}`);
 
-    this.statsCollection.get(playerProfile.auth)?.updateStats(statQuery);
+    this.statsCollection.get(playerRecord.auth)?.updateStats(statQuery);
   }
 
   determineManOfTheMatch() {
@@ -97,7 +97,7 @@ export default class PlayerStatManager {
           {}
         );
 
-        return { playerAuth: statsObj.player.auth, statsPoints };
+        return { playerAuth: statsObj.auth, statsPoints };
       });
 
     // Ok now just add up the points
