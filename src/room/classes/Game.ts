@@ -128,6 +128,7 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     // Anything that deals with game state should be done in the prepare method
     this.play.prepare();
     this.clearState();
+    Room.game.down.setPreviousDownAsCurrentDown();
     this.play.run();
   }
 

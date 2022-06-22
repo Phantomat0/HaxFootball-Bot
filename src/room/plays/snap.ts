@@ -118,13 +118,13 @@ export default class Snap extends SnapEvents {
   }
 
   findCrowderAndHandle() {
-    const fieldedPlayers = Room.game.players
+    const fieldedPlayersNoQb = Room.game.players
       .getFielded()
       .filter((player) => player.id !== this._quarterback.id);
 
     const { isCrowding, crowdingData, crowder } =
       this.crowdChecker.checkPlayersInCrowdBox(
-        fieldedPlayers,
+        fieldedPlayersNoQb,
         Room.game.getTime()
       );
 
@@ -871,7 +871,10 @@ export default class Snap extends SnapEvents {
       .calcDifference3D(position, initialPosition)
       .calculate();
 
-    const distanceMovedBeforePass = round(distanceMovedBeforePassUnRounded, 1);
+    const distanceMovedBeforePass = round(
+      distanceMovedBeforePassUnRounded - MAP_POINTS.PLAYER_RADIUS,
+      1
+    );
 
     const timeBeforePass = round(Room.game.getTime() - this.time, 1);
 

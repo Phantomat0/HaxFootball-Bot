@@ -45,6 +45,7 @@ client.onPositionsReset = () => {
 };
 
 client.onTeamGoal = () => {
+  if (!Room.isBotOn || !Room.game) return;
   Room.game.deleteState("canTwoPoint");
 };
 

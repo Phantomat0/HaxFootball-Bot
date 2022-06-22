@@ -116,8 +116,6 @@ export default class PlayerRecorder {
     this.subIn(player, time);
   }
 
-  private _subFromPlayableTeams(player: PlayerObject, time: number) {}
-
   private _getPlayerRecord(player: PlayerObject) {
     const playerProfile = Room.players.playerCollection.get(player.id);
 
