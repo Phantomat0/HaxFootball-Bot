@@ -1,4 +1,3 @@
-import Room, { client, TEAMS } from "..";
 import BallContact from "../classes/BallContact";
 import PlayerContact from "../classes/PlayerContact";
 import {
@@ -27,6 +26,9 @@ import SnapCrowdChecker from "../structures/SnapCrowdChecker";
 import DistanceCalculator from "../structures/DistanceCalculator";
 import { PlayerStatQuery } from "../classes/PlayerStats";
 import { EndPlayData } from "./BasePlay";
+import { round } from "../utils/utils";
+import client from "..";
+import Room from "../roomStructures/Room";
 
 export type BadIntReasons =
   | "Blocked by offense"
@@ -115,18 +117,22 @@ export default class Snap extends SnapEvents {
     return this._quarterback;
   }
 
-  handleCrowdingPenalty(player: PlayerObject) {
-    return this._handlePenalty("crowding", player);
-  }
-
-  findCrowder() {
+  findCrowderAndHandle() {
     const fieldedPlayers = Room.game.players
       .getFielded()
       .filter((player) => player.id !== this._quarterback.id);
-    return this.crowdChecker.checkPlayersInCrowdBox(
-      fieldedPlayers,
-      Room.game.getTime()
-    );
+
+    const { isCrowding, crowdingData, crowder } =
+      this.crowdChecker.checkPlayersInCrowdBox(
+        fieldedPlayers,
+        Room.game.getTime()
+      );
+
+    if (isCrowding) {
+      if (crowdingData!.wasAlone)
+        return this._handlePenalty("crowdAbuse", crowder!);
+      return this._handlePenalty("crowding", crowder!);
+    }
   }
 
   protected _handlePenalty<T extends PenaltyName>(
@@ -323,7 +329,10 @@ export default class Snap extends SnapEvents {
       adjustedPlayerPosition
     );
 
-    this.setState("nearestDefenderToCatch", nearestDefender!);
+    // Can be null if there are no defensive players
+    if (nearestDefender) {
+      this.setState("nearestDefenderToCatch", nearestDefender);
+    }
 
     this._updateStatsIfNotTwoPoint(quarterback.id, {
       passCompletions: { [mapSection]: 1 },
@@ -336,6 +345,13 @@ export default class Snap extends SnapEvents {
 
   protected _handleRun(playerContactObj: PlayerContact) {
     const { player, playerSpeed } = playerContactObj;
+
+    // const isFumble = this._checkForFumble(playerContactObj);
+
+    // if (isFumble)
+    //   return this._handleFumble(playerContactObj, this._ballCarrier!);
+
+    // return;
 
     Chat.send(`${ICONS.Running} Ball Ran!`);
     // this._giveRunnerSpeedBoost(player, playerSpeed);
@@ -439,6 +455,8 @@ export default class Snap extends SnapEvents {
 
     // If he didnt touch, he kicked, meaning he passed
     this.setState("ballPassed");
+
+    this._updateQBTimeAndDistanceMovedStat();
 
     this.setBallCarrier(null);
 
@@ -752,6 +770,29 @@ export default class Snap extends SnapEvents {
     );
   }
 
+  protected _handleRunTackle(playerContactObj: PlayerContact): void {
+    // First tackle
+    if (this.stateExists("runFirstTackler") === false) {
+      this.setState("runFirstTackler", playerContactObj.player);
+      Chat.send("First tackle");
+      setTimeout(() => {
+        this.setState("canSecondTackle");
+      }, 500);
+    }
+
+    const isSamePlayedWhoInitiallyTackled =
+      this.getState("runFirstTackler").id === playerContactObj.player.id;
+
+    if (
+      this.stateExists("canSecondTackle") === false &&
+      isSamePlayedWhoInitiallyTackled
+    )
+      return;
+
+    // Handle second tackle
+    return this._handleTackle(playerContactObj);
+  }
+
   // /**
   //  * Handles a touchdown after a two point conversion
   //  */
@@ -801,8 +842,30 @@ export default class Snap extends SnapEvents {
       client.setPlayerDiscProperties(player.id, {
         bCoeff: 0.99,
         // damping: 0.55,
-        invMass: 0.5,
+        invMass: 0.35,
       });
+    });
+  }
+
+  /**
+   * Updates two stats for the QB, time before pass and distance before pass
+   */
+  private _updateQBTimeAndDistanceMovedStat() {
+    const { position } = getPlayerDiscProperties(this._quarterback.id)!;
+
+    const initialPosition = Room.game.down.getSnapPosition();
+
+    const distanceMovedBeforePassUnRounded = new DistanceCalculator()
+      .calcDifference3D(position, initialPosition)
+      .calculate();
+
+    const distanceMovedBeforePass = round(distanceMovedBeforePassUnRounded, 1);
+
+    const timeBeforePass = round(Room.game.getTime() - this.time, 1);
+
+    this._updateStatsIfNotTwoPoint(this._quarterback.id, {
+      distanceMovedBeforePassArr: [distanceMovedBeforePass],
+      timeToPassArr: [timeBeforePass],
     });
   }
 
