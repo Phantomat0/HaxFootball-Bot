@@ -1,6 +1,7 @@
 import ICONS from "../utils/Icons";
 import { MapSectionName } from "../utils/MapSectionFinder";
 import {
+  averageOfArray,
   isObject,
   limitNumberWithinRange,
   round,
@@ -41,6 +42,8 @@ export interface IPlayerStat {
   touchdownsThrown: number;
   interceptionsThrown: number;
   qbSacks: number;
+  distanceMovedBeforePassArr: number[];
+  timeToPassArr: number[];
 
   // Defense
   passDeflections: PartialMapSection;
@@ -61,6 +64,7 @@ export interface IPlayerStat {
   fgYardsMade: number;
 
   // Misc
+  timePlayed: number;
   fumbles: number;
   penalties: number;
   onsideKicksAttempted: number;
@@ -85,6 +89,8 @@ export interface PlayerStatQuery {
   touchdownsThrown: 1;
   interceptionsThrown: 1;
   qbSacks: 1;
+  distanceMovedBeforePassArr: [number];
+  timeToPassArr: [number];
 
   // Defense
   passDeflections: PartialMapSectionStatQuery;
@@ -105,6 +111,7 @@ export interface PlayerStatQuery {
   fgYardsMade: number;
 
   // Misc
+  timePlayed: number;
   fumbles: 1;
   penalties: 1;
   onsideKicksAttempted: 1;
@@ -112,27 +119,7 @@ export interface PlayerStatQuery {
 }
 
 export default class PlayerStats implements IPlayerStat {
-  player: {
-    name: Player["name"];
-    id: Player["id"];
-    auth: Player["auth"];
-  };
-
-  constructor({
-    name,
-    id,
-    auth,
-  }: {
-    name: Player["name"];
-    id: Player["id"];
-    auth: Player["auth"];
-  }) {
-    this.player = {
-      name: name,
-      id: id,
-      auth: auth,
-    };
-  }
+  auth: Player["auth"];
   // Receiving
   receptions: MapSectionStat = new EMPTY_MAP_SECTION_STAT();
   receivingYards: MapSectionStat = new EMPTY_MAP_SECTION_STAT();
@@ -150,6 +137,8 @@ export default class PlayerStats implements IPlayerStat {
   touchdownsThrown: number = 0;
   interceptionsThrown: number = 0;
   qbSacks: number = 0;
+  distanceMovedBeforePassArr: number[] = [];
+  timeToPassArr: number[] = [];
 
   // Defense
   passDeflections: MapSectionStat = new EMPTY_MAP_SECTION_STAT();
@@ -170,10 +159,15 @@ export default class PlayerStats implements IPlayerStat {
   fgYardsMade: number = 0;
 
   // Misc
+  timePlayed: number = 0;
   fumbles: number = 0;
   penalties: number = 0;
   onsideKicksAttempted: number = 0;
   onsideKicksConverted: number = 0;
+
+  constructor(auth: Player["auth"]) {
+    this.auth = auth;
+  }
 
   get totalReceptions() {
     return sumObjectValues(this.receptions);
@@ -235,6 +229,14 @@ export default class PlayerStats implements IPlayerStat {
     return this.yardsAllowed.cornerBottom + this.yardsAllowed.cornerTop;
   }
 
+  get distanceMovedBeforePass() {
+    return averageOfArray(this.distanceMovedBeforePass);
+  }
+
+  get timeToPass() {
+    return averageOfArray(this.timeToPassArr);
+  }
+
   /**
    * Calculates passer rating according to NFL formula
    */
@@ -269,7 +271,9 @@ export default class PlayerStats implements IPlayerStat {
       const [statQueryKey, statQueryValue] = statQuery;
       // Check if the statQuery is a nested object
       const isNestedObj = isObject(statQueryValue);
+      const isArray = Array.isArray(statQueryValue);
 
+      // If its an object, we have to update a specific value in that object
       if (isNestedObj) {
         Object.entries(statQueryValue as MapSectionStat).forEach(
           (nestedStatQuery) => {
@@ -278,6 +282,12 @@ export default class PlayerStats implements IPlayerStat {
           }
         );
 
+        return;
+      }
+
+      // If its an array, we have to append that value
+      if (isArray) {
+        (this[`${statQueryKey}`] as number[]).push(statQueryValue[0]);
         return;
       }
 
