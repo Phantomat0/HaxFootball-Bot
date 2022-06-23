@@ -1,4 +1,5 @@
 import BallContact from "../../classes/BallContact";
+import Player from "../../classes/Player";
 import PlayerContact from "../../classes/PlayerContact";
 import { PlayerStatQuery } from "../../classes/PlayerStats";
 import {
@@ -41,6 +42,7 @@ export interface SnapStore {
   twoPointAttempt: true;
   runFirstTackler: PlayerObjFlat;
   canSecondTackle: true;
+  tightEnd: Player;
 }
 
 export default abstract class SnapEvents extends BasePlay<SnapStore> {
