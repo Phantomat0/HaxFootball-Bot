@@ -12,6 +12,18 @@ const TOUCHING_DISTANCE = {
   BALL: MAP_POINTS.BALL_RADIUS + MAP_POINTS.PLAYER_RADIUS + 0.01,
 };
 
+const getTouchingDistanceForPlayer = (playerId: PlayerObject["id"]) => {
+  if (Room.game.getTightEnd() === playerId)
+    return MAP_POINTS.TE_PLAYER_RADIUS * 2 + 1;
+  return TOUCHING_DISTANCE.PLAYER;
+};
+
+const getTouchingDistanceForBall = (playerId: PlayerObject["id"]) => {
+  if (Room.game.getTightEnd() === playerId)
+    return MAP_POINTS.TE_PLAYER_RADIUS + MAP_POINTS.BALL_RADIUS + 0.01;
+  return TOUCHING_DISTANCE.BALL;
+};
+
 export const checkBallContact = () => {
   const ballPosition = Ball.getPosition();
   const fielded = Room.game.players.getFielded();
@@ -24,7 +36,7 @@ export const checkBallContact = () => {
       .calcDifference3D(playerPosition, ballPosition)
       .calculate();
 
-    if (distanceToBall < TOUCHING_DISTANCE.BALL)
+    if (distanceToBall < getTouchingDistanceForBall(id))
       return new BallContact("touch", player, playerPosition);
   }
 
@@ -51,7 +63,7 @@ export const checkBallCarrierContact = (playerArray: PlayerObject[]) => {
       .calcDifference3D(playerPosition, ballCarrierPosition)
       .calculate();
 
-    if (distanceToBallCarrier < TOUCHING_DISTANCE.PLAYER) {
+    if (distanceToBallCarrier < getTouchingDistanceForPlayer(id)) {
       return new PlayerContact(
         player,
         playerPosition,
