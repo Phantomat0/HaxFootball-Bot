@@ -4,8 +4,10 @@ import { PlayerObject, PlayerObjFlat, Position } from "../../HBClient";
 import Ball from "../../roomStructures/Ball";
 import Chat from "../../roomStructures/Chat";
 import Room from "../../roomStructures/Room";
+import { DistanceConverter } from "../../structures/DistanceCalculator";
 import GameReferee from "../../structures/GameReferee";
 import MapReferee from "../../structures/MapReferee";
+import MessageFormatter from "../../structures/MessageFormatter";
 import PreSetCalculators from "../../structures/PreSetCalculators";
 import ICONS from "../../utils/Icons";
 import BasePlay, { EndPlayData } from "../BasePlay";
@@ -44,9 +46,18 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
         Room.game.offenseTeamId
       );
 
-    const { yardAndHalfStr } = this._getPlayDataOffense(ballPosition);
+    const ballPositionYardLine = DistanceConverter.toYardLine(
+      adjustedBallPositionForTeam.x
+    );
 
-    Chat.send(`${ICONS.Pushpin} ball went out of bounds ${yardAndHalfStr}`);
+    const ballPositionYardLineStr = MessageFormatter.formatYardMessage(
+      ballPositionYardLine,
+      adjustedBallPositionForTeam.x
+    );
+
+    Chat.send(
+      `${ICONS.Pushpin} Ball went out of bounds ${ballPositionYardLineStr}`
+    );
 
     // Check if touchback, mathematically can't be a safety since the ball cant travel from one endzone to the other
     const isTouchback = GameReferee.checkIfTouchbackBall(

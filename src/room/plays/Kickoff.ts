@@ -3,8 +3,11 @@ import { PlayerObject, PlayerObjFlat, Position } from "../HBClient";
 import Ball from "../roomStructures/Ball";
 import Chat from "../roomStructures/Chat";
 import Room from "../roomStructures/Room";
-import DistanceCalculator from "../structures/DistanceCalculator";
+import DistanceCalculator, {
+  DistanceConverter,
+} from "../structures/DistanceCalculator";
 import MapReferee from "../structures/MapReferee";
+import MessageFormatter from "../structures/MessageFormatter";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
@@ -79,7 +82,7 @@ export default class KickOff extends KickOffEvents {
   }
 
   protected _handleBallOutOfBounds(ballPosition: Position) {
-    const ballPositionAdjusted =
+    const adjustedBallPositionForTeam =
       PreSetCalculators.adjustBallPositionOnOutOfBounds(
         ballPosition,
         Room.game.offenseTeamId
@@ -90,10 +93,21 @@ export default class KickOff extends KickOffEvents {
     if (this.stateExists("safetyKickoff") === false)
       return this._handleOffensePenalty(kicker, "ballOutOfBounds");
 
-    console.log("THIS IS RUNNING");
+    const ballPositionYardLine = DistanceConverter.toYardLine(
+      adjustedBallPositionForTeam.x
+    );
+
+    const ballPositionYardLineStr = MessageFormatter.formatYardMessage(
+      ballPositionYardLine,
+      adjustedBallPositionForTeam.x
+    );
+
+    Chat.send(
+      `${ICONS.Pushpin} Ball went out of bounds ${ballPositionYardLineStr}`
+    );
 
     // If it is a penalty, set it where the ball went out of boounds
-    this.endPlay({ newLosX: ballPositionAdjusted.x });
+    this.endPlay({ newLosX: adjustedBallPositionForTeam.x });
   }
 
   protected _handleOffensePenalty(
