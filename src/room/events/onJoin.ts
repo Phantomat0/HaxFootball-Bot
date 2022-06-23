@@ -10,7 +10,7 @@ const alreadyHasAuthInRoom = (auth: FullPlayerObject["auth"]) => {
 };
 
 const onJoin: HBClient["onPlayerJoin"] = (player) => {
-  if (alreadyHasAuthInRoom(player.auth))
+  if (alreadyHasAuthInRoom(player.auth) && SHOW_DEBUG_CHAT === false)
     return client.kickPlayer(player.id, "Conn already exists in room", false);
   Room.players.createAndAdd(player);
 
