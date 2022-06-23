@@ -42,7 +42,6 @@ export interface SnapStore {
   twoPointAttempt: true;
   runFirstTackler: PlayerObjFlat;
   canSecondTackle: true;
-  tightEnd: Player;
 }
 
 export default abstract class SnapEvents extends BasePlay<SnapStore> {
@@ -145,7 +144,10 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       netYardsStr,
       yardsPassed,
       yardsAfterCatch,
+      isTouchdown,
     } = this._getPlayDataOffense(ballCarrierPosition);
+
+    if (isTouchdown) return this.handleTouchdown(ballCarrierPosition);
 
     Chat.send(
       `${ICONS.Pushpin} ${
