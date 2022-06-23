@@ -10,7 +10,6 @@ import ICONS from "../utils/Icons";
 import { TEAMS } from "../utils/types";
 import Down from "./Down";
 import WithStateStore from "./WithStateStore";
-import Player from "./Player";
 import { DISC_IDS, MAP_POINTS } from "../utils/map";
 
 interface GameStore {
@@ -79,12 +78,10 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     if (playerId === null) {
       // Remove the players physics
       this._resetPlayersPhysics(oldTightEndId!);
-      client.setPlayerAvatar(oldTightEndId!, null);
       // Hide the tight end discs
       this.moveTightEndDiscs({ x: MAP_POINTS.HIDDEN, y: 0 });
       return;
     }
-    client.setPlayerAvatar(playerId, "TE");
     this._tightEndId = playerId;
     this._setTightEndPhysicsAndDiscs(playerId);
   }
@@ -228,9 +225,10 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
    * Resets all special physics that were applied during a play, except for TE
    */
   private _resetAllPlayersPhysics() {
-    Room.players
-      .getFielded()
-      .forEach((player) => this._resetPlayersPhysics(player.id));
+    Room.players.getFielded().forEach((player) => {
+      this._resetPlayersPhysics(player.id);
+      client.setPlayerAvatar(player.id, null);
+    });
   }
 
   private _setTightEndPhysicsAndDiscs(playerId: PlayerObject["id"]) {
