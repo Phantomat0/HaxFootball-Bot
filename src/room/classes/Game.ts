@@ -1,15 +1,17 @@
 import client from "..";
-import { PlayableTeamId, PlayerObject } from "../HBClient";
+import { PlayableTeamId, PlayerObject, Position } from "../HBClient";
 import { PLAY_TYPES } from "../plays/BasePlayAbstract";
 import Chat from "../roomStructures/Chat";
 import Room from "../roomStructures/Room";
 import PlayerRecorder from "../roomStructures/PlayerRecorder";
 import PlayerStatManager from "../structures/PlayerStatManager";
-import { toClock } from "../utils/haxUtils";
+import { getPlayerDiscProperties, toClock } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
 import { TEAMS } from "../utils/types";
 import Down from "./Down";
 import WithStateStore from "./WithStateStore";
+import Player from "./Player";
+import { DISC_IDS, MAP_POINTS } from "../utils/map";
 
 interface GameStore {
   safetyKickoff: true;
@@ -52,6 +54,7 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   stats: PlayerStatManager = new PlayerStatManager();
   private _canStartSnapPlay: boolean = true;
   private _isPaused: boolean = false;
+  private _tightEndId: PlayerObject["id"] | null = null;
 
   constructor() {
     super();
@@ -64,6 +67,26 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
 
   get isPaused() {
     return this._isPaused;
+  }
+
+  getTightEnd() {
+    return this._tightEndId;
+  }
+
+  setTightEnd(playerId: PlayerObject["id"] | null) {
+    const oldTightEndId = this._tightEndId;
+    this._tightEndId = playerId;
+    if (playerId === null) {
+      // Remove the players physics
+      this._resetPlayersPhysics(oldTightEndId!);
+      client.setPlayerAvatar(oldTightEndId!, null);
+      // Hide the tight end discs
+      this.moveTightEndDiscs({ x: MAP_POINTS.HIDDEN, y: 0 });
+      return;
+    }
+    client.setPlayerAvatar(playerId, "TE");
+    this._tightEndId = playerId;
+    this._setTightEndPhysicsAndDiscs(playerId);
   }
 
   updateStaticPlayers() {
@@ -90,6 +113,9 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     } else {
       this.setOffenseTeam(1);
     }
+
+    // Reset tight end
+    this.setTightEnd(null);
     // Also update static players
     this.players.updateStaticPlayerList(this.offenseTeamId);
   }
@@ -135,7 +161,7 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   endPlay() {
     // Play might be null because play could be ended before it even starts like off a snap penalty
     this.play?.cleanUp();
-    this.resetPlayersPhysics();
+    this._resetAllPlayersPhysics();
     this.play = null;
   }
 
@@ -186,12 +212,81 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     Chat.send(`${ICONS.Star} MVP: ${player.name} | ${pointTotal} points`);
   }
 
-  /**
-   * Resets all special physics that were applied during a play
-   */
-  private resetPlayersPhysics() {
-    Room.players.getFielded().forEach((player) => {
-      client.setPlayerDiscProperties(player.id, { bCoeff: 0.75, invMass: 0.8 });
+  private _resetPlayersPhysics(playerId: PlayerObject["id"]) {
+    const DEFAULT_BCOEFF = 0.75;
+    const DEFAULT_INV_MASS = 0.8;
+
+    if (this.checkIfPlayerIsTightEnd(playerId)) return;
+    client.setPlayerDiscProperties(playerId, {
+      bCoeff: DEFAULT_BCOEFF,
+      invMass: DEFAULT_INV_MASS,
+      radius: MAP_POINTS.PLAYER_RADIUS,
     });
+  }
+
+  /**
+   * Resets all special physics that were applied during a play, except for TE
+   */
+  private _resetAllPlayersPhysics() {
+    Room.players
+      .getFielded()
+      .forEach((player) => this._resetPlayersPhysics(player.id));
+  }
+
+  private _setTightEndPhysicsAndDiscs(playerId: PlayerObject["id"]) {
+    const TIGHT_END_INV_MASS = 0.45;
+
+    // Set physics
+    client.setPlayerDiscProperties(playerId, {
+      radius: MAP_POINTS.TE_PLAYER_RADIUS,
+      invMass: TIGHT_END_INV_MASS,
+    });
+
+    const { position } = getPlayerDiscProperties(playerId)!;
+
+    // Move TE discs onto player
+    this.moveTightEndDiscs(position);
+  }
+
+  checkIfPlayerIsTightEnd(playerId: PlayerObject["id"]) {
+    return this._tightEndId === playerId;
+  }
+
+  moveTightEndDiscs(position: Position) {
+    const JOINT_LENGTH = 13;
+
+    DISC_IDS.TE.forEach((id, index) => {
+      if (index === 0) {
+        return client.setDiscProperties(id, position);
+      }
+      if (index === 1) {
+        return client.setDiscProperties(id, {
+          x: position.x,
+          y: position.y + JOINT_LENGTH,
+        });
+      }
+      if (index === 2) {
+        return client.setDiscProperties(id, {
+          x: position.x - JOINT_LENGTH,
+          y: position.y,
+        });
+      }
+      if (index === 3) {
+        return client.setDiscProperties(id, {
+          x: position.x,
+          y: position.y - JOINT_LENGTH,
+        });
+      }
+      if (index === 4) {
+        return client.setDiscProperties(id, {
+          x: position.x + JOINT_LENGTH,
+          y: position.y,
+        });
+      }
+    });
+  }
+
+  checkIfTightEndSwitchedTeamsOrLeft(playerId: PlayerObject["id"]) {
+    if (playerId === this._tightEndId) this.setTightEnd(null);
   }
 }

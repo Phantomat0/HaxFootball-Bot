@@ -102,6 +102,10 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     return this as unknown as T;
   }
 
+  resetPlayerPhysicsAndRemoveTightEnd() {
+    Room.game.setTightEnd(null);
+  }
+
   /**
    * Sets the game state allowing the two point command to be ran
    */

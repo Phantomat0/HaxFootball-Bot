@@ -61,6 +61,12 @@ export default class Snap extends SnapEvents {
         true
       );
 
+    if (Room.game.getTightEnd() === player?.id)
+      throw new GameCommandError(
+        "You cannot snap the ball as a Tight End",
+        true
+      );
+
     Room.game.updateStaticPlayers();
     Room.game.players.savePlayerPositions();
 
@@ -83,6 +89,7 @@ export default class Snap extends SnapEvents {
 
     const isCurvePass = Room.game.stateExists("curvePass");
     const isTwoPointAttempt = Room.game.stateExists("twoPointAttempt");
+    const existsTightEnd = Room.game.getTightEnd() !== null;
 
     this._setStartingPosition(Room.game.down.getLOS());
     this.setBallPositionOnSet(Ball.getPosition());
@@ -93,6 +100,10 @@ export default class Snap extends SnapEvents {
 
     if (isTwoPointAttempt) {
       this.setState("twoPointAttempt");
+    }
+
+    if (existsTightEnd) {
+      // Just a validtor to make sure hes still in the room
     }
 
     if (isCurvePass) this.setState("curvePass");
@@ -812,7 +823,6 @@ export default class Snap extends SnapEvents {
     Chat.send(`${ICONS.Fire} Two point conversion!`, {
       sound: 2,
     });
-    // Room.game.clearState();
     // Add only one, since we add 7 not 6 after a TD
     this.scorePlay(1, Room.game.offenseTeamId, Room.game.defenseTeamId);
   }
@@ -822,7 +832,6 @@ export default class Snap extends SnapEvents {
   //  */
   private _handleFailedTwoPointConversion() {
     // Remove one point
-    // Room.game.clearState();
     this.scorePlay(-1, Room.game.offenseTeamId, Room.game.defenseTeamId);
   }
 
@@ -854,7 +863,7 @@ export default class Snap extends SnapEvents {
       client.setPlayerDiscProperties(player.id, {
         bCoeff: 0.99,
         // damping: 0.55,
-        invMass: 0.35,
+        invMass: 0.55,
       });
     });
   }
@@ -998,7 +1007,6 @@ class SnapValidator {
     if (offsidePlayer)
       throw new SnapValidatorPenalty("offsidesDefense", offsidePlayer);
   }
-
   validate() {
     try {
       this._checkSnapWithinHashes();
