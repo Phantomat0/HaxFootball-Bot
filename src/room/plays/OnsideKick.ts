@@ -45,6 +45,7 @@ export default class OnsideKick extends OnsideKickEvents {
     Room.game.stats.updatePlayerStat(this._kicker.id, {
       onsideKicksAttempted: 1,
     });
+    this.resetPlayerPhysicsAndRemoveTightEnd();
   }
 
   run(): void {

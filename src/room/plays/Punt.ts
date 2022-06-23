@@ -40,6 +40,7 @@ export default class Punt extends PuntEvents {
     Room.game.down.moveFieldMarkers();
     this._setPlayersInPosition();
     this._createInvisibleWallForDefense();
+    this.resetPlayerPhysicsAndRemoveTightEnd();
   }
 
   run() {
