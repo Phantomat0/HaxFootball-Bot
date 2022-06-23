@@ -391,7 +391,7 @@ export default interface HBClient {
   /**
    * Overrides the avatar of the target player.
    */
-  setPlayerAvatar(): void;
+  setPlayerAvatar(playerId: number, avatar: string | null): void;
   /**
    * Sets properties of the target disc.
    */
