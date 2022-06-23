@@ -78,6 +78,24 @@ export default class KickOff extends KickOffEvents {
     };
   }
 
+  protected _handleBallOutOfBounds(ballPosition: Position) {
+    const ballPositionAdjusted =
+      PreSetCalculators.adjustBallPositionOnOutOfBounds(
+        ballPosition,
+        Room.game.offenseTeamId
+      );
+    const kicker = this.getState("KickOffKicker");
+
+    // If its not a safety, its a penalty
+    if (this.stateExists("safetyKickoff") === false)
+      return this._handleOffensePenalty(kicker, "ballOutOfBounds");
+
+    console.log("THIS IS RUNNING");
+
+    // If it is a penalty, set it where the ball went out of boounds
+    this.endPlay({ newLosX: ballPositionAdjusted.x });
+  }
+
   protected _handleOffensePenalty(
     player: PlayerObjFlat,
     penaltyName: "offsidesOffense" | "drag" | "ballOutOfBounds"
@@ -111,11 +129,10 @@ export default class KickOff extends KickOffEvents {
       this._handlePenalty(penaltyType, player);
     }
 
+    // Dont check for safety here, since safety has its own way of handling, which is not a penalty
     if (penaltyName === "ballOutOfBounds") {
-      const penaltyType = this.stateExists("safetyKickoff")
-        ? "kickOffOutOfBoundsSafety"
-        : "kickOffOutOfBounds";
-      this._handlePenalty(penaltyType, player);
+      this._handlePenalty("kickOffOutOfBounds", player);
+      // return this.endPlay({ newLosX: offenseFortyYardLine });
     }
 
     this.endPlay({ newLosX: newLosX });
@@ -136,9 +153,11 @@ export default class KickOff extends KickOffEvents {
     );
 
     if (isOutOfBounds) {
-      const kicker = this.getState("KickOffKicker");
-      Chat.send(`${ICONS.DoNotEnter} Caught out of bounds`);
-      return this._handleOffensePenalty(kicker, "ballOutOfBounds");
+      const { endYardLine } = this._getPlayDataOffense(
+        ballContactObj.playerPosition
+      );
+      Chat.send(`${ICONS.DoNotEnter} Caught out of bounds ${endYardLine}`);
+      return this._handleBallOutOfBounds(ballContactObj.playerPosition);
     }
 
     Chat.send(`${ICONS.Football} Ball Caught`);
