@@ -19,7 +19,7 @@ export default class WithStateStore<
     this._stateStore[state] = value;
 
     if (SHOW_DEBUG_CHAT) {
-      Chat.send(`StateChange: ${state}`);
+      Chat.send(`StateChange: ${String(state)}`);
     }
   }
 
@@ -31,12 +31,17 @@ export default class WithStateStore<
     const stateValue = this._stateStore[state];
     if (typeof stateValue === "undefined")
       throw Error(
-        `State: ${state} was not found using the getState method. Only use getState when the state is defined, use stateExists to check if a state exists `
+        `State: ${String(
+          state
+        )} was not found using the getState method. Only use getState when the state is defined, use stateExists to check if a state exists `
       );
     return this._stateStore[state] as unknown as T[K];
   }
 
   deleteState<K extends keyof T>(state: K) {
+    if (SHOW_DEBUG_CHAT) {
+      Chat.send(`State delete: ${String(state)}`);
+    }
     delete this._stateStore[state];
   }
 
@@ -58,6 +63,7 @@ export default class WithStateStore<
    * Clears all state keys
    */
   clearState() {
+    console.log("CLEARED ALL STATE");
     this._stateStore = {};
   }
 
