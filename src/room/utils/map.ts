@@ -892,14 +892,28 @@ const HFL_MAP = `{
 		{ "pos" : [775,280 ], "trait" : "goalmarker" },
 		{ "pos" : [930,-280 ], "trait" : "goalmarker" },
 		{ "pos" : [-775,280 ], "trait" : "goalmarker" },
-		{ "pos" : [-775,-280 ], "trait" : "goalmarker" }
+		{ "pos" : [-775,-280 ], "trait" : "goalmarker" },
+
+		{ "pos" : [10000,0 ], "trait" : "teweight1" },
+		{ "pos" : [10000,13 ], "trait" : "teweight" },
+		{ "pos" : [9987,0 ], "trait" : "teweight" },
+		{ "pos" : [10000,-13 ], "trait" : "teweight" },
+		{ "pos" : [10013,0 ], "trait" : "teweight" }
 
 	],
 
 	"joints" : [
 		{ "d0" : 1, "d1" : 2, "trait" : "losline" },
-		
-		{ "d0" : 3, "d1" : 4, "trait" : "yardtogetline" }
+		{ "d0" : 3, "d1" : 4, "trait" : "yardtogetline" },
+
+		{ "d0" : 17, "d1" : 18, "trait" : "joint" },
+		{ "d0" : 17, "d1" : 19, "trait" : "joint" },
+		{ "d0" : 17, "d1" : 20, "trait" : "joint" },
+		{ "d0" : 17, "d1" : 21, "trait" : "joint" },
+		{ "d0" : 18, "d1" : 19, "trait" : "joint" },
+		{ "d0" : 19, "d1" : 20, "trait" : "joint" },
+		{ "d0" : 20, "d1" : 21, "trait" : "joint" },
+		{ "d0" : 21, "d1" : 18, "trait" : "joint" }
 
 	],
 
@@ -928,7 +942,8 @@ const HFL_MAP = `{
 		"goalmarker" : { "vis" : true, "color" : "FFA500", "cMask" : [ ], "radius" : 3 },
 		"losmarker" : { "vis" : true, "color" : "273d6b", "cMask" : [ ], "radius" : 3 },
 		"yardtogetmarker" : { "vis" : true, "color" : "b4eb34", "cMask" : [ ], "radius" : 3 },
-		"cameraball" : { "vis" : true, "color" : "000000", "cMask" : [ ], "radius" : 30 },
+		"teweight" : { "vis" : false, "radius" : 0, "cMask" : ["red", "blue" ], "invMass" : 1.5 },
+		"teweight1" : { "vis" : false, "radius" : 0, "cMask" : ["" ], "invMass" : 1.5, "color" : "F2F2F2" },
 		"losline" : { "vis" : true, "color" : "273d6b" },
 		"yardtogetline" : { "color" : "b4eb34" },
 		"goal" : { "vis" : true, "color" : "FFA500" }
@@ -977,6 +992,7 @@ Kick Strength: 5
 
 export const MAP_POINTS = {
   PLAYER_RADIUS: 15,
+  TE_PLAYER_RADIUS: 17,
   BALL_RADIUS: 6.7,
   // =============
   KICKOFF: 0,
@@ -1011,6 +1027,7 @@ export const DISC_IDS = {
   LOS_BOT: 2,
   LTG_TOP: 3,
   LTG_BOT: 4,
+  TE: [17, 18, 19, 20, 21],
 };
 
 export default HFL_MAP;
