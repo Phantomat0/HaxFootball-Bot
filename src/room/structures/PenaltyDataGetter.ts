@@ -35,7 +35,6 @@ export type PenaltyName =
   | "kickOffDrag"
   | "kickOffDragSafety"
   | "kickOffOutOfBounds"
-  | "kickOffOutOfBoundsSafety"
   | "kickOffOffsides"
   | "kickOffOffsidesSafety";
 
@@ -101,6 +100,11 @@ export default class PenaltyDataGetter {
         netYards: -10,
         addDown: false,
       },
+      puntOffsidesOffense: {
+        message: `Offsides Offense, 10 yard penalty, repeat the down`,
+        netYards: -10,
+        addDown: false,
+      },
       illegalTouch: {
         message: `Illegal touching of the ball by ${playerName}, automatic loss of down`,
         netYards: 0,
@@ -132,12 +136,6 @@ export default class PenaltyDataGetter {
         addDown: false,
         hasOwnHandler: true,
       },
-      puntOffsidesOffense: {
-        message: `Offsides Offense, automatic offense 40 yard line`,
-        netYards: 0,
-        addDown: false,
-        hasOwnHandler: true,
-      },
       kickOffDrag: {
         message: `Kickoff Drag, automatic receiving team 40 yard line`,
         netYards: 0,
@@ -145,19 +143,13 @@ export default class PenaltyDataGetter {
         hasOwnHandler: true,
       },
       kickOffDragSafety: {
-        message: `Kickoff Drag after a safety, automatic defense 40 yard line`,
+        message: `Punt Drag after a safety, automatic defense 40 yard line`,
         netYards: 0,
         addDown: false,
         hasOwnHandler: true,
       },
       kickOffOutOfBounds: {
         message: `Kickoff kicked out of bounds, automatic offense 40 yard line`,
-        netYards: 0,
-        addDown: false,
-        hasOwnHandler: true,
-      },
-      kickOffOutOfBoundsSafety: {
-        message: `Kickoff kicked out of bounds after a safety, automatic defense 40 yard line`,
         netYards: 0,
         addDown: false,
         hasOwnHandler: true,
