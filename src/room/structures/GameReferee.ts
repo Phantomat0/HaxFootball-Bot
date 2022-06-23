@@ -97,7 +97,7 @@ export default class GameReferee {
     const endZone = MapReferee.getEndZonePositionIsIn(adjustedPlayerPosition);
 
     // Now check that hes in the endzone, and that hes not in his own endzone
-    return endZone && endZone !== teamId;
+    return Boolean(endZone) && endZone !== teamId;
   }
 
   static checkIfFieldGoalSuccessful(

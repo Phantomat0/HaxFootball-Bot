@@ -55,9 +55,11 @@ export default class Punt extends PuntEvents {
   }
 
   /**
-   * Extension to our regular endPlay, but in a kickoff we always want to set a new down
+   * Extension to our regular endPlay, but in a kickoff we always want to set a new down, unless its a penalty
    */
-  endPlay(endPlayData: Omit<EndPlayData, "setNewDown">) {
+  protected _endPlayAndSetNewDown(
+    endPlayData: Omit<EndPlayData, "setNewDown">
+  ) {
     super.endPlay({ ...endPlayData, setNewDown: true });
   }
 
@@ -92,7 +94,7 @@ export default class Punt extends PuntEvents {
 
     if (isOutOfBounds) {
       Chat.send(`${ICONS.DoNotEnter} Caught out of bounds`);
-      return this.endPlay({});
+      return this._endPlayAndSetNewDown({});
     }
 
     Chat.send(`${ICONS.Football} Ball Caught`);
@@ -140,31 +142,33 @@ export default class Punt extends PuntEvents {
     penaltyName: "puntOffsidesOffense" | "puntDrag"
   ) {
     // We swap offense since the swap happens on the kick, and we haven't kicked it yet
-    if (this.stateExists("puntKicked") === false) {
+    if (this.stateExists("puntKicked")) {
       Room.game.swapOffenseAndUpdatePlayers();
     }
 
     this._handlePenalty(penaltyName, player);
 
-    const offenseFortyYardLine = PreSetCalculators.getPositionOfTeamYard(
-      40,
-      Room.game.offenseTeamId
-    );
+    //
 
-    this.endPlay({ newLosX: offenseFortyYardLine });
+    // const offenseFortyYardLine = PreSetCalculators.getPositionOfTeamYard(
+    //   40,
+    //   Room.game.offenseTeamId
+    // );
+
+    // this.endPlay({ newLosX: offenseFortyYardLine });
   }
 
   private _setPlayerWhoCalledPuntInPosition() {
-    const sevenYardsBehindBall = new DistanceCalculator()
+    const tenYardsBehindBall = new DistanceCalculator()
       .subtractByTeam(
         Room.game.down.getSnapPosition().x,
-        MAP_POINTS.YARD * 7,
+        MAP_POINTS.YARD * 10,
         Room.game.offenseTeamId
       )
       .calculate();
 
     client.setPlayerDiscProperties(this._playerWhoCalledPunt.id, {
-      x: sevenYardsBehindBall,
+      x: tenYardsBehindBall,
       y: 0,
     });
 
@@ -178,18 +182,21 @@ export default class Punt extends PuntEvents {
   }
 
   private _setOffenseInPosition() {
-    const offensePlayers = Room.game.players.getOffense();
+    // Filter out the kicker
+    const offensePlayersNoKicker = Room.game.players
+      .getOffense()
+      .filter((player) => player.id !== this._playerWhoCalledPunt.id);
 
-    const tenYardsBehindBall = new DistanceCalculator()
+    const fifteenYardsBehindBall = new DistanceCalculator()
       .subtractByTeam(
         Room.game.down.getSnapPosition().x,
-        MAP_POINTS.YARD * 7,
+        MAP_POINTS.YARD * 15,
         Room.game.offenseTeamId
       )
       .calculate();
 
-    offensePlayers.forEach((player) => {
-      client.setPlayerDiscProperties(player.id, { x: tenYardsBehindBall });
+    offensePlayersNoKicker.forEach((player) => {
+      client.setPlayerDiscProperties(player.id, { x: fifteenYardsBehindBall });
     });
     return this;
   }

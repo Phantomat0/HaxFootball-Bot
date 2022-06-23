@@ -41,8 +41,10 @@ export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
 
   onBallCarrierOutOfBounds(ballCarrierPosition: Position) {
     // Out of bounds like always, check for safety etc
-    const { endPosition, netYards, yardAndHalfStr } =
+    const { endPosition, netYards, yardAndHalfStr, isTouchdown } =
       this._getPlayDataOffense(ballCarrierPosition);
+
+    if (isTouchdown) return this.handleTouchdown(ballCarrierPosition);
 
     Chat.send(
       `${ICONS.Pushpin} ${

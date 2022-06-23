@@ -236,16 +236,22 @@ export default class Snap extends SnapEvents {
     this._handlePenalty("illegalBlitz", player, { time: this._blitzClockTime });
   }
 
+  handleBallInFrontOfLOS() {
+    this._handlePenalty("illegalPass", this._quarterback);
+  }
+
+  handleDefenseLineBlitz() {
+    this.setState("lineBlitzed");
+    if (this._ballCarrier)
+      client.setPlayerAvatar(this._ballCarrier.id, ICONS.Football);
+  }
+
   protected _updateStatsIfNotTwoPoint(
     playerId: PlayerObject["id"],
     statsQuery: Partial<PlayerStatQuery>
   ) {
     if (this.stateExists("twoPointAttempt")) return;
     Room.game.stats.updatePlayerStat(playerId, statsQuery);
-  }
-
-  handleBallInFrontOfLOS() {
-    this._handlePenalty("illegalPass", this._quarterback);
   }
 
   protected _startBlitzClock() {
@@ -348,7 +354,7 @@ export default class Snap extends SnapEvents {
 
     // Can be null if there are no defensive players
     if (nearestDefender) {
-      this.setState("nearestDefenderToCatch", nearestDefender);
+      this.setState("nearestDefenderToCatch", nearestDefender.player);
     }
 
     this._updateStatsIfNotTwoPoint(quarterback.id, {

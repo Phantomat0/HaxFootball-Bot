@@ -8,9 +8,12 @@ export default class Greeter {
       id: player.id,
       color: COLORS.LightBlue,
     });
-    Chat.send(`Whats new: MVP after every match | Two touch tackle on runs`, {
-      id: player.id,
-      color: COLORS.LightGreen,
-    });
+    Chat.send(
+      `Whats new: Tight End Position, tei on offense to become a tight end`,
+      {
+        id: player.id,
+        color: COLORS.LightGreen,
+      }
+    );
   }
 }

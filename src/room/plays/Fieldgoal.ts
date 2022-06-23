@@ -102,6 +102,12 @@ export default class FieldGoal extends FieldGoalEvents {
     this.endPlay({});
   }
 
+  handleDefenseLineBlitz() {
+    this.setState("fieldGoalLineBlitzed");
+    if (this._ballCarrier)
+      client.setPlayerAvatar(this._ballCarrier.id, ICONS.Football);
+  }
+
   protected _getKicker() {
     return this._kicker;
   }

@@ -27,6 +27,7 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
     penaltyName: "offsidesOffense" | "drag" | "ballOutOfBounds"
   ): void;
   protected abstract _handleCatch(ballContactObj: BallContact): void;
+  protected abstract _handleBallOutOfBounds(endPosition: Position): void;
 
   onBallCarrierContactDefense(playerContact: PlayerContact): void {
     const { endPosition, netYards, yardAndHalfStr, netYardsStr } =
@@ -70,8 +71,10 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
   }
 
   onBallCarrierOutOfBounds(ballCarrierPosition: Position): void {
-    const { endPosition, yardAndHalfStr, netYards, netYardsStr } =
+    const { endPosition, yardAndHalfStr, netYards, netYardsStr, isTouchdown } =
       this._getPlayDataOffense(ballCarrierPosition);
+
+    if (isTouchdown) return this.handleTouchdown(ballCarrierPosition);
 
     Chat.send(
       `${
@@ -103,8 +106,6 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
   }
 
   onBallOutOfBounds(ballPosition: Position): void {
-    const kicker = this.getState("KickOffKicker");
-
     const isTouchback = GameReferee.checkIfTouchbackBall(
       ballPosition,
       Room.game.offenseTeamId
@@ -112,17 +113,18 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
 
     if (isTouchback) return this._handleTouchback();
 
-    this._handleOffensePenalty(kicker, "ballOutOfBounds");
+    this._handleBallOutOfBounds(ballPosition);
   }
 
   onKickDrag(player: PlayerObjFlat | null): void {
     const fieldedPlayers = Room.game.players.getFielded();
 
     // We have to get the closest player to the ball to determine the kicker, since it could be anyone
-    const playerClosestToBall = MapReferee.getNearestPlayerToPosition(
-      fieldedPlayers,
-      Ball.getPosition()
-    );
+    const { player: playerClosestToBall } =
+      MapReferee.getNearestPlayerToPosition(
+        fieldedPlayers,
+        Ball.getPosition()
+      )!;
 
     // We swap offense since the swap happens on the kick, and we haven't kicked it yet
     if (this.stateExists("kickOffKicked") === false) {

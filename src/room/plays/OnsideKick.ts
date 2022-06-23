@@ -194,23 +194,23 @@ export default class OnsideKick extends OnsideKickEvents {
     return this;
   }
 
-  private _setDefenseInPosition() {
-    // const defensePlayers = Room.game.players.getDefense();
-    // const opposingEndzone = MapReferee.getOpposingTeamEndzone(
-    //   Room.game.offenseTeamId
-    // );
-    // const oneYardInFrontOfEndzone = new DistanceCalculator()
-    //   .subtractByTeam(
-    //     opposingEndzone,
-    //     MAP_POINTS.YARD * 1,
-    //     Room.game.defenseTeamId
-    //   )
-    //   .calculate();
-    // defensePlayers.forEach(({ id }) => {
-    //   client.setPlayerDiscProperties(id, { x: oneYardInFrontOfEndzone });
-    // });
-    // return this;
-  }
+  // private _setDefenseInPosition() {
+  //   // const defensePlayers = Room.game.players.getDefense();
+  //   // const opposingEndzone = MapReferee.getOpposingTeamEndzone(
+  //   //   Room.game.offenseTeamId
+  //   // );
+  //   // const oneYardInFrontOfEndzone = new DistanceCalculator()
+  //   //   .subtractByTeam(
+  //   //     opposingEndzone,
+  //   //     MAP_POINTS.YARD * 1,
+  //   //     Room.game.defenseTeamId
+  //   //   )
+  //   //   .calculate();
+  //   // defensePlayers.forEach(({ id }) => {
+  //   //   client.setPlayerDiscProperties(id, { x: oneYardInFrontOfEndzone });
+  //   // });
+  //   // return this;
+  // }
 
   private _setOffenseInPosition() {
     const offensePlayers = Room.game.players.getOffense();

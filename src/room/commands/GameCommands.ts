@@ -1,4 +1,3 @@
-import client from "..";
 import Player from "../classes/Player";
 import { PlayableTeamId } from "../HBClient";
 import FieldGoal from "../plays/FieldGoal";
