@@ -107,17 +107,18 @@ const eventListeners: EventListener[] = [
 
       const { position } = getPlayerDiscProperties(ballCarrier.id)!;
 
+      const isTouchdown = GameReferee.checkIfTouchdown(
+        position,
+        ballCarrier.team as PlayableTeamId
+      );
+
+      if (isTouchdown) return Room.getPlay().handleTouchdown(position);
+
       const ballCarrierOutOfBounds =
         MapReferee.checkIfPlayerOutOfBounds(position);
 
       if (ballCarrierOutOfBounds)
         return Room.getPlay().onBallCarrierOutOfBounds(ballCarrierOutOfBounds);
-
-      const isTouchdown = GameReferee.checkIfTouchdown(
-        position,
-        ballCarrier.team as PlayableTeamId
-      );
-      if (isTouchdown) return Room.getPlay().handleTouchdown(position);
     },
   },
   {
