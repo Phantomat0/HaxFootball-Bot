@@ -19,6 +19,7 @@ import BasePlayAbstract, { PLAY_TYPES } from "./BasePlayAbstract";
 import DistanceCalculator from "../structures/DistanceCalculator";
 import PlayerContact from "../classes/PlayerContact";
 import Room from "../roomStructures/Room";
+import client from "..";
 
 export interface EndPlayData {
   /**
@@ -75,8 +76,17 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     this.time = Math.round(time);
   }
 
+  /**
+   *
+   * Sets the ball carrier, and sets their avatar
+   */
   setBallCarrier(player: ReturnType<typeof flattenPlayer> | null) {
+    // Remove the ball avatar of the old ball carrier, if it exists
+    if (player === null && this._ballCarrier) {
+      client.setPlayerAvatar(this._ballCarrier.id, null);
+    }
     this._ballCarrier = player;
+    if (player) client.setPlayerAvatar(player.id, ICONS.Football);
     return this;
   }
 
@@ -137,6 +147,8 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
 
     this.allowForTwoPointAttempt();
   }
+
+  handleDefenseLineBlitz() {}
 
   protected _checkForFumble(playerContact: PlayerContact) {
     if (this.stateExistsUnsafe("twoPointAttempt")) return false;
@@ -264,7 +276,9 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     yardsPassed: number;
     netYardsStr: string;
     yardAndHalfStr: string;
+    isTouchdown: boolean;
   } {
+    console.log(rawEndPosition);
     const { yardLine, netYards, adjustedEndPositionX } =
       PreSetCalculators.getNetYardsAndAdjustedEndPosition(
         this._startingPosition,
@@ -308,15 +322,24 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
       Room.game.offenseTeamId
     );
 
+    const endPosition = { x: adjustedEndPositionX, y: rawEndPosition.y };
+
+    const endZonePlayerIsIn = MapReferee.getEndZonePositionIsIn(endPosition);
+
+    const isTouchdown =
+      Boolean(endZonePlayerIsIn) &&
+      endZonePlayerIsIn !== Room.game.offenseTeamId;
+
     return {
       netYards,
       endYardLine: yardLine,
-      endPosition: { x: adjustedEndPositionX, y: rawEndPosition.y },
+      endPosition,
       mapSection,
       yardsAfterCatch,
       yardsPassed,
       netYardsStr,
       yardAndHalfStr,
+      isTouchdown,
     };
   }
 
