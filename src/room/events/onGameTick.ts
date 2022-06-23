@@ -184,9 +184,8 @@ const eventListeners: EventListener[] = [
       const canBlitzOnSnap = Room.getPlay().stateExistsUnsafe("canBlitz");
       const isFieldGoal = Room.getPlay().stateExistsUnsafe("fieldGoal");
 
-      if (isFieldGoal)
-        return Room.getPlay<FieldGoal>().setState("fieldGoalLineBlitzed");
-      if (canBlitzOnSnap) return Room.getPlay<Snap>().setState("lineBlitzed");
+      if (canBlitzOnSnap || isFieldGoal)
+        return Room.getPlay().handleDefenseLineBlitz();
 
       // If wasnt allowed to blitz, call penalty
       return Room.getPlay<Snap>().handleIllegalBlitz(offsidePlayer);
