@@ -130,6 +130,14 @@ export default class Down {
     Chat.send(downAndDistanceStr, { sound: 0 });
   }
 
+  private _setTightEndPosition(
+    playerId: PlayerObject["id"],
+    position: Position
+  ) {
+    client.setPlayerDiscProperties(playerId, position);
+    Room.game.moveTightEndDiscs(position);
+  }
+
   setPlayers() {
     const fieldedPlayers = Room.game.players.getFielded();
 
@@ -153,6 +161,10 @@ export default class Down {
         xspeed: 0,
         yspeed: 0,
       };
+
+      const isTightEnd = Room.game.checkIfPlayerIsTightEnd(player.id);
+      if (isTightEnd)
+        return this._setTightEndPosition(player.id, playerPositionToSet);
 
       client.setPlayerDiscProperties(player.id, playerPositionToSet);
     }
@@ -187,6 +199,10 @@ export default class Down {
         xspeed: 0,
         yspeed: 0,
       };
+
+      const isTightEnd = Room.game.checkIfPlayerIsTightEnd(player.id);
+      if (isTightEnd)
+        return this._setTightEndPosition(player.id, playerPositionToSet);
 
       client.setPlayerDiscProperties(player.id, playerPositionToSet);
     });
@@ -275,9 +291,9 @@ export default class Down {
 
   resetAfterDown() {
     this.sendDownAndDistance();
+    Room.game.endPlay();
     this.setPlayers();
     // Sets the players too
-    Room.game.endPlay();
     this.setBallAndFieldMarkersPlayEnd();
     Room.game.startSnapDelay();
     this._setPuntIfFourthAndLong();
