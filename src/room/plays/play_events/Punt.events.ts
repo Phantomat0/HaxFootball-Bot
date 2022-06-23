@@ -8,7 +8,7 @@ import GameReferee from "../../structures/GameReferee";
 import MapReferee from "../../structures/MapReferee";
 import PreSetCalculators from "../../structures/PreSetCalculators";
 import ICONS from "../../utils/Icons";
-import BasePlay from "../BasePlay";
+import BasePlay, { EndPlayData } from "../BasePlay";
 
 export interface PuntStore {
   punt: true;
@@ -27,6 +27,9 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
   ): void;
   protected abstract _handleCatch(ballContactObj: BallContact): void;
   protected abstract _releaseInvisibleWallForDefense(): void;
+  protected abstract _endPlayAndSetNewDown(
+    endPlayData: Omit<EndPlayData, "setNewDown">
+  ): void;
 
   onBallContact(ballContactObj: BallContact) {
     // We have to do this check AGAIN because playerOnkick is not an event listener, but a native listener
@@ -53,12 +56,14 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
     if (isTouchback) return this._handleTouchback();
 
     // Otherwise just set the endPosition as the distance
-    this.endPlay({ newLosX: adjustedBallPositionForTeam.x });
+    this._endPlayAndSetNewDown({ newLosX: adjustedBallPositionForTeam.x });
   }
 
   onBallCarrierOutOfBounds(ballCarrierPosition: Position) {
-    const { endPosition, yardAndHalfStr, netYards, netYardsStr } =
+    const { endPosition, yardAndHalfStr, netYards, netYardsStr, isTouchdown } =
       this._getPlayDataOffense(ballCarrierPosition);
+
+    if (isTouchdown) return this.handleTouchdown(ballCarrierPosition);
 
     Chat.send(
       `${
@@ -81,7 +86,7 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
     if (isSafety) return super._handleSafety();
     if (isTouchback) return super._handleTouchback();
 
-    this.endPlay({ newLosX: endPosition.x });
+    this._endPlayAndSetNewDown({ newLosX: endPosition.x });
   }
   onBallCarrierContactOffense(playerContact: PlayerContact) {
     // Nothing happens, runs cannot occur
@@ -113,7 +118,7 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
     if (isSafety) return super._handleSafety();
     if (isTouchback) return super._handleTouchback();
 
-    this.endPlay({
+    this._endPlayAndSetNewDown({
       newLosX: endPosition.x,
       netYards,
     });
@@ -122,11 +127,12 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
     const fieldedPlayers = Room.game.players.getFielded();
 
     // We have to get the closest player to the ball to determine the kicker, since it could be anyone
-    const playerClosestToBall = MapReferee.getNearestPlayerToPosition(
-      fieldedPlayers,
-      Ball.getPosition()
-    );
-    this._handleOffensePenalty(playerClosestToBall!, "puntDrag");
+    const { player: playerClosestToBall } =
+      MapReferee.getNearestPlayerToPosition(
+        fieldedPlayers,
+        Ball.getPosition()
+      )!;
+    this._handleOffensePenalty(playerClosestToBall, "puntDrag");
   }
 
   protected _onBallContactOffense(ballContactObj: BallContact): void {
@@ -179,6 +185,6 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
 
     if (isTouchback) return this._handleTouchback();
 
-    this.endPlay({ newLosX: endPosition.x });
+    this._endPlayAndSetNewDown({ newLosX: endPosition.x });
   }
 }
