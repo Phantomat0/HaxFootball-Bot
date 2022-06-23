@@ -1,3 +1,4 @@
+import client from "..";
 import Player from "../classes/Player";
 import { PlayableTeamId } from "../HBClient";
 import FieldGoal from "../plays/FieldGoal";
@@ -81,6 +82,57 @@ const gameCommandsMap = new Map<string, GameCommand>([
 
         offensePlayers.forEach((teamPlayer) => {
           Chat.send(`${ICONS.Frisbee} Curve pass enabled`, {
+            id: teamPlayer.id,
+            color: COLORS.Gray,
+          });
+        });
+      },
+    },
+  ],
+  [
+    "tei",
+    {
+      showCommand: false,
+      permissions: {
+        adminLevel: 0,
+        onlyOffense: true,
+        onlyDuringNoPlay: true,
+        canRunDuringTwoPointAttempt: true,
+      },
+      run(player) {
+        // VALIDATION
+        const tightEndId = Room.game.getTightEnd();
+
+        const existsAlreadyTightEnd = tightEndId !== null;
+
+        if (existsAlreadyTightEnd) {
+          // TE player is using TE command, that means remove his TE
+          if (tightEndId === player.id) {
+            Room.game.setTightEnd(null);
+            Chat.send(`You are no longer the Tight End`, {
+              color: COLORS.Gray,
+              id: player.id,
+            });
+            return;
+          }
+
+          // Otherwise, inform them there can only be one TE per team
+          const tightEndProfile = Room.players.playerCollection.get(tightEndId);
+
+          if (!tightEndProfile) throw Error("Could not find tight end profile");
+
+          throw new GameCommandError(
+            `${tightEndProfile.shortName} is already the Tight End`,
+            true
+          );
+        }
+
+        Room.game.setTightEnd(player.id);
+
+        // We probs should inform all the team members
+        const offensePlayers = Room.game.players.getOffense();
+        offensePlayers.forEach((teamPlayer) => {
+          Chat.send(`${ICONS.Lightning} ${player.shortName} is the Tight End`, {
             id: teamPlayer.id,
             color: COLORS.Gray,
           });
