@@ -215,27 +215,56 @@ class MapReferee {
       : MAP_POINTS.RED_GOAL_LINE;
   };
 
-  getNearestPlayerToPosition(players: PlayerObject[], position: Position) {
-    return players.reduce(
-      (prev: { player: PlayerObject | null; distanceToBall: number }, curr) => {
-        const { position: playerPosition } = getPlayerDiscProperties(curr.id)!;
-        const distanceToBall = new DistanceCalculator()
-          .calcDifference3D(position, playerPosition)
+  /**
+   *
+   * @param positionArray An array of positions
+   * @param positionToCheck The position to check and compare
+   * @returns Returns the index of the position that is closest, and the positional difference, will return -1 index if no matches
+   */
+  getClosestPositionToOtherPosition(
+    positionArray: Position[],
+    positionToCheck: Position
+  ) {
+    return positionArray.reduce(
+      (
+        prev: { index: number; distanceToPosition: number | null },
+        currPosition,
+        index
+      ) => {
+        const distanceToPositionToCheck = new DistanceCalculator()
+          .calcDifference3D(currPosition, positionToCheck)
           .calculate();
 
-        if (distanceToBall > prev.distanceToBall)
+        if (
+          prev.distanceToPosition === null ||
+          distanceToPositionToCheck < prev.distanceToPosition
+        )
           return {
-            player: curr,
-            distanceToBall: distanceToBall,
+            index,
+            distanceToPosition: distanceToPositionToCheck,
           };
 
         return prev;
       },
       {
-        player: null,
-        distanceToBall: 0,
+        index: -1,
+        distanceToPosition: null,
       }
-    ).player;
+    );
+  }
+
+  getNearestPlayerToPosition(players: PlayerObject[], position: Position) {
+    const playerPositionsMapped = players.map((player) => {
+      const { position } = getPlayerDiscProperties(player.id)!;
+      return position;
+    });
+
+    if (playerPositionsMapped.length === null) return null;
+
+    const { index, distanceToPosition } =
+      this.getClosestPositionToOtherPosition(playerPositionsMapped, position);
+
+    return { player: players[index], distanceToPosition };
   }
 
   getMapHalfFromPoint(x: Position["x"]) {
