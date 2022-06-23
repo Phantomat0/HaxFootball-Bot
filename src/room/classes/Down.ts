@@ -270,13 +270,47 @@ export default class Down {
 
     const offensePlayers = Room.game.players.getOffense();
 
-    const closestPlayerToBall = MapReferee.getNearestPlayerToPosition(
-      offensePlayers,
-      Ball.getPosition()
+    const justSetRandomPlayerAsPunter = () => {
+      // Just set the punt guy as the first offensive player we can find
+      const firstPlayerOnOffense = offensePlayers[0];
+
+      return Room.game.setPlay(
+        new Punt(Room.game.getTime(), firstPlayerOnOffense!),
+        firstPlayerOnOffense
+      );
+    };
+
+    const savedOffensivePlayerPositions = offensePlayers
+      .map((player) => {
+        const hasSavedPosition = Room.game.players.playerPositionsMap.has(
+          player.id
+        );
+
+        if (!hasSavedPosition) return null;
+
+        const { position } = Room.game.players.playerPositionsMap.get(
+          player.id
+        )!;
+
+        return position;
+      })
+      .filter((el) => el !== null) as Position[];
+
+    // No one on offense had a saved position
+    if (savedOffensivePlayerPositions.length === 0)
+      return justSetRandomPlayerAsPunter();
+
+    const { index } = MapReferee.getClosestPositionToOtherPosition(
+      savedOffensivePlayerPositions,
+      this.getSnapPosition()
     );
 
+    if (index === -1) return justSetRandomPlayerAsPunter();
+
+    const closestPlayerToBall = offensePlayers[index];
+
     Room.game.setPlay(
-      new Punt(Room.game.getTime(), closestPlayerToBall!),
+      new Punt(Room.game.getTime(), closestPlayerToBall),
       closestPlayerToBall
     );
   }
@@ -289,13 +323,14 @@ export default class Down {
     };
   }
 
-  resetAfterDown() {
+  async resetAfterDown() {
     this.sendDownAndDistance();
     Room.game.endPlay();
-    this.setPlayers();
+    await sleep(500);
     // Sets the players too
     this.setBallAndFieldMarkersPlayEnd();
     Room.game.startSnapDelay();
+    this.setPlayers();
     this._setPuntIfFourthAndLong();
   }
 
