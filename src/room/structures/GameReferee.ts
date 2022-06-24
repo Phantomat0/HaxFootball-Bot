@@ -104,11 +104,27 @@ export default class GameReferee {
     ballPosition: Position,
     offenseTeamId: PlayableTeamId
   ) {
-    const { x } = ballPosition;
-    const { redFG, blueFG } = PreSetCalculators.adjustMapCoordinatesForRadius(
-      MAP_POINTS.BALL_RADIUS
+    const { x, y } = ballPosition;
+    // const { redFG, blueFG } =
+    //   PreSetCalculators.adjustMapCoordinatesForRadius(MAP_POINTS.BALL_RADIUS);
+
+    const {
+      RED_FIELD_GOAL_LINE,
+      BLUE_FIELD_GOAL_LINE,
+      TOP_FG_POST,
+      BOTTOM_FG_POST,
+    } = MAP_POINTS;
+
+    const passesFgLine =
+      offenseTeamId === TEAMS.RED
+        ? x > BLUE_FIELD_GOAL_LINE
+        : x < RED_FIELD_GOAL_LINE;
+    const betweenFGPosts = MapReferee.checkIfBetweenY(
+      y,
+      TOP_FG_POST,
+      BOTTOM_FG_POST
     );
-    return offenseTeamId === TEAMS.RED ? x > blueFG : x < redFG;
+    return passesFgLine && betweenFGPosts;
   }
 
   static checkIfInterceptionWithinTime(intTime: number, timeNow: number) {
