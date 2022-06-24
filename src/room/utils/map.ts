@@ -938,14 +938,14 @@ const HFL_MAP = `{
 		"kickOffBarrier" : { "vis" : false, "bCoef" : 0.1, "cGroup" : ["redKO","blueKO" ], "cMask" : ["red","blue","c0" ] },
 		"goalline" : { "vis" : true, "color" : "FFA500", "cMask" : ["c0","wall" ] },
 		"yardline" : { "vis" : true, "color" : "c7e6bd", "cMask" : [ ] },
-		"centerline" : { "vis" : true, "color" : "FFA500", "cMask" : [ ] },
+		"centerline" : { "vis" : true, "color" : "E0E0E0", "cMask" : [ ] },
 		"goalmarker" : { "vis" : true, "color" : "FFA500", "cMask" : [ ], "radius" : 3 },
 		"losmarker" : { "vis" : true, "color" : "273d6b", "cMask" : [ ], "radius" : 3 },
-		"yardtogetmarker" : { "vis" : true, "color" : "b4eb34", "cMask" : [ ], "radius" : 3 },
+		"yardtogetmarker" : { "vis" : true, "color" : "8FE271", "cMask" : [ ], "radius" : 3 },
 		"teweight" : { "vis" : false, "radius" : 0, "cMask" : ["red", "blue" ], "invMass" : 1.5 },
 		"teweight1" : { "vis" : false, "radius" : 0, "cMask" : ["" ], "invMass" : 1.5, "color" : "F2F2F2" },
 		"losline" : { "vis" : true, "color" : "273d6b" },
-		"yardtogetline" : { "color" : "b4eb34" },
+		"yardtogetline" : { "color" : "8FE271" },
 		"goal" : { "vis" : true, "color" : "FFA500" }
 
 	},
