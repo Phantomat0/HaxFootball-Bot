@@ -241,6 +241,7 @@ export default class Down {
     this.setPlayers();
     // Sets the players too
     Room.game.endPlay();
+    Room.game.setTightEnd(null);
     this.setBallAndFieldMarkersPlayEnd();
     Room.game.startSnapDelay();
   }
