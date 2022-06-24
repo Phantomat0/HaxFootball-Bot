@@ -237,11 +237,11 @@ export default class Down {
 
   hardReset() {
     Room.game.play?.terminatePlayDuringError();
+    Room.game.setTightEnd(null);
     this.sendDownAndDistance();
     this.setPlayers();
     // Sets the players too
     Room.game.endPlay();
-    Room.game.setTightEnd(null);
     this.setBallAndFieldMarkersPlayEnd();
     Room.game.startSnapDelay();
   }
