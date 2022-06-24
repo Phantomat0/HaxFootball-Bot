@@ -729,7 +729,10 @@ export default class Snap extends SnapEvents {
     }
 
     // Tackle on a run
-    if (this.stateExists("ballRan")) {
+    if (
+      this.stateExists("ballRan") ||
+      this._ballCarrier!.id === this._quarterback.id
+    ) {
       this._updateStatsIfNotTwoPoint(this._ballCarrier!.id, {
         rushingAttempts: 1,
         rushingYards: netYards,
@@ -992,27 +995,27 @@ class SnapValidator {
       throw new SnapValidatorPenalty("snapOutOfHashes", this._player);
   }
 
-  private _checkOffsideOffense(): never | void {
-    const offsidePlayer = MapReferee.findTeamPlayerOffside(
-      Room.game.players.getOffense(),
-      Room.game.offenseTeamId,
-      Room.game.down.getLOS().x
-    );
+  // private _checkOffsideOffense(): never | void {
+  //   const offsidePlayer = MapReferee.findTeamPlayerOffside(
+  //     Room.game.players.getOffense(),
+  //     Room.game.offenseTeamId,
+  //     Room.game.down.getLOS().x
+  //   );
 
-    if (offsidePlayer)
-      throw new SnapValidatorPenalty("offsidesOffense", offsidePlayer);
-  }
+  //   if (offsidePlayer)
+  //     throw new SnapValidatorPenalty("offsidesOffense", offsidePlayer);
+  // }
 
-  private _checkOffsideDefense(): never | void {
-    const offsidePlayer = MapReferee.findTeamPlayerOffside(
-      Room.game.players.getDefense(),
-      Room.game.defenseTeamId,
-      Room.game.down.getLOS().x
-    );
+  // private _checkOffsideDefense(): never | void {
+  //   const offsidePlayer = MapReferee.findTeamPlayerOffside(
+  //     Room.game.players.getDefense(),
+  //     Room.game.defenseTeamId,
+  //     Room.game.down.getLOS().x
+  //   );
 
-    if (offsidePlayer)
-      throw new SnapValidatorPenalty("offsidesDefense", offsidePlayer);
-  }
+  //   if (offsidePlayer)
+  //     throw new SnapValidatorPenalty("offsidesDefense", offsidePlayer);
+  // }
   validate() {
     try {
       this._checkSnapWithinHashes();
