@@ -80,13 +80,16 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
    *
    * Sets the ball carrier, and sets their avatar
    */
-  setBallCarrier(player: ReturnType<typeof flattenPlayer> | null) {
+  setBallCarrier(
+    player: ReturnType<typeof flattenPlayer> | null,
+    setAvatar: boolean = true
+  ) {
     // Remove the ball avatar of the old ball carrier, if it exists
     if (player === null && this._ballCarrier) {
       client.setPlayerAvatar(this._ballCarrier.id, null);
     }
     this._ballCarrier = player;
-    if (player) client.setPlayerAvatar(player.id, ICONS.Football);
+    if (player && setAvatar) client.setPlayerAvatar(player.id, ICONS.Football);
     return this;
   }
 

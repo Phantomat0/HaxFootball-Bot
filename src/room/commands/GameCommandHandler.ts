@@ -6,7 +6,7 @@ import { GameCommand } from "./GameCommands";
 export class GameCommandError {
   message: string;
   sendToPlayer: boolean;
-  constructor(msg: string, sendToPlayer) {
+  constructor(msg: string, sendToPlayer: boolean) {
     this.message = msg;
     this.sendToPlayer = sendToPlayer;
   }

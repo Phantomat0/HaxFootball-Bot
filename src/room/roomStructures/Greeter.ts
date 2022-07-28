@@ -9,7 +9,7 @@ export default class Greeter {
       color: COLORS.LightBlue,
     });
     Chat.send(
-      `Whats new: Tight End Position, tei on offense to become a tight end`,
+      `Whats new: Tight End Position, | Ball emoji | Can use !stats after a game has ended`,
       {
         id: player.id,
         color: COLORS.LightGreen,

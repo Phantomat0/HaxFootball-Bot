@@ -146,17 +146,14 @@ export default class PlayerRecorder {
     const { playerRecord, hasPlayerRecord, playerProfile } =
       this._getPlayerRecord(player);
 
-    console.log("SUB IN");
-
     if (hasPlayerRecord) {
-      console.log("HAS PLAYED RECORD");
       // Check that this is the right substitution
       const lastSubstitution =
         playerRecord!.substitutions[playerRecord!.substitutions.length - 1];
-      // if (lastSubstitution?.type === "IN")
-      //   throw Error(
-      //     `Player ${playerProfile.name} was attempted to be subbed in but is already on the field`
-      //   );
+      if (lastSubstitution?.type === "IN")
+        throw Error(
+          `Player ${playerProfile.name} was attempted to be subbed in but is already on the field`
+        );
       playerRecord!.substitutions.push({
         time,
         type: "IN",

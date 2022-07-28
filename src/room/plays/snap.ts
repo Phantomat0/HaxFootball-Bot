@@ -540,7 +540,7 @@ export default class Snap extends SnapEvents {
       y: adjustedPlayerKickPosition.y,
     });
 
-    this.setBallCarrier(ballContactObj.player);
+    this.setBallCarrier(ballContactObj.player, false);
 
     // In three seconds, check if the ball is headed towards being a fg or not
     setTimeout(() => {
@@ -625,7 +625,9 @@ export default class Snap extends SnapEvents {
 
     const endPositionExists = this.stateExists("interceptionPlayerEndPosition");
 
-    if (!endPositionExists) return;
+    // If there is no endposition, that means he is still running, so give him the football emoji
+    if (!endPositionExists)
+      return client.setPlayerAvatar(interceptingPlayer.id, ICONS.Football);
 
     const rawEndPosition = this.getState("interceptionPlayerEndPosition");
 
