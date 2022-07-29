@@ -270,7 +270,7 @@ const eventListeners: EventListener[] = [
 
       const ballIsMoving = MapReferee.checkIfBallIsMoving(ballSpeed);
       if (!ballIsMoving) {
-        return Room.getPlay<Snap>().handleUnsuccessfulInterception("Missed");
+        return Room.getPlay<Snap>().handleUnsuccessfulInterception();
       }
 
       const interceptionKicked = Room.getPlay<Snap>().stateExists(
@@ -296,9 +296,7 @@ const eventListeners: EventListener[] = [
       );
 
       if (ballDragged)
-        return Room.getPlay<Snap>().handleUnsuccessfulInterception(
-          "Drag on kick"
-        );
+        return Room.getPlay<Snap>().handleUnsuccessfulInterception();
     },
   },
   {

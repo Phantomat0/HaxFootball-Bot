@@ -34,6 +34,8 @@ export default class KickOff extends KickOffEvents {
     Room.game.down.setLOS(kickOffPosition.x);
     Room.game.down.moveFieldMarkers({ hideLineToGain: true });
     this.resetPlayerPhysicsAndRemoveTightEnd();
+
+    this._initializePlayData();
   }
 
   run(): void {

@@ -823,6 +823,7 @@ const commandsMap = new Collection<CommandName, Command>([
         types: [COMMAND_PARAM_TYPES.NUMBER],
       },
       async run(cmd: CommandMessage) {
+        console.log(Room);
         Room.setPlayerTestingId(parseInt(cmd.commandParamsStr));
         cmd.replySuccess(`Testing id set`);
       },

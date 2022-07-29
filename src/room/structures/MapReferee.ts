@@ -267,6 +267,27 @@ class MapReferee {
     return { player: players[index], distanceToPosition };
   }
 
+  getIntendedTargetStr(
+    players: PlayerObject[],
+    position: Position,
+    quarterbackId: number
+  ) {
+    const INTENDED_TARGET_TOLERANCE = MAP_POINTS.YARD * 3;
+
+    players = players.filter((player) => player.id !== quarterbackId);
+
+    const positionData = this.getNearestPlayerToPosition(players, position);
+
+    if (positionData === null || positionData.distanceToPosition === null)
+      return "";
+
+    const { player, distanceToPosition } = positionData;
+
+    if (player) if (distanceToPosition > INTENDED_TARGET_TOLERANCE) return "";
+
+    return `intended for ${player.name.trim()} `;
+  }
+
   getMapHalfFromPoint(x: Position["x"]) {
     if (x > MAP_POINTS.KICKOFF) return TEAMS.BLUE;
     if (x < MAP_POINTS.KICKOFF) return TEAMS.RED;

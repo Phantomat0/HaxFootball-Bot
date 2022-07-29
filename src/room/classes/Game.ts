@@ -11,6 +11,7 @@ import { TEAMS } from "../utils/types";
 import Down from "./Down";
 import WithStateStore from "./WithStateStore";
 import { DISC_IDS, MAP_POINTS } from "../utils/map";
+import PlayData from "./PlayData";
 
 interface GameStore {
   safetyKickoff: true;
@@ -43,6 +44,8 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     red: 0,
     blue: 0,
   };
+
+  playByPlay: PlayData[] = [];
 
   /**
    * The current play class, always starts off as a KickOff with time of 0
@@ -102,6 +105,10 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
 
   setOffenseTeam(teamId: PlayableTeamId) {
     this.offenseTeamId = teamId;
+  }
+
+  savePlayData(playData: PlayData) {
+    this.playByPlay.push(playData);
   }
 
   swapOffenseAndUpdatePlayers() {

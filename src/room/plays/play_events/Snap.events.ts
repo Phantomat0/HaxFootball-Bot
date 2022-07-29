@@ -14,7 +14,6 @@ import MapReferee from "../../structures/MapReferee";
 import ICONS from "../../utils/Icons";
 import { MapSectionName } from "../../utils/MapSectionFinder";
 import BasePlay from "../BasePlay";
-import { BadIntReasons } from "../Snap";
 
 export interface SnapStore {
   curvePass: true;
@@ -65,7 +64,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
   ): void;
   protected abstract _handleInterceptionAttempt(ballContactObj: BallContact);
 
-  abstract handleUnsuccessfulInterception(message: BadIntReasons): void;
+  abstract handleUnsuccessfulInterception(): void;
   protected abstract _getStatInfo(endPosition: Position): {
     quarterback: PlayerObject;
     mapSection: MapSectionName;
@@ -106,7 +105,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
 
       if (isSuccessfulInt) return this._handleSuccessfulInterception();
 
-      return this.handleUnsuccessfulInterception("Ball out of bounds");
+      return this.handleUnsuccessfulInterception();
     }
 
     const { mapSection } = this._getStatInfo(ballPosition);
@@ -124,6 +123,18 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     }
 
     Chat.send(`${ICONS.DoNotEnter} Incomplete - Pass out of bounds!`);
+
+    const intendedForStr = MapReferee.getIntendedTargetStr(
+      Room.game.players.getOffense(),
+      ballPosition,
+      this.getQuarterback().id
+    );
+
+    this._playData.pushDescription(
+      `${
+        this.getQuarterback().name
+      } pass incomplete ${mapSection} ${intendedForStr}`
+    );
     return this.endPlay({});
   }
   onBallCarrierOutOfBounds(ballCarrierPosition: Position) {
@@ -141,6 +152,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       netYards,
       yardAndHalfStr,
       netYardsStr,
+      netYardsStrFull,
       yardsPassed,
       yardsAfterCatch,
       isTouchdown,
@@ -148,10 +160,18 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
 
     if (isTouchdown) return this.handleTouchdown(ballCarrierPosition);
 
+    if (this._ballCarrier!.id === this.getQuarterback().id) {
+      this._playData.pushDescription(`${this.getQuarterback().name} scramble`);
+    }
+
+    this._playData.pushDescription(
+      `steps out of bounds ${yardAndHalfStr} ${netYardsStrFull}`
+    );
+
     Chat.send(
       `${ICONS.Pushpin} ${
         this.getBallCarrier().name
-      } went out of bounds ${yardAndHalfStr} | ${netYardsStr}`
+      } stepped out of bounds ${yardAndHalfStr} | ${netYardsStr}`
     );
 
     const { isSafety } = GameReferee.checkIfSafetyOrTouchbackPlayer(
@@ -254,6 +274,21 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     }
 
     Chat.send(`${ICONS.DoNotEnter} Incomplete - Pass Deflected`);
+
+    const intendedForStr = MapReferee.getIntendedTargetStr(
+      Room.game.players.getOffense(),
+      ballContactObj.playerPosition,
+      this.getQuarterback().id
+    );
+
+    this._playData.pushDescription(
+      `${
+        this.getQuarterback().name
+      } pass incomplete ${mapSection} ${intendedForStr} (${
+        ballContactObj.player.name
+      })`
+    );
+
     this.setState("ballDeflected");
 
     this._handleInterceptionAttempt(ballContactObj);

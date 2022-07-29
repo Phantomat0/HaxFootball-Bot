@@ -41,6 +41,8 @@ export default class Punt extends PuntEvents {
     this._setPlayersInPosition();
     this._createInvisibleWallForDefense();
     this.resetPlayerPhysicsAndRemoveTightEnd();
+
+    this._initializePlayData();
   }
 
   run() {

@@ -50,6 +50,8 @@ export default class FieldGoal extends FieldGoalEvents {
     this.setBallPositionOnSet(Ball.getPosition());
     Room.game.down.moveFieldMarkers();
     this._setPlayersInPosition();
+
+    this._initializePlayData();
   }
 
   run() {

@@ -2,7 +2,7 @@ import puppeteer from "puppeteer";
 
 const HAXBALL_HEADLESS_URL = "https://www.haxball.com/headless";
 
-const IS_HEADLESS = true;
+const IS_HEADLESS = false;
 
 const minimal_args = [
   "--autoplay-policy=user-gesture-required",

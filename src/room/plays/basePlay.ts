@@ -20,6 +20,7 @@ import DistanceCalculator from "../structures/DistanceCalculator";
 import PlayerContact from "../classes/PlayerContact";
 import Room from "../roomStructures/Room";
 import client from "..";
+import PlayDataManager from "../structures/PlayDataManager";
 
 export interface EndPlayData {
   /**
@@ -60,6 +61,8 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
    * The starting position to determine net yards
    */
   protected _startingPosition: Position;
+
+  protected _playData: PlayDataManager = new PlayDataManager();
 
   /**
    * The game time the play began
@@ -132,11 +135,19 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
    * @param endPosition
    */
   handleTouchdown(endPosition: Position) {
+    console.log("HANDLE TOUCHDOWN RUNS YUP");
     this._setLivePlay(false);
 
     const { netYards } = this._getPlayDataOffense(endPosition);
 
+    if (this.stateExistsUnsafe("ballIntercepted")) {
+      this._playData.pushToStartDescription(`${netYards} yard PICK SIX off a`);
+    } else {
+      this._playData.pushToStartDescription(`${netYards} yard TOUCHDOWN off a`);
+    }
+
     const truncatedBallCarrierName = truncateName(this._ballCarrier!.name);
+
     Chat.send(
       `${ICONS.Fire} TOUCHDOWN ${truncatedBallCarrierName} ${plural(
         netYards,
@@ -278,10 +289,10 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     yardsAfterCatch: number;
     yardsPassed: number;
     netYardsStr: string;
+    netYardsStrFull: string;
     yardAndHalfStr: string;
     isTouchdown: boolean;
   } {
-    console.log(rawEndPosition);
     const { yardLine, netYards, adjustedEndPositionX } =
       PreSetCalculators.getNetYardsAndAdjustedEndPosition(
         this._startingPosition,
@@ -310,6 +321,9 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
       : 0;
 
     const netYardsStr = addPlus(netYards);
+
+    const netYardsStrFull =
+      MessageFormatter.formatNetYardsMessageFull(netYards);
 
     const yardAndHalfStr = MessageFormatter.formatYardMessage(
       yardLine,
@@ -341,6 +355,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
       yardsAfterCatch,
       yardsPassed,
       netYardsStr,
+      netYardsStrFull,
       yardAndHalfStr,
       isTouchdown,
     };
@@ -438,6 +453,9 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     addDown = true,
     setNewDown = false,
   }: EndPlayData) {
+    this._playData.recordPlayEndTime(Room.game.getTime());
+    Chat.send(this._playData.generatePlayDescription());
+
     this._setLivePlay(false);
 
     const gotFirstDown = this._updateDistance({
@@ -526,5 +544,16 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
       Room.game.swapOffenseAndUpdatePlayers();
       Room.game.down.startNew();
     }
+  }
+
+  protected _initializePlayData() {
+    this._playData.initializePlay({
+      half: 1,
+      time: this.time,
+      startTime: this.time,
+      down: Room.game.down.getDown(),
+      yardsToGet: Room.game.down.getYardsToGet(),
+      mapLocation: { yardLine: Room.game.down.getLOSYard(), half: 1 },
+    });
   }
 }

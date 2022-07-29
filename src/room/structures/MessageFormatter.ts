@@ -16,6 +16,13 @@ export default class MessageFormatter {
     return `no gain`;
   }
 
+  static formatNetYardsMessageFull(netYards: number) {
+    const yardMessage = plural(netYards, "yard", "yards");
+    if (netYards > 0) return `for a gain of ${yardMessage}`;
+    if (netYards < 0) return `for a loss of ${yardMessage}`;
+    return "for no gain";
+  }
+
   static formatMessageMaybeWithClock(message: string, time: number) {
     const WARNING_TIME = 720;
     return `${message} ${time >= WARNING_TIME ? toClock(time) : ""}`;

@@ -30,14 +30,6 @@ import { round } from "../utils/utils";
 import client from "..";
 import Room from "../roomStructures/Room";
 
-export type BadIntReasons =
-  | "Blocked by offense"
-  | "Illegally touched by defense"
-  | "Missed"
-  | "Drag on kick"
-  | "Out of bounds during attempt"
-  | "Ball out of bounds";
-
 export default class Snap extends SnapEvents {
   private _quarterback: PlayerObject;
   private _blitzClock: NodeJS.Timer | null;
@@ -89,7 +81,6 @@ export default class Snap extends SnapEvents {
 
     const isCurvePass = Room.game.stateExists("curvePass");
     const isTwoPointAttempt = Room.game.stateExists("twoPointAttempt");
-    const existsTightEnd = Room.game.getTightEnd() !== null;
 
     this._setStartingPosition(Room.game.down.getLOS());
     this.setBallPositionOnSet(Ball.getPosition());
@@ -102,9 +93,7 @@ export default class Snap extends SnapEvents {
       this.setState("twoPointAttempt");
     }
 
-    if (existsTightEnd) {
-      // Just a validtor to make sure hes still in the room
-    }
+    this._initializePlayData();
 
     if (isCurvePass) this.setState("curvePass");
   }
@@ -197,6 +186,8 @@ export default class Snap extends SnapEvents {
    * Have to redeclare since we only add one point to defensive team for a safety during a two point
    */
   handleSafety() {
+    this._playData.pushDescription("Safety");
+    this._playData.addSnapPlayDetail({ isSafety: true });
     if (this.stateExists("twoPointAttempt")) {
       this._setLivePlay(false);
       Chat.send(`${ICONS.Loudspeaker} Conversion safety!`);
@@ -222,6 +213,10 @@ export default class Snap extends SnapEvents {
   }
 
   handleTouchdown(position: Position) {
+    if (this._ballCarrier!.id === this.getQuarterback().id) {
+      this._playData.pushDescription(`${this.getQuarterback().name} scramble`);
+    }
+
     // First we need to get the type of touchdown, then handle
     if (this.stateExistsUnsafe("twoPointAttempt"))
       return this._handleTwoPointTouchdown();
@@ -336,6 +331,9 @@ export default class Snap extends SnapEvents {
 
     if (isOutOfBounds) {
       Chat.send(`${ICONS.DoNotEnter} Pass Incomplete, caught out of bounds`);
+      this._playData.pushDescription(
+        `${this._quarterback.name} pass incomplete ${mapSection} intended for ${player.name}`
+      );
       return this.endPlay({});
     }
 
@@ -343,6 +341,10 @@ export default class Snap extends SnapEvents {
     const adjustedPlayerPosition = PreSetCalculators.adjustRawEndPosition(
       playerPosition,
       player.team as PlayableTeamId
+    );
+
+    this._playData.pushDescription(
+      `${this._quarterback.name} pass ${mapSection} to ${player.name}`
     );
 
     this.setState("catchPosition", adjustedPlayerPosition);
@@ -381,6 +383,8 @@ export default class Snap extends SnapEvents {
     //   return this._handleFumble(playerContactObj, this._ballCarrier!);
 
     // return;
+
+    this._playData.pushDescription(`${player.name} run`);
 
     Chat.send(`${ICONS.Running} Ball Ran!`);
     // this._giveRunnerSpeedBoost(player, playerSpeed);
@@ -498,23 +502,14 @@ export default class Snap extends SnapEvents {
     // If anyone but the intercepting player touches the ball, reset play
     const interceptingPlayer = this.getState("interceptingPlayer");
 
-    if (interceptingPlayer.id !== ballContactObj.player.id) {
-      const touchedByOffenseOrDefense =
-        interceptingPlayer.team === ballContactObj.player.team
-          ? "Illegally touched by defense"
-          : "Blocked by offense";
-      return this.handleUnsuccessfulInterception(touchedByOffenseOrDefense);
-    }
+    if (interceptingPlayer.id !== ballContactObj.player.id)
+      return this.handleUnsuccessfulInterception();
 
     // Check if the int was kicked yet or not
     const intKicked = this.stateExists("interceptionAttemptKicked");
 
     // Int kicker touches ball after it was kicked, its no good
-    if (intKicked) {
-      return this.handleUnsuccessfulInterception(
-        "Illegally touched by defense"
-      );
-    }
+    if (intKicked) return this.handleUnsuccessfulInterception();
 
     // He finally kicks it, meaning there is a legal int attempt
     if (ballContactObj.type === "kick")
@@ -560,8 +555,7 @@ export default class Snap extends SnapEvents {
         ballPosition
       );
 
-      if (isHeadedTowardsInt)
-        return this.handleUnsuccessfulInterception("Missed");
+      if (isHeadedTowardsInt) return this.handleUnsuccessfulInterception();
     }, 3000);
   }
 
@@ -574,10 +568,7 @@ export default class Snap extends SnapEvents {
       ballContactObj.playerPosition
     );
 
-    if (isOutOfBoundsOnAttempt)
-      return this.handleUnsuccessfulInterception(
-        "Out of bounds during attempt"
-      );
+    if (isOutOfBoundsOnAttempt) return this.handleUnsuccessfulInterception();
 
     this.setState("interceptionAttempt");
     this.setState("interceptingPlayer", ballContactObj.player);
@@ -588,16 +579,8 @@ export default class Snap extends SnapEvents {
   }
 
   // This method needs to be made public since it can be called by our event observer
-  handleUnsuccessfulInterception(badIntReason: BadIntReasons) {
+  handleUnsuccessfulInterception() {
     this.setState("interceptionRuling");
-
-    if (
-      badIntReason === "Missed" ||
-      badIntReason === "Drag on kick" ||
-      badIntReason === "Out of bounds during attempt"
-    ) {
-      // Chat.send(`Interception unsuccessful: ${badIntReason}`);
-    }
 
     // This means we swapped offense, so reswap again
     if (this.stateExists("interceptionAttemptKicked")) {
@@ -611,6 +594,12 @@ export default class Snap extends SnapEvents {
     Chat.send(`${ICONS.Target} Pass Intercepted!`);
 
     const interceptingPlayer = this.getState("interceptingPlayer")!;
+
+    this._playData.pushDescription(
+      `${this._quarterback.name} pass intercepted by ${interceptingPlayer.name}`
+    );
+
+    this._playData.removeStartDescription();
 
     this._updateStatsIfNotTwoPoint(interceptingPlayer.id, {
       interceptionsReceived: 1,
@@ -656,11 +645,15 @@ export default class Snap extends SnapEvents {
     // And there isnt a saved position yet for this play
     // Then its a regular ballcarrier out of bounds
     if (this.stateExists("interceptionRuling")) {
-      const { endPosition, yardAndHalfStr } =
+      const { endPosition, yardAndHalfStr, netYardsStrFull } =
         this._getPlayDataOffense(ballCarrierPosition);
 
       Chat.send(
         `${this._ballCarrier?.name} stepped out of bounds ${yardAndHalfStr}`
+      );
+
+      this._playData.pushDescription(
+        `steps out of bounds ${yardAndHalfStr} ${netYardsStrFull}`
       );
 
       const { isSafety, isTouchback } =
@@ -689,6 +682,7 @@ export default class Snap extends SnapEvents {
       netYards,
       yardAndHalfStr,
       netYardsStr,
+      netYardsStrFull,
       yardsAfterCatch,
       yardsPassed,
     } = this._getPlayDataOffense(playerContact.ballCarrierPosition);
@@ -717,6 +711,10 @@ export default class Snap extends SnapEvents {
         `${ICONS.HandFingersSpread} ${playerContact.player.name} with the SACK!`
       );
 
+      this._playData.pushDescription(
+        `${this._quarterback.name} sacked ${yardAndHalfStr} ${netYardsStrFull} (${playerContact.player.name})`
+      );
+
       this._updateStatsIfNotTwoPoint(playerContact.player.id, {
         sacks: 1,
       });
@@ -727,6 +725,9 @@ export default class Snap extends SnapEvents {
     } else {
       Chat.send(
         `${ICONS.HandFingersSpread} Tackle ${yardAndHalfStr} | ${netYardsStr}`
+      );
+      this._playData.pushDescription(
+        `${this._quarterback.name} tackled ${yardAndHalfStr} ${netYardsStrFull} (${playerContact.player.name})`
       );
     }
 
