@@ -6,6 +6,7 @@ import MapReferee from "./MapReferee";
 
 interface Penalty {
   message: string;
+  fullName: string;
   netYards: number;
   addDown: boolean;
   hasOwnHandler?: boolean;
@@ -51,76 +52,91 @@ export default class PenaltyDataGetter {
 
     const PENALTIES: Record<PenaltyName, Penalty> = {
       snapOutOfHashes: {
+        fullName: "Illegal Snap, Out Of Hashes",
         message: `Illegal Snap, Out Of Hashes, automatic loss of down`,
         netYards: 0,
         addDown: true,
       },
       snapOutOfBounds: {
+        fullName: "Illegal Snap, Out of Bounds",
         message: `Illegal Snap, Out of Bounds, automatic loss of down`,
         netYards: 0,
         addDown: true,
       },
       offsidesOffense: {
+        fullName: "Offsides Offense",
         message: `Offsides Offense ${playerName}, 10 yard penalty, repeat the down`,
         netYards: -10,
         addDown: false,
       },
       offsidesDefense: {
+        fullName: "Offsides Defense",
         message: `Offsides Defense ${playerName}, 10 yard penalty, repeat the down`,
         netYards: 10,
         addDown: false,
       },
       snapDrag: {
+        fullName: "Quarterback Drag",
         message: `Quarterback Drag, automatic loss of down`,
         netYards: 0,
         addDown: true,
       },
       crowding: {
+        fullName: "Crowding",
         message: `Crowding ${playerName}, 15 yard penalty, repeat the down`,
         netYards: 15,
         addDown: false,
       },
       crowdAbuse: {
+        fullName: "Crowd Abuse",
         message: `Crowd Abuse ${playerName}, 20 yard penalty, repeat the down`,
         netYards: 20,
         addDown: false,
       },
       illegalPass: {
-        message: `Illegal Pass in front of the line of scrimmage, automatic loss of down`,
+        fullName: "Illegal Pass In Front Of Line Of Scrimmage",
+        message: `Illegal Pass In Front Of Line Of Scrimmage, automatic loss of down`,
         netYards: 0,
         addDown: true,
       },
       fgDrag: {
+        fullName: "Field Goal Kick Drag",
         message: `Field Goal Kick Drag, automatic loss of down`,
         netYards: 0,
         addDown: true,
       },
       puntDrag: {
+        fullName: "Punt Kick Drag",
         message: `Punt Kick Drag, 10 yard penalty, repeat the down`,
         netYards: -10,
         addDown: false,
       },
       puntOffsidesOffense: {
+        fullName: "Punt Offsides Offense",
         message: `Offsides Offense, 10 yard penalty, repeat the down`,
         netYards: -10,
         addDown: false,
       },
       illegalTouch: {
-        message: `Illegal touching of the ball by ${playerName}, automatic loss of down`,
+        fullName: "Illegal Touching Of The Ball",
+        message: `Illegal Touching Of The Ball by ${playerName}, automatic loss of down`,
         netYards: 0,
         addDown: true,
       },
       illegalRun: {
-        message: `Illegal run by ${playerName}, automatic loss of down`,
+        fullName: "Illegal Run",
+        message: `Illegal Run by ${playerName}, automatic loss of down`,
         netYards: 0,
         addDown: true,
       },
       illegalLosCross: {
+        fullName: "Illegal Line Of Scrimmage Cross",
         message: `${playerName} illegally crossed the line of scrimmage, automatic loss of down`,
         netYards: 0,
         addDown: true,
       },
       illegalBlitz: {
+        fullName: "Illegal blitz",
         message: `Illegal blitz by ${playerName} at ${plural(
           Math.round(time),
           "second",
@@ -131,36 +147,42 @@ export default class PenaltyDataGetter {
       },
       // These have their own handlers
       onsideKickDrag: {
+        fullName: "Onside Kick Drag",
         message: `Onside Kick Drag, automatic receiving team 40 yard line`,
         netYards: 0,
         addDown: false,
         hasOwnHandler: true,
       },
       kickOffDrag: {
+        fullName: "Kickoff Drag",
         message: `Kickoff Drag, automatic receiving team 40 yard line`,
         netYards: 0,
         addDown: false,
         hasOwnHandler: true,
       },
       kickOffDragSafety: {
+        fullName: "Safety Punt Drag",
         message: `Punt Drag after a safety, automatic defense 40 yard line`,
         netYards: 0,
         addDown: false,
         hasOwnHandler: true,
       },
       kickOffOutOfBounds: {
+        fullName: "Kickoff kicked out of bounds",
         message: `Kickoff kicked out of bounds, automatic offense 40 yard line`,
         netYards: 0,
         addDown: false,
         hasOwnHandler: true,
       },
       kickOffOffsides: {
+        fullName: "Kickoff Offsides Offense",
         message: `Offsides Offense ${playerName}, automatic offense 40 yard line`,
         netYards: 0,
         addDown: false,
         hasOwnHandler: true,
       },
       kickOffOffsidesSafety: {
+        fullName: "Safety Punt Offsides Offense",
         message: `Offsides Offense ${playerName} after a safety, automatic defense 40 yard line`,
         netYards: 0,
         addDown: false,
@@ -206,6 +228,7 @@ export default class PenaltyDataGetter {
       addDown,
       hasOwnHandler = false,
       message,
+      fullName,
     } = this._getPenalty(penaltyName, player, penaltyData);
 
     const isRedZonePenaltyOnDefense = isInDefenseRedzone && netYards > 0;
@@ -244,6 +267,7 @@ export default class PenaltyDataGetter {
       addDown: addDown || addDownBecausePenaltyAtOwnOneYard,
       hasOwnHandler,
       penaltyMessage: message,
+      fullName,
     };
   }
 }
