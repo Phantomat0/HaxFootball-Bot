@@ -5,8 +5,8 @@ import { TEAMS } from "./types";
 import { isInRectangleArea } from "./utils";
 
 export type MapSectionName =
-  | "top corner"
-  | "bottom corner"
+  | "cornerTop"
+  | "cornerBottom"
   | "middle"
   | "deep"
   | "backwards";
@@ -29,7 +29,7 @@ export interface MapSection {
 export default class MapSectionFinder {
   private _mapSectionsList: MapSection[] = [
     {
-      name: "top corner",
+      name: "cornerTop",
       getRectangleArea: function (
         fifteenYardsBehindLOS,
         fifteenYardsInFrontOfLOS
@@ -44,7 +44,7 @@ export default class MapSectionFinder {
       },
     },
     {
-      name: "bottom corner",
+      name: "cornerBottom",
       getRectangleArea: function (
         fifteenYardsBehindLOS,
         fifteenYardsInFrontOfLOS
