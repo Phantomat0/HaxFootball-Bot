@@ -16,7 +16,6 @@ interface PlayerSubstitution {
 
 export interface PlayerRecord {
   name: Player["name"];
-  id: Player["id"];
   team: PlayerObject["team"];
   /**
    * This id will never change, even if the player leaves and rejoins on the same auth
@@ -24,6 +23,10 @@ export interface PlayerRecord {
   readonly recordId: Player["id"];
   readonly auth: Player["auth"];
   readonly ip: Player["ip"];
+  /**
+   * Id's used by the player
+   */
+  ids: Player["id"][];
   substitutions: PlayerSubstitution[];
 }
 
@@ -31,7 +34,8 @@ export interface PlayerRecord {
  * Saves valuable player data for the entire duration of the game, even if a player leaves the room
  */
 export default class PlayerRecorder {
-  records: Collection<Player["auth"], PlayerRecord> = new Collection();
+  records: Collection<PlayerRecord["recordId"], PlayerRecord> =
+    new Collection();
   private _playersStatic: {
     fielded: PlayerObject[];
     offense: PlayerObject[];
@@ -96,7 +100,9 @@ export default class PlayerRecorder {
    * Runs if the player's team is changed
    */
   handlePlayerTeamChange(player: PlayerObject, time: number) {
-    const { playerRecord, hasPlayerRecord } = this._getPlayerRecord(player);
+    const { playerRecord, hasPlayerRecord } = this._getPlayerRecordSubIn(
+      player.id
+    );
 
     // If this is their first time playing, sub them in
     if (hasPlayerRecord === false) return this.subIn(player, time);
@@ -104,47 +110,50 @@ export default class PlayerRecorder {
     // If they are moved to specs, sub them out
     if (player.team === TEAMS.SPECTATORS) return this.subOut(player, time);
 
-    // Did they just rejoin, meaning they will have a new ID
-    if (playerRecord!.id !== player.id) {
+    // Did they just rejoin, meaning they will have a new ID that isn't in their IDs
+    if (playerRecord!.ids.includes(player.id) === false) {
       playerRecord!.team === player.team;
       return this.subIn(player, time);
     }
 
-    console.log("MOVED FROM ONE TEAM TO OTHER");
     // Otherwise they are just being moved from red to blue or vice versa, so sub them out and sub back in
     this.subOut(player, time);
     this.subIn(player, time);
   }
 
-  private _getPlayerRecord(player: PlayerObject) {
-    const playerProfile = Room.players.playerCollection.get(player.id);
+  private _getPlayerRecordSubOut(playerId: PlayerObject["id"]) {
+    const playerRecord = this.records.findOne({ ids: [playerId] });
+
+    if (!playerRecord)
+      throw Error(`No player record found with ID ${playerId}`);
+
+    return playerRecord;
+  }
+
+  private _getPlayerRecordSubIn(playerId: PlayerObject["id"]) {
+    const playerProfile = Room.players.playerCollection.get(playerId);
 
     if (!playerProfile)
-      throw Error(`No player profile found for player ${player.name}`);
+      throw Error(`No player profile found for id ${playerId}`);
 
-    const playerRecord = this.records.get(playerProfile.auth);
-
-    console.log(playerRecord);
+    const playerRecord = this.records.findOne({ auth: playerProfile.auth });
 
     const hasPlayerRecord = Boolean(playerRecord);
 
     return { playerRecord, hasPlayerRecord, playerProfile };
   }
 
-  private _getPlayerRecordSubOut(player: PlayerObject) {
-    const playerRecord = this.records.findOne({ id: player.id });
-
-    if (!playerRecord)
-      throw Error(
-        `Player ${player.name} was attempted to be subbed out, but does not have a player record.`
-      );
-
-    return playerRecord;
+  getPlayerRecordById(playerId: PlayerObject["id"]) {
+    console.log(this.records);
+    console.log(playerId);
+    return this.records.findOne({
+      ids: [playerId],
+    });
   }
 
   subIn(player: PlayerObject, time: number) {
     const { playerRecord, hasPlayerRecord, playerProfile } =
-      this._getPlayerRecord(player);
+      this._getPlayerRecordSubIn(player.id);
 
     if (hasPlayerRecord) {
       // Check that this is the right substitution
@@ -161,17 +170,16 @@ export default class PlayerRecorder {
         toTeam: player.team,
       });
       playerRecord!.team = player.team;
-      playerRecord!.id = player.id;
+      playerRecord!.ids = [...playerRecord!.ids, player.id];
       playerRecord!.name = player.name;
       return;
     }
 
-    console.log("Create player record");
     // If no record, create one, and then substitute
-    this.records.set(playerProfile.auth, {
+    this.records.set(playerProfile.id, {
       auth: playerProfile.auth,
       recordId: playerProfile.id,
-      id: playerProfile.id,
+      ids: [playerProfile.id],
       name: playerProfile.name,
       ip: playerProfile.ip,
       team: player.team,
@@ -181,8 +189,8 @@ export default class PlayerRecorder {
     });
   }
 
-  subOut(player: PlayerObject, time: number) {
-    const playerRecord = this._getPlayerRecordSubOut(player);
+  subOut(player: PlayerObject, time: number, isAtGameEnd: boolean = false) {
+    const playerRecord = this._getPlayerRecordSubOut(player.id);
 
     if (playerRecord.substitutions.length === 0)
       throw Error(
@@ -196,6 +204,10 @@ export default class PlayerRecorder {
       fromTeam: playerRecord!.team,
       toTeam: TEAMS.SPECTATORS,
     });
-    playerRecord!.team = TEAMS.SPECTATORS;
+
+    // If we are subbing at the end of the game, we wanna keep the team they ended on
+    if (isAtGameEnd === false) {
+      playerRecord!.team = TEAMS.SPECTATORS;
+    }
   }
 }
