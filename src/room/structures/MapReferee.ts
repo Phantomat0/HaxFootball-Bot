@@ -254,12 +254,15 @@ class MapReferee {
   }
 
   getNearestPlayerToPosition(players: PlayerObject[], position: Position) {
-    const playerPositionsMapped = players.map((player) => {
-      const { position } = getPlayerDiscProperties(player.id)!;
-      return position;
-    });
+    const playerPositionsMapped = players
+      .map((player) => {
+        const { position } = getPlayerDiscProperties(player.id)!;
+        if (!position) return null;
+        return position;
+      })
+      .filter((el) => el !== null) as Position[];
 
-    if (playerPositionsMapped.length === null) return null;
+    if (playerPositionsMapped.length === 0) return null;
 
     const { index, distanceToPosition } =
       this.getClosestPositionToOtherPosition(playerPositionsMapped, position);
