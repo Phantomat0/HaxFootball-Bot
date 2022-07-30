@@ -18,7 +18,7 @@ class EMPTY_MAP_SECTION_STAT {
   cornerBottom = 0;
   middle = 0;
   deep = 0;
-  behind = 0;
+  backwards = 0;
 }
 
 type PartialMapSection = Partial<MapSectionStat>;
@@ -98,7 +98,7 @@ export interface PlayerStatQuery {
 
   // Defense
   passDeflections: PartialMapSectionStatQuery;
-  tackles: 1;
+  tackles: 1 | 0.5;
   yardsAllowed: PartialMapSection;
   sacks: 1;
   forcedFumbles: 1;
