@@ -16,6 +16,7 @@ export interface PuntStore {
   punt: true;
   puntCaught: true;
   puntKicked: true;
+  puntKicker: PlayerObjFlat;
 }
 
 export default abstract class PuntEvents extends BasePlay<PuntStore> {
@@ -32,6 +33,7 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
   protected abstract _endPlayAndSetNewDown(
     endPlayData: Omit<EndPlayData, "setNewDown">
   ): void;
+  protected abstract _getFromYardAndHalfStr(): string;
 
   onBallContact(ballContactObj: BallContact) {
     // We have to do this check AGAIN because playerOnkick is not an event listener, but a native listener
@@ -50,9 +52,17 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
       adjustedBallPositionForTeam.x
     );
 
-    const ballPositionYardLineStr = MessageFormatter.formatYardMessage(
+    const ballPositionYardLineStr = MessageFormatter.formatYardAndHalfStr(
       ballPositionYardLine,
       adjustedBallPositionForTeam.x
+    );
+
+    const kicker = this.getState("puntKicker");
+
+    const fromYardAndHalfStr = this._getFromYardAndHalfStr();
+
+    this._playData.pushDescription(
+      `${kicker.name} punts from ${fromYardAndHalfStr} out of bounds ${ballPositionYardLineStr}.`
     );
 
     Chat.send(
@@ -71,8 +81,14 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
   }
 
   onBallCarrierOutOfBounds(ballCarrierPosition: Position) {
-    const { endPosition, yardAndHalfStr, netYards, netYardsStr, isTouchdown } =
-      this._getPlayDataOffense(ballCarrierPosition);
+    const {
+      endPosition,
+      yardAndHalfStr,
+      netYards,
+      netYardsStr,
+      isTouchdown,
+      netYardsStrFull,
+    } = this._getPlayDataOffense(ballCarrierPosition);
 
     if (isTouchdown) return this.handleTouchdown(ballCarrierPosition);
 
@@ -80,6 +96,10 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
       `${
         this.getBallCarrier().name
       } went out of bounds ${yardAndHalfStr} | ${netYardsStr}`
+    );
+
+    this._playData.pushDescription(
+      `steps out of bounds ${yardAndHalfStr} ${netYardsStrFull}`
     );
 
     Room.game.stats.updatePlayerStat(this._ballCarrier!.id, {
@@ -103,11 +123,24 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
     // Nothing happens, runs cannot occur
   }
   onBallCarrierContactDefense(playerContact: PlayerContact) {
-    const { endPosition, netYards, yardAndHalfStr, netYardsStr } =
-      this._getPlayDataOffense(playerContact.ballCarrierPosition);
+    const {
+      endPosition,
+      netYards,
+      yardAndHalfStr,
+      netYardsStr,
+      netYardsStrFull,
+    } = this._getPlayDataOffense(playerContact.ballCarrierPosition);
 
     Chat.send(
       `${ICONS.HandFingersSpread} Tackle ${yardAndHalfStr} | ${netYardsStr}`
+    );
+
+    this._playData.pushDescription(
+      `${
+        this._ballCarrier!.name
+      } tackled ${yardAndHalfStr} ${netYardsStrFull} (${
+        playerContact.player.name
+      })`
     );
 
     Room.game.stats.updatePlayerStat(this._ballCarrier!.id, {
@@ -156,6 +189,7 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
     if (this.stateExists("puntKicked") === false) {
       if (ballContactObj.type === "kick") {
         this.setState("puntKicked");
+        this.setState("puntKicker", player);
         this._releaseInvisibleWallForDefense();
         Room.game.swapOffenseAndUpdatePlayers();
 

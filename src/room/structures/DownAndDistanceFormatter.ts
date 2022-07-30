@@ -1,5 +1,6 @@
 import { Position } from "../HBClient";
 import { MAP_POINTS } from "../utils/map";
+import { TEAMS } from "../utils/types";
 import { toOrdinalSuffix } from "../utils/utils";
 
 class DownAndDistanceFormatter {
@@ -25,6 +26,11 @@ class DownAndDistanceFormatter {
     if (x > MAP_POINTS.KICKOFF) return "BLUE ";
     if (x < MAP_POINTS.KICKOFF) return "RED ";
     return "";
+  };
+
+  formatPositionToMapHalfInt = (x: Position["x"]) => {
+    if (x > MAP_POINTS.KICKOFF) return TEAMS.BLUE;
+    return TEAMS.RED;
   };
 }
 

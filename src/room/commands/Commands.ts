@@ -826,6 +826,13 @@ const commandsMap = new Collection<CommandName, Command>([
         console.log(Room);
         Room.setPlayerTestingId(parseInt(cmd.commandParamsStr));
         cmd.replySuccess(`Testing id set`);
+
+        const text = Room.game.playByPlay.map((play) => {
+          console.log(play);
+          return `${play.playDetails.description}\n`;
+        });
+
+        console.log(text);
       },
     },
   ],

@@ -1,21 +1,4 @@
-// interface PlayDetails {
-//   /**
-//    * The type of play that was ran
-//    */
-//   type: string;
-
-import { Position } from "../HBClient";
-
-//   isSack: boolean;
-//   isTouchdown: boolean;
-//   isInterception: boolean;
-//   isPenalty: boolean;
-
-//   penaltyTeam: 1 | 2;
-//   penaltyType: string;
-//   penaltyYards: string;
-//   penaltyPlayer: string;
-// }
+import { Position, TeamId } from "../HBClient";
 
 /* 
 = SNAP =
@@ -41,49 +24,39 @@ Touchback | Touchback
 Safety | Safety
 */
 
-interface PlayDetailsBase {
+export interface PlayDetails {
   /**
    * The type of play
    */
-  type: "Snap" | "Punt" | "Kickoff" | "Two Point Attempt" | "Field Goal";
+  type: "Snap" | "Field Goal" | "Kickoff" | "Punt" | "Onside Kick";
 
   /**
    * The play's transcript
    */
   description: string;
 
-  /**
-   * Yards the LOS moved
-   */
-  netYards: number;
-
-  /**
-   * Whether or not the play resulted in a touchdown
-   */
-  isTouchdown: boolean;
-
-  /**
-   * Whether or not the play ended in a safety
-   */
-  isSafety: boolean;
+  scoreType?:
+    | "Touchdown"
+    | "Safety"
+    | "Conversion Safety"
+    | "Field Goal"
+    | "Auto Touchdown"
+    | "Two Point Conversion";
 
   /**
    * Description if it is a field goal or touchdown
    */
-  scoringDescription?: string;
-}
+  scoreDescription?: string;
 
-export interface SnapPlayDetails extends PlayDetailsBase {
-  snapPlayType: "Pass" | "Run" | "Scramble";
-  quarterback: number;
-  receiverOrRusher: number | null;
-  isIncomplete: boolean;
-  isInterception: boolean;
-  passEndPosition: Position | null;
-}
+  passEndPosition?: Position;
+  isIncomplete?: boolean;
+  isInterception?: boolean;
 
-export interface FieldGoalPlayDetails extends PlayDetailsBase {
-  isGood: boolean;
+  scorer1?: number;
+  scorer2?: number;
+
+  redScore?: number;
+  blueScore?: number;
 }
 
 export default class PlayData {
@@ -120,39 +93,43 @@ export default class PlayData {
   /**
    * Location of the LOS
    */
-  mapLocation: {
-    yardLine: number;
-    half: 1 | 2;
-  };
+  yardLine: number;
+  mapHalf: Omit<TeamId, 0>;
+  losX: number;
 
-  playDetails: Partial<PlayDetailsBase> = {};
+  offense: Omit<TeamId, 0>;
+  defense: Omit<TeamId, 0>;
 
-  //   offense: 1 | 2;
-  //   defense: 1 | 2;
-  //   offenseScore: number;
-  //   defenseScore: number;
+  playDetails: Partial<PlayDetails> = {};
 
   constructor({
     half,
     startTime,
     down,
     yardsToGet,
-    mapLocation,
+    yardLine,
+    mapHalf,
+    losX,
+    offense,
   }: {
     half: 1 | 2;
     time: number;
     startTime: number;
     down: 1 | 2 | 3 | 4 | 5;
     yardsToGet: number;
-    mapLocation: {
-      yardLine: number;
-      half: 1 | 2;
-    };
+    yardLine: number;
+    losX: number;
+    mapHalf: Omit<TeamId, 0>;
+    offense: Omit<TeamId, 0>;
   }) {
     this.half = half;
     this.startTime = startTime;
     this.down = down;
     this.toGo = yardsToGet;
-    this.mapLocation = mapLocation;
+    this.yardLine = yardLine;
+    this.mapHalf = mapHalf;
+    this.losX = losX;
+    this.offense = offense;
+    this.defense = offense === 1 ? 2 : 1;
   }
 }

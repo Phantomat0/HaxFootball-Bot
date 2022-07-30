@@ -13,3 +13,10 @@ export type onFunctions<T> = {
 // type FunctionKeys<T> = {
 //   [K in keyof T]: T[K] extends () => void ? K : never;
 // }[keyof T]; // <-
+
+export type OptionalPropertyOf<T extends object> = Exclude<
+  {
+    [K in keyof T]: T extends Record<K, T[K]> ? never : K;
+  }[keyof T],
+  undefined
+>;

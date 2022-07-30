@@ -21,6 +21,8 @@ import PlayerContact from "../classes/PlayerContact";
 import Room from "../roomStructures/Room";
 import client from "..";
 import PlayDataManager from "../structures/PlayDataManager";
+import { PlayDetails } from "../classes/PlayData";
+import DownAndDistanceFormatter from "../structures/DownAndDistanceFormatter";
 
 export interface EndPlayData {
   /**
@@ -135,7 +137,6 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
    * @param endPosition
    */
   handleTouchdown(endPosition: Position) {
-    console.log("HANDLE TOUCHDOWN RUNS YUP");
     this._setLivePlay(false);
 
     const { netYards } = this._getPlayDataOffense(endPosition);
@@ -180,10 +181,10 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
 
     // Adjusts the speeds, since we can have negative speeds
     const playerXSpeed = Math.min(Math.abs(playerSpeed.x), MAX_SPEED);
-    const playerYSpeed = Math.min(Math.abs(playerSpeed.y), MAX_SPEED);
+    // const playerYSpeed = Math.min(Math.abs(playerSpeed.y), MAX_SPEED);
 
     const ballCarrierXSpeed = Math.min(Math.abs(ballCarrierSpeed.x), MAX_SPEED);
-    const ballCarrierYSpeed = Math.min(Math.abs(ballCarrierSpeed.y), MAX_SPEED);
+    // const ballCarrierYSpeed = Math.min(Math.abs(ballCarrierSpeed.y), MAX_SPEED);
 
     Chat.send(`X: ${playerXSpeed.toFixed(3)}`, {
       id: Room.getPlayerTestingId(),
@@ -269,8 +270,15 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     teamEndZoneToScore: PlayableTeamId
   ) {
     this._setLivePlay(false);
+    this._playData.recordPlayEndTime(Room.game.getTime());
+    Chat.send(this._playData.generatePlayDescription());
 
     Room.game.addScore(team, score);
+    this._playData.setPlayDetails({
+      redScore: Room.game.score.red,
+      blueScore: Room.game.score.blue,
+    });
+    Room.game.savePlayData(this._playData.playData);
     Ball.score(teamEndZoneToScore);
     Room.game.sendScoreBoard();
     Room.game.down.resetAfterScore();
@@ -325,7 +333,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     const netYardsStrFull =
       MessageFormatter.formatNetYardsMessageFull(netYards);
 
-    const yardAndHalfStr = MessageFormatter.formatYardMessage(
+    const yardAndHalfStr = MessageFormatter.formatYardAndHalfStr(
       yardLine,
       adjustedEndPositionX
     );
@@ -366,6 +374,8 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
    */
   _handleSafety() {
     this._setLivePlay(false);
+    this._playData.pushDescription(`(Safety)`);
+    this._playData.setScoreType("Safety", `Safety`);
     Chat.send(`${ICONS.Loudspeaker} Safety - kickoff from the 20 yard line`);
 
     Room.game.setState("safetyKickoff");
@@ -378,6 +388,8 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
    * Handles a touchback, only callable on punts or kickoffs
    */
   protected _handleTouchback() {
+    this._playData.pushDescription(`(Touchback)`);
+
     Chat.send(
       `${ICONS.Loudspeaker} Touchback - ball placed at the receiving team's 20 yard line.`
     );
@@ -412,6 +424,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
       isRedZonePenaltyOnDefense,
       newEndLosX,
       penaltyMessage,
+      fullName,
     } = new PenaltyDataGetter().getData(
       penaltyName,
       player,
@@ -429,6 +442,8 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     Room.game.stats.updatePlayerStat(player.id, {
       penalties: 1,
     });
+
+    this._playData.pushDescription(`[PENALTY] ${fullName} (${player.name})`);
 
     if (hasOwnHandler) return;
 
@@ -454,6 +469,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     setNewDown = false,
   }: EndPlayData) {
     this._playData.recordPlayEndTime(Room.game.getTime());
+    Room.game.savePlayData(this._playData.playData);
     Chat.send(this._playData.generatePlayDescription());
 
     this._setLivePlay(false);
@@ -546,14 +562,19 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     }
   }
 
-  protected _initializePlayData() {
+  protected _initializePlayData(playType: PlayDetails["type"]) {
     this._playData.initializePlay({
       half: 1,
       time: this.time,
       startTime: this.time,
       down: Room.game.down.getDown(),
       yardsToGet: Room.game.down.getYardsToGet(),
-      mapLocation: { yardLine: Room.game.down.getLOSYard(), half: 1 },
+      yardLine: Room.game.down.getLOSYard(),
+      losX: Room.game.down.getLOS().x,
+      mapHalf: DownAndDistanceFormatter.formatPositionToMapHalfInt(
+        Room.game.down.getLOS().x
+      ),
+      offense: Room.game.offenseTeamId,
     });
   }
 }

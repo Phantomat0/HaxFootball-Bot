@@ -77,6 +77,14 @@ export default class OnsideKick extends OnsideKickEvents {
       specTouchdowns: 1,
     });
 
+    this._playData.setScoreType(
+      "Touchdown",
+      `$SCORER1$ ${netYards} Yd Return`,
+      {
+        scorer1: this._ballCarrier!.id,
+      }
+    );
+
     super.handleTouchdown(endPosition);
   }
 

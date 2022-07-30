@@ -30,11 +30,11 @@ export default class PlayerStatManager {
     playerId: PlayerObject["id"],
     statQuery: Partial<PlayerStatQuery>
   ) {
-    console.log(Room.game.players.records);
-    console.log(playerId);
-    const playerRecord = Room.game.players.records.findOne({ id: playerId });
+    console.log(this);
+    console.log(playerId, statQuery);
 
-    // if (!playerRecord) return;
+    const playerRecord = Room.game.players.getPlayerRecordById(playerId);
+
     if (!playerRecord) throw Error("Error finding player record");
 
     if (SHOW_DEBUG_CHAT) Chat.send(`STAT UPDATE: ${JSON.stringify(statQuery)}`);

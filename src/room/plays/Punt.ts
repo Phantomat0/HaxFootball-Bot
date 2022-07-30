@@ -9,8 +9,11 @@ import {
 import Ball from "../roomStructures/Ball";
 import Chat from "../roomStructures/Chat";
 import Room from "../roomStructures/Room";
-import DistanceCalculator from "../structures/DistanceCalculator";
+import DistanceCalculator, {
+  DistanceConverter,
+} from "../structures/DistanceCalculator";
 import MapReferee from "../structures/MapReferee";
+import MessageFormatter from "../structures/MessageFormatter";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
@@ -42,7 +45,7 @@ export default class Punt extends PuntEvents {
     this._createInvisibleWallForDefense();
     this.resetPlayerPhysicsAndRemoveTightEnd();
 
-    this._initializePlayData();
+    this._initializePlayData("Punt");
   }
 
   run() {
@@ -74,6 +77,14 @@ export default class Punt extends PuntEvents {
       specTouchdowns: 1,
     });
 
+    this._playData.setScoreType(
+      "Touchdown",
+      `$SCORER1$ ${netYards} Yd Return`,
+      {
+        scorer1: this._ballCarrier!.id,
+      }
+    );
+
     super.handleTouchdown(endPosition);
   }
 
@@ -94,14 +105,43 @@ export default class Punt extends PuntEvents {
       ballContactObj.playerPosition
     );
 
+    const fromYardAndHalfStr = this._getFromYardAndHalfStr();
+
+    const ballPositionYardLine = DistanceConverter.toYardLine(
+      adjustedCatchPosition.x
+    );
+
+    const ballPositionYardLineStr = MessageFormatter.formatYardAndHalfStr(
+      ballPositionYardLine,
+      adjustedCatchPosition.x
+    );
+
+    const kicker = this.getState("puntKicker");
+
     if (isOutOfBounds) {
       Chat.send(`${ICONS.DoNotEnter} Caught out of bounds`);
-      return this._endPlayAndSetNewDown({});
+      this._playData.pushDescription(
+        `${kicker.name} punts from ${fromYardAndHalfStr} out of bounds ${ballPositionYardLineStr}.`
+      );
+      return this._endPlayAndSetNewDown({ newLosX: adjustedCatchPosition.x });
     }
+
+    this._playData.pushDescription(
+      `${kicker.name} punts from ${fromYardAndHalfStr} to ${ballPositionYardLineStr}.`
+    );
 
     Chat.send(`${ICONS.Football} Ball Caught`);
 
     this.setBallCarrier(player);
+  }
+
+  protected _getFromYardAndHalfStr() {
+    const fromYard = DistanceConverter.toYardLine(this._ballPositionOnSet!.x);
+
+    return MessageFormatter.formatYardAndHalfStr(
+      fromYard,
+      this._ballPositionOnSet!.x
+    );
   }
 
   protected _checkIfOffenseOffsidesOnKick(playerWhoKicked: PlayerObjFlat): {

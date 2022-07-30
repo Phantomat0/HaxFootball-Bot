@@ -11,6 +11,7 @@ import Chat from "../../roomStructures/Chat";
 import Room from "../../roomStructures/Room";
 import GameReferee from "../../structures/GameReferee";
 import MapReferee from "../../structures/MapReferee";
+import MessageFormatter from "../../structures/MessageFormatter";
 import ICONS from "../../utils/Icons";
 import { MapSectionName } from "../../utils/MapSectionFinder";
 import BasePlay from "../BasePlay";
@@ -133,7 +134,9 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     this._playData.pushDescription(
       `${
         this.getQuarterback().name
-      } pass incomplete ${mapSection} ${intendedForStr}`
+      } pass incomplete ${MessageFormatter.formatMapSectionName(
+        mapSection
+      )} ${intendedForStr}`
     );
     return this.endPlay({});
   }
@@ -284,9 +287,9 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     this._playData.pushDescription(
       `${
         this.getQuarterback().name
-      } pass incomplete ${mapSection} ${intendedForStr} (${
-        ballContactObj.player.name
-      })`
+      } pass incomplete ${MessageFormatter.formatMapSectionName(
+        mapSection
+      )} ${intendedForStr}(${ballContactObj.player.name})`
     );
 
     this.setState("ballDeflected");

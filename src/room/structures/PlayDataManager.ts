@@ -1,10 +1,10 @@
-import PlayData, { SnapPlayDetails } from "../classes/PlayData";
+import PlayData, { PlayDetails } from "../classes/PlayData";
 
 export default class PlayDataManager {
   playData: PlayData;
   playEvents: string[] = [];
 
-  initializePlay(playDataParams: any) {
+  initializePlay(playDataParams: ConstructorParameters<typeof PlayData>[0]) {
     this.playData = new PlayData(playDataParams);
   }
 
@@ -18,7 +18,6 @@ export default class PlayDataManager {
   }
 
   pushToStartDescription(playEventDescription: string) {
-    console.log("PUSH:", playEventDescription);
     this.playEvents.unshift(playEventDescription);
   }
 
@@ -33,10 +32,27 @@ export default class PlayDataManager {
   }
 
   setScoringDescription(scoringDesc: string) {
-    this.playData.playDetails.scoringDescription = scoringDesc;
+    this.playData.playDetails.scoreDescription = scoringDesc;
   }
 
-  addSnapPlayDetail(detail: Partial<SnapPlayDetails>) {
-    this.playData.playDetails = { ...this.playData.playDetails, ...detail };
+  setScoreType(
+    scoreType: PlayDetails["scoreType"],
+    scoreDescription: string,
+    scorerIds: { scorer1: number; scorer2?: number } | null = null
+  ) {
+    this.playData.playDetails.scoreType = scoreType;
+    this.playData.playDetails.scoreDescription = scoreDescription;
+    if (scorerIds === null) return;
+    const { scorer1, scorer2 = null } = scorerIds;
+    this.playData.playDetails.scorer1 = scorer1;
+    if (scorer2 === null) return;
+    this.playData.playDetails.scorer2 = scorer2;
+  }
+
+  setPlayDetails(playDetails: Partial<PlayDetails>) {
+    this.playData.playDetails = {
+      ...this.playData.playDetails,
+      ...playDetails,
+    };
   }
 }
