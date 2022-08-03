@@ -7,7 +7,7 @@ import { TEAMS } from "../utils/types";
 import { partition } from "../utils/utils";
 import Player from "../classes/Player";
 
-interface PlayerSubstitution {
+export interface PlayerSubstitution {
   type: "IN" | "OUT";
   time: number;
   fromTeam: TeamId;
@@ -28,6 +28,8 @@ export interface PlayerRecord {
    */
   ids: Player["id"][];
   substitutions: PlayerSubstitution[];
+
+  wasAtEndOfGame: boolean;
 }
 
 /**
@@ -118,7 +120,7 @@ export default class PlayerRecorder {
 
     // Otherwise they are just being moved from red to blue or vice versa, so sub them out and sub back in
     this.subOut(player, time);
-    this.subIn(player, time);
+    return this.subIn(player, time);
   }
 
   private _getPlayerRecordSubOut(playerId: PlayerObject["id"]) {
@@ -172,7 +174,7 @@ export default class PlayerRecorder {
       playerRecord!.team = player.team;
       playerRecord!.ids = [...playerRecord!.ids, player.id];
       playerRecord!.name = player.name;
-      return;
+      return playerRecord!.recordId;
     }
 
     // If no record, create one, and then substitute
@@ -186,7 +188,10 @@ export default class PlayerRecorder {
       substitutions: [
         { time, type: "IN", fromTeam: TEAMS.SPECTATORS, toTeam: player.team },
       ],
+      wasAtEndOfGame: false,
     });
+
+    return playerRecord!.recordId;
   }
 
   subOut(player: PlayerObject, time: number, isAtGameEnd: boolean = false) {
@@ -206,8 +211,10 @@ export default class PlayerRecorder {
     });
 
     // If we are subbing at the end of the game, we wanna keep the team they ended on
-    if (isAtGameEnd === false) {
-      playerRecord!.team = TEAMS.SPECTATORS;
+    if (isAtGameEnd) {
+      playerRecord!.wasAtEndOfGame = true;
     }
+
+    return playerRecord.recordId;
   }
 }
