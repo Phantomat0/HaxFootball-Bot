@@ -259,7 +259,7 @@ export default class Down {
 
     if (teamHalf !== Room.game.offenseTeamId) return;
 
-    if (Room.game.getTime() > MAX_TIME_FOR_AUTO_PUNT) return;
+    if (Room.game.getTimeRounded() > MAX_TIME_FOR_AUTO_PUNT) return;
 
     if (this.getYardsToGet() < MIN_YARDS_FOR_AUTO_PUNT) return;
 
@@ -276,7 +276,7 @@ export default class Down {
       const firstPlayerOnOffense = offensePlayers[0];
 
       return Room.game.setPlay(
-        new Punt(Room.game.getTime(), firstPlayerOnOffense!),
+        new Punt(Room.game.getTimeRounded(), firstPlayerOnOffense!),
         firstPlayerOnOffense
       );
     };
@@ -311,7 +311,7 @@ export default class Down {
     const closestPlayerToBall = offensePlayers[index];
 
     Room.game.setPlay(
-      new Punt(Room.game.getTime(), closestPlayerToBall),
+      new Punt(Room.game.getTimeRounded(), closestPlayerToBall),
       closestPlayerToBall
     );
   }

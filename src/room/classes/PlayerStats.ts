@@ -1,3 +1,4 @@
+import { PlayerRecord } from "../roomStructures/PlayerRecorder";
 import ICONS from "../utils/Icons";
 import { MapSectionName } from "../utils/MapSectionFinder";
 import {
@@ -7,18 +8,20 @@ import {
   round,
   sumObjectValues,
 } from "../utils/utils";
-import Player from "./Player";
 
 type MapSectionStat = Record<MapSectionName, number>;
 
 type MapSectionStatQuery = Record<MapSectionName, 1>;
 
-class EMPTY_MAP_SECTION_STAT {
+export class EMPTY_MAP_SECTION_STAT {
   cornerTop = 0;
   cornerBottom = 0;
   middle = 0;
   deep = 0;
   backwards = 0;
+  get all() {
+    return sumObjectValues(this as unknown as Record<string, number>);
+  }
 }
 
 type PartialMapSection = Partial<MapSectionStat>;
@@ -123,7 +126,7 @@ export interface PlayerStatQuery {
 }
 
 export default class PlayerStats implements IPlayerStat {
-  auth: Player["auth"];
+  recordId: PlayerRecord["recordId"];
   // Receiving
   receptions: MapSectionStat = new EMPTY_MAP_SECTION_STAT();
   receivingYards: MapSectionStat = new EMPTY_MAP_SECTION_STAT();
@@ -171,8 +174,8 @@ export default class PlayerStats implements IPlayerStat {
   onsideKicksAttempted: number = 0;
   onsideKicksConverted: number = 0;
 
-  constructor(auth: Player["auth"]) {
-    this.auth = auth;
+  constructor(recordId: PlayerRecord["recordId"]) {
+    this.recordId = recordId;
   }
 
   get totalReceptions() {

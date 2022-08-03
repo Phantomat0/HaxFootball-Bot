@@ -96,6 +96,8 @@ export default class Snap extends SnapEvents {
     this._initializePlayData("Snap");
 
     if (isCurvePass) this.setState("curvePass");
+
+    this._playData.setPlayDetails({ quarterback: this._quarterback.id });
   }
 
   run() {
@@ -346,8 +348,19 @@ export default class Snap extends SnapEvents {
           mapSection
         )} intended for ${player.name}`
       );
+
+      this._playData.setPlayDetails({
+        isIncomplete: true,
+        passEndPosition: ballContactObj.playerPosition,
+      });
+
       return this.endPlay({});
     }
+
+    this._playData.setPlayDetails({
+      isIncomplete: false,
+      passEndPosition: ballContactObj.playerPosition,
+    });
 
     /// Its a legal catch
     const adjustedPlayerPosition = PreSetCalculators.adjustRawEndPosition(
@@ -606,6 +619,10 @@ export default class Snap extends SnapEvents {
 
   protected _handleSuccessfulInterception() {
     Chat.send(`${ICONS.Target} Pass Intercepted!`);
+
+    this._playData.setPlayDetails({
+      isInterception: true,
+    });
 
     const interceptingPlayer = this.getState("interceptingPlayer")!;
 

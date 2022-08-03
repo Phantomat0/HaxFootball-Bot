@@ -1,4 +1,4 @@
-import { Position, TeamId } from "../HBClient";
+import { PlayableTeamId, Position } from "../HBClient";
 
 /* 
 = SNAP =
@@ -48,6 +48,7 @@ export interface PlayDetails {
    */
   scoreDescription?: string;
 
+  quarterback?: number;
   passEndPosition?: Position;
   isIncomplete?: boolean;
   isInterception?: boolean;
@@ -94,11 +95,11 @@ export default class PlayData {
    * Location of the LOS
    */
   yardLine: number;
-  mapHalf: Omit<TeamId, 0>;
+  mapHalf: PlayableTeamId;
   losX: number;
 
-  offense: Omit<TeamId, 0>;
-  defense: Omit<TeamId, 0>;
+  offense: PlayableTeamId;
+  defense: PlayableTeamId;
 
   playDetails: Partial<PlayDetails> = {};
 
@@ -119,8 +120,8 @@ export default class PlayData {
     yardsToGet: number;
     yardLine: number;
     losX: number;
-    mapHalf: Omit<TeamId, 0>;
-    offense: Omit<TeamId, 0>;
+    mapHalf: PlayableTeamId;
+    offense: PlayableTeamId;
   }) {
     this.half = half;
     this.startTime = startTime;

@@ -12,7 +12,7 @@ const onLeave: HBClient["onPlayerLeave"] = (player) => {
   const wasFielded = player.team === TEAMS.RED || player.team === TEAMS.BLUE;
 
   if (wasFielded) {
-    Room.game.players.subOut(player, Room.game.getTime());
+    Room.game.players.subOut(player, Room.game.getTimeRounded());
     Room.game.checkIfTightEndSwitchedTeamsOrLeft(player.id);
   }
 };

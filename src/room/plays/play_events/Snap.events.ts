@@ -117,6 +117,11 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       },
     });
 
+    this._playData.setPlayDetails({
+      isIncomplete: true,
+      passEndPosition: ballPosition,
+    });
+
     if (this.stateExists("curvePass")) {
       this._updateStatsIfNotTwoPoint(this.getQuarterback().id, {
         curvedPassAttempts: 1,
@@ -264,6 +269,11 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
 
     this._updateStatsIfNotTwoPoint(ballContactObj.player.id, {
       passDeflections: { [mapSection]: 1 },
+    });
+
+    this._playData.setPlayDetails({
+      isIncomplete: true,
+      passEndPosition: ballContactObj.playerPosition,
     });
 
     this._updateStatsIfNotTwoPoint(this.getQuarterback().id, {

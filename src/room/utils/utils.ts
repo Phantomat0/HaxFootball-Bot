@@ -264,3 +264,9 @@ export const getRandomChars = (numbOfChars: number) => {
     .map(() => chars.charAt(Math.floor(Math.random() * chars.length)))
     .join("");
 };
+
+export const largestInArray = (array: any[], propertyName: string) => {
+  return array.reduce((max, curren) =>
+    max[propertyName] > curren[propertyName] ? max : curren
+  );
+};

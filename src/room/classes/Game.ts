@@ -3,7 +3,7 @@ import { PlayableTeamId, PlayerObject, Position } from "../HBClient";
 import { PLAY_TYPES } from "../plays/BasePlayAbstract";
 import Chat from "../roomStructures/Chat";
 import Room from "../roomStructures/Room";
-import PlayerRecorder from "../roomStructures/PlayerRecorder";
+import PlayerRecorder, { PlayerRecord } from "../roomStructures/PlayerRecorder";
 import PlayerStatManager from "../structures/PlayerStatManager";
 import { getPlayerDiscProperties, toClock } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
@@ -37,13 +37,7 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
 
   offenseTeamId: PlayableTeamId = 1;
 
-  timeoutsUsed: {
-    red: number;
-    blue: number;
-  } = {
-    red: 0,
-    blue: 0,
-  };
+  timeOuts: { time: number; team: number }[] = [];
 
   playByPlay: PlayData[] = [];
 
@@ -57,6 +51,7 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   private _canStartSnapPlay: boolean = true;
   private _isPaused: boolean = false;
   private _tightEndId: PlayerObject["id"] | null = null;
+  private _isActive: boolean = true;
 
   constructor() {
     super();
@@ -69,6 +64,10 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
 
   get isPaused() {
     return this._isPaused;
+  }
+
+  get isActive() {
+    return this._isActive;
   }
 
   getTightEnd() {
@@ -95,8 +94,7 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
 
   get defenseTeamId() {
     if (this.offenseTeamId === 1) return 2;
-    if (this.offenseTeamId === 2) return 1;
-    throw Error("DEFENSE IS 0");
+    return 1;
   }
 
   get canStartSnapPlay() {
@@ -125,9 +123,7 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   }
 
   incrementTeamTimeout(teamId: PlayableTeamId) {
-    if (teamId === TEAMS.RED) return this.timeoutsUsed.red++;
-    if (teamId === TEAMS.BLUE) return this.timeoutsUsed.blue++;
-    return null;
+    this.timeOuts.push({ time: this.getTimeRounded(), team: teamId });
   }
 
   startSnapDelay() {
@@ -169,6 +165,10 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     this.play = null;
   }
 
+  endGame() {
+    this._isActive = false;
+  }
+
   setScore(teamID: PlayableTeamId, score: number) {
     teamID === TEAMS.RED ? (this.score.red = score) : (this.score.blue = score);
     return this;
@@ -185,6 +185,13 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     return client.getScores().time ?? 0;
   }
 
+  /**
+   * Returns the time rounded
+   */
+  getTimeRounded() {
+    return Math.round(this.getTime());
+  }
+
   getClock() {
     const time = this.getTime();
     return toClock(time);
@@ -195,23 +202,13 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   }
 
   sendScoreBoard() {
-    Chat.send(
-      `${ICONS.RedSquare} ${this.score.red} -  ${this.score.blue} ${ICONS.BlueSquare}`
-    );
+    Chat.send(this.getScoreBoardStr());
   }
 
-  sendManOfTheMatch() {
-    const manOfTheMatchObj = this.stats.determineManOfTheMatch();
+  sendManOfTheMatch(recordId: PlayerRecord["recordId"], pointTotal: number) {
+    const player = this.players.records.get(recordId);
 
-    if (manOfTheMatchObj === null) return;
-
-    const { auth, pointTotal } = manOfTheMatchObj;
-
-    const player = Room.players.playerCollection.findOne({
-      auth: auth,
-    });
-
-    if (player === null) return;
+    if (!player) return;
 
     Chat.send(`${ICONS.Star} MVP: ${player.name} | ${pointTotal} points`);
   }

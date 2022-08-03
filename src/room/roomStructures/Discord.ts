@@ -48,25 +48,25 @@ class DiscordLogger {
   /**
    * @returns BLANK_NAME if name is blank
    */
-  private _sanitizePlayerName(playerName: string) {
-    return playerName.length === 0 ? "BLANK_NAME" : playerName;
-  }
+  // private _sanitizePlayerName(playerName: string) {
+  //   return playerName.length === 0 ? "BLANK_NAME" : playerName;
+  // }
 
-  private async _logEmbed({
-    msgContent = "",
-    embeds,
-  }: {
-    msgContent?: string;
-    embeds: DiscordEmbed[];
-  }) {
-    return await fetch(this._webhookURL, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ content: msgContent, embeds: embeds }),
-    });
-  }
+  // private async _logEmbed({
+  //   msgContent = "",
+  //   embeds,
+  // }: {
+  //   msgContent?: string;
+  //   embeds: DiscordEmbed[];
+  // }) {
+  //   return await fetch(this._webhookURL, {
+  //     method: "POST",
+  //     headers: {
+  //       "content-type": "application/json",
+  //     },
+  //     body: JSON.stringify({ content: msgContent, embeds: embeds }),
+  //   });
+  // }
 
   private async _log(
     msg: string,

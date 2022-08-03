@@ -71,7 +71,7 @@ export default class CommandHandler {
       throw new CommandError(`You cannot use command ${cmdName} while muted`);
 
     // Check if there is a game going on
-    if (game && Room.game === null)
+    if ((game && Room.game === null) || Room.game.isActive === false)
       throw new CommandError(
         `Command ${cmdName} requires a game to be in session`
       );

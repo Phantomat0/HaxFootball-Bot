@@ -270,7 +270,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     teamEndZoneToScore: PlayableTeamId
   ) {
     this._setLivePlay(false);
-    this._playData.recordPlayEndTime(Room.game.getTime());
+    this._playData.recordPlayEndTime(Room.game.getTimeRounded());
     Chat.send(this._playData.generatePlayDescription());
 
     Room.game.addScore(team, score);
@@ -468,7 +468,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     addDown = true,
     setNewDown = false,
   }: EndPlayData) {
-    this._playData.recordPlayEndTime(Room.game.getTime());
+    this._playData.recordPlayEndTime(Room.game.getTimeRounded());
     Room.game.savePlayData(this._playData.playData);
     Chat.send(this._playData.generatePlayDescription());
 

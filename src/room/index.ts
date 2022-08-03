@@ -32,8 +32,7 @@ client.onGameStart = () => {
 
 client.onGameStop = () => {
   if (!Room.isBotOn) return;
-  Room.game.sendManOfTheMatch();
-  Room.endGame();
+  Room.game.endGame();
 };
 
 client.onPositionsReset = () => {
@@ -41,7 +40,7 @@ client.onPositionsReset = () => {
   Room.game.down.startNew();
   Room.game.setState("canTwoPoint", false);
   Room.game.setState("twoPointAttempt", false);
-  Room.game.setPlay(new KickOff(Room.game.getTime()), null);
+  Room.game.setPlay(new KickOff(Room.game.getTimeRounded()), null);
 };
 
 client.onTeamGoal = () => {
