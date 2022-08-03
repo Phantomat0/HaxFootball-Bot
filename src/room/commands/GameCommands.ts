@@ -11,7 +11,6 @@ import Room from "../roomStructures/Room";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import COLORS from "../utils/colors";
 import ICONS from "../utils/Icons";
-import { TEAMS } from "../utils/types";
 import { GameCommandError } from "./GameCommandHandler";
 
 export interface GameCommandPermissions {
@@ -57,7 +56,7 @@ const gameCommandsMap = new Map<string, GameCommand>([
       },
       run(player) {
         Room.game.setPlay(
-          new Snap(Room.game.getTime(), player.playerObject!),
+          new Snap(Room.game.getTimeRounded(), player.playerObject!),
           player.playerObject!
         );
       },
@@ -150,7 +149,7 @@ const gameCommandsMap = new Map<string, GameCommand>([
       },
       run(player) {
         Room.game.setPlay(
-          new FieldGoal(Room.game.getTime(), player.playerObject!),
+          new FieldGoal(Room.game.getTimeRounded(), player.playerObject!),
           player.playerObject!
         );
       },
@@ -167,7 +166,7 @@ const gameCommandsMap = new Map<string, GameCommand>([
       },
       run(player) {
         Room.game.setPlay(
-          new Punt(Room.game.getTime(), player.playerObject!),
+          new Punt(Room.game.getTimeRounded(), player.playerObject!),
           player.playerObject!
         );
       },
@@ -258,7 +257,7 @@ const gameCommandsMap = new Map<string, GameCommand>([
         if (canOnside === false) throw new GameCommandError(reason!, true);
 
         Room.game.setPlay(
-          new OnsideKick(Room.game.getTime(), player.playerObject!),
+          new OnsideKick(Room.game.getTimeRounded(), player.playerObject!),
           player.playerObject!
         );
       },
@@ -278,13 +277,14 @@ const gameCommandsMap = new Map<string, GameCommand>([
         // Increment team timeout
         Room.game.incrementTeamTimeout(player.team as PlayableTeamId);
 
-        const teamTimeouts =
-          player.team === TEAMS.RED
-            ? Room.game.timeoutsUsed.red
-            : Room.game.timeoutsUsed.blue;
+        const teamTimeouts = Room.game.timeOuts.filter(
+          (timeout) => timeout.team === player.team
+        );
 
         Chat.send(
-          `Timeout called at ${Room.game.getClock()} | Used Teams Timeouts: ${teamTimeouts}`
+          `Timeout called at ${Room.game.getClock()} | Used Teams Timeouts: ${
+            teamTimeouts.length
+          }`
         );
       },
     },
