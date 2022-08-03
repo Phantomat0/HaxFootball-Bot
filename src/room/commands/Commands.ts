@@ -286,19 +286,17 @@ const commandsMap = new Collection<CommandName, Command>([
         types: [COMMAND_PARAM_TYPES.PLAYER],
       },
       async run(cmd: CommandMessage) {
-        if (Room.game === null && Room.statsStore === null)
-          throw new CommandError("No game in progress");
-
-        const statsCollection =
-          Room.game === null
-            ? Room.statsStore!
-            : Room.game.stats.statsCollection!;
+        if (Room.game === null) throw new CommandError("No game in progress");
 
         // If no params get the stats of the player using the command
         if (cmd.hasNoParams()) {
-          const playerStats = statsCollection.get(cmd.author.auth);
+          const playerRecord = Room.game.players.records.get(cmd.author.id);
 
-          if (!playerStats)
+          const playerStats = Room.game.stats.statsCollection.get(
+            playerRecord?.recordId ?? 0
+          );
+
+          if (!playerRecord || !playerStats)
             throw new CommandError(`You do not have any stats yet`);
 
           const playerStatsString = playerStats.getStatsStringNormal();
@@ -315,9 +313,15 @@ const commandsMap = new Collection<CommandName, Command>([
           cmd.commandParamsStr
         );
 
-        const playersStatProfile = statsCollection.get(playerToGetStatsOf.auth);
+        const playerRecord = Room.game.players.records.get(
+          playerToGetStatsOf.id
+        );
 
-        if (!playersStatProfile)
+        const playersStatProfile = Room.game.stats.statsCollection.get(
+          playerRecord?.recordId ?? 0
+        );
+
+        if (!playersStatProfile || !playerRecord)
           throw new CommandError(
             `Player ${playerToGetStatsOf.shortName} does not have any stats yet`
           );
