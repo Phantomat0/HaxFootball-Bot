@@ -1,4 +1,4 @@
-import { Position } from "../HBClient";
+import { PlayableTeamId, Position } from "../HBClient";
 import { MAP_POINTS } from "../utils/map";
 import { TEAMS } from "../utils/types";
 import { toOrdinalSuffix } from "../utils/utils";
@@ -28,9 +28,9 @@ class DownAndDistanceFormatter {
     return "";
   };
 
-  formatPositionToMapHalfInt = (x: Position["x"]) => {
-    if (x > MAP_POINTS.KICKOFF) return TEAMS.BLUE;
-    return TEAMS.RED;
+  formatPositionToMapHalfInt = (x: Position["x"]): PlayableTeamId => {
+    if (x > MAP_POINTS.KICKOFF) return TEAMS.BLUE as PlayableTeamId;
+    return TEAMS.RED as PlayableTeamId;
   };
 }
 
