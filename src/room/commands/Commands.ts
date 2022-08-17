@@ -12,6 +12,7 @@ import { getRandomInt } from "../utils/utils";
 import CommandHandler, { CommandError } from "./CommandHandler";
 import Room from "../roomStructures/Room";
 import { TEAMS } from "../utils/types";
+import client from "..";
 
 export type CommandName = string;
 
@@ -478,7 +479,6 @@ const commandsMap = new Collection<CommandName, Command>([
       async run(cmd: CommandMessage) {
         const { down, losX, yardsToGet } = Room.game.down.previousDown;
 
-        console.log(losX);
         Room.game.down.setDown(down);
         Room.game.down.setYardsToGet(yardsToGet);
 
@@ -571,7 +571,7 @@ const commandsMap = new Collection<CommandName, Command>([
       usage: [],
       showCommand: true,
       permissions: {
-        level: 0,
+        level: 1,
         muted: true,
         game: false,
         notDuringPlay: true,
@@ -658,6 +658,78 @@ const commandsMap = new Collection<CommandName, Command>([
         const downAndDistanceStr = Room.game.down.getDownAndDistanceString();
 
         cmd.reply(downAndDistanceStr);
+      },
+    },
+  ],
+  [
+    "mute",
+    {
+      name: "mute",
+      alias: ["m"],
+      description: "Mutes a player",
+      usage: ["mute [name]"],
+      showCommand: true,
+      permissions: {
+        level: 1,
+        muted: true,
+        game: false,
+        notDuringPlay: false,
+      },
+      params: {
+        min: 1,
+        max: 1,
+        types: [COMMAND_PARAM_TYPES.PLAYER],
+      },
+      run: async function (cmd: CommandMessage) {
+        const player = CommandHandler.getPlayerByNameAlways(
+          cmd.commandParamsStr
+        );
+
+        if (player.isMuted)
+          throw new CommandError(`${player.shortName} is already muted`);
+
+        if (!cmd.author.canModerate(player))
+          throw new CommandError("You cannot mute an admin");
+
+        Room.players.muted.addMute(player);
+
+        cmd.announce(
+          `${player.shortName} has been muted by ${cmd.author.shortName}`,
+          { icon: ICONS.Mute }
+        );
+      },
+    },
+  ],
+  [
+    "unmute",
+    {
+      name: "unmute",
+      alias: ["um"],
+      description: "Unmutes a player",
+      usage: ["unmute [name]"],
+      showCommand: true,
+      permissions: {
+        level: 1,
+        muted: true,
+        game: false,
+        notDuringPlay: false,
+      },
+      params: {
+        min: 1,
+        max: 1,
+        types: [COMMAND_PARAM_TYPES.PLAYER],
+      },
+      run: async function (cmd: CommandMessage) {
+        const player = CommandHandler.getPlayerByNameAlways(
+          cmd.commandParamsStr
+        );
+
+        if (player.isMuted === false)
+          throw new CommandError(`Player ${player.shortName} is not muted`);
+
+        Room.players.muted.removeMute(player.auth);
+
+        cmd.announce(`${player.shortName} has been unmuted`);
       },
     },
   ],
@@ -795,13 +867,13 @@ const commandsMap = new Collection<CommandName, Command>([
 
         if (onOrOff === "on") {
           if (isBotOn) return cmd.reply("The bot is already ON");
-
-          Room.turnBotOff();
+          client.stopGame();
+          Room.turnBotOn();
           return cmd.replySuccess("The Bot has been turned ON");
         } else {
           if (!isBotOn) return cmd.reply("The bot is already OFF");
-
-          Room.turnBotOn();
+          client.stopGame();
+          Room.turnBotOff();
           return cmd.replySuccess("The Bot has been turned OFF");
         }
       },
@@ -812,7 +884,7 @@ const commandsMap = new Collection<CommandName, Command>([
     {
       name: "testingid",
       alias: [],
-      description: "Sets the testing ID",
+      description: "Sets the testing ID for debug chat",
       usage: [],
       showCommand: false,
       permissions: {
@@ -830,13 +902,36 @@ const commandsMap = new Collection<CommandName, Command>([
         console.log(Room);
         Room.setPlayerTestingId(parseInt(cmd.commandParamsStr));
         cmd.replySuccess(`Testing id set`);
+      },
+    },
+  ],
+  [
+    "admin",
+    {
+      name: "admin",
+      alias: [],
+      description: "Sets the player as a Bot Admin using an admin code",
+      usage: ["admin [code]"],
+      showCommand: false,
+      permissions: {
+        level: 0,
+        muted: true,
+        game: false,
+        notDuringPlay: false,
+      },
+      params: {
+        min: 1,
+        max: 1,
+        types: [COMMAND_PARAM_TYPES.CUSTOM],
+      },
+      async run(cmd: CommandMessage) {
+        const adminCode = cmd.commandParamsStr;
 
-        const text = Room.game.playByPlay.map((play) => {
-          console.log(play);
-          return `${play.playDetails.description}\n`;
-        });
+        if (adminCode !== Room.sessionId)
+          throw new CommandError("Invalid Admin Code");
 
-        console.log(text);
+        cmd.author.setAdminLevel(3).setAdmin(true);
+        cmd.replySuccess(`You are now the Bot Admin`, { color: 0xffd726 });
       },
     },
   ],
