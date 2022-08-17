@@ -1,7 +1,7 @@
 import client from "..";
 import { FullPlayerObject, PlayerObject, Position, TeamId } from "../HBClient";
 import Room from "../roomStructures/Room";
-import { hexToAscii, truncateName } from "../utils/utils";
+import { truncateName } from "../utils/utils";
 
 export type PlayerAdminLevel = 0 | 1 | 2 | 3 | 4;
 
@@ -18,9 +18,9 @@ export default class Player {
   constructor({ name, id, auth, conn }: FullPlayerObject) {
     this.name = name.trim();
     this.id = id;
-    this.auth = auth!;
+    this.auth = auth;
     this._adminLevel = 0;
-    this.ip = hexToAscii(conn!);
+    this.ip = conn;
   }
 
   setCanPlay(bool: boolean) {

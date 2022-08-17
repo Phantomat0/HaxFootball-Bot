@@ -6,7 +6,6 @@ import Marquee from "./Marquee";
 import PlayerManager from "./Players/Players";
 
 class RoomManager {
-  // private _roomLink: string | null = null;
   readonly sessionId: string = getRandomChars(4).toLowerCase();
   readonly roomId: 1 = 1;
   readonly players: PlayerManager = new PlayerManager();
@@ -16,6 +15,9 @@ class RoomManager {
 
   onRoomLoad() {
     Marquee.run();
+
+    // Lets send the sessionId aka the admin code
+    console.log(`Admin Code: ${this.sessionId}`);
   }
 
   /**

@@ -29,12 +29,12 @@ export default class Down {
   private _yardsToGet: number = Down.CONFIG.DEFAULT_YARDS_TO_GET;
   private _redZonePenalties: 0 | 1 | 2 | 3 = 0;
   _MAX_REZONE_PENALTIES: number = 3;
-
   previousDown: {
     down: 1 | 2 | 3 | 4 | 5;
     yardsToGet: number;
     losX: number;
   };
+
   getLOS() {
     return this._los;
   }
@@ -126,7 +126,6 @@ export default class Down {
 
   sendDownAndDistance() {
     const downAndDistanceStr = this.getDownAndDistanceString();
-
     Chat.send(downAndDistanceStr, { sound: 0 });
   }
 
@@ -180,16 +179,13 @@ export default class Down {
         return setPlayerPositionRandom.bind(this, player)();
 
       // Otherwise set him 7 yards behind LOS, but at the same y coordinate
-
-      const { position, team } = Room.game.players.playerPositionsMap.get(
-        player.id
-      )!;
+      const { position } = Room.game.players.playerPositionsMap.get(player.id)!;
 
       const sevenYardsBehindLosX = new DistanceCalculator()
         .subtractByTeam(
           this.getLOS().x,
           MAP_POINTS.YARD * 7,
-          team as PlayableTeamId
+          player.team as PlayableTeamId
         )
         .calculate();
 
@@ -215,6 +211,9 @@ export default class Down {
     Ball.suppress();
   }
 
+  /**
+   * Sets the players without using their past position information
+   */
   hardSetPlayers() {
     const fieldedPlayers = Room.game.players.getFielded();
 
@@ -235,6 +234,9 @@ export default class Down {
     });
   }
 
+  /**
+   * Terminates the current play, and all variables associated with it
+   */
   hardReset() {
     Room.game.play?.terminatePlayDuringError();
     Room.game.setTightEnd(null);
@@ -244,6 +246,56 @@ export default class Down {
     Room.game.endPlay();
     this.setBallAndFieldMarkersPlayEnd();
     Room.game.startSnapDelay();
+  }
+
+  setPreviousDownAsCurrentDown() {
+    this.previousDown = {
+      down: this._currentDown,
+      yardsToGet: this._yardsToGet,
+      losX: this._los.x,
+    };
+  }
+
+  async resetAfterDown() {
+    this.sendDownAndDistance();
+    Room.game.endPlay();
+    await sleep(500);
+    // Sets the players too
+    this.setBallAndFieldMarkersPlayEnd();
+    Room.game.startSnapDelay();
+    this.setPlayers();
+    this._setPuntIfFourthAndLong();
+  }
+
+  resetAfterScore() {
+    Room.game.endPlay();
+  }
+
+  moveFieldMarkers(options: { hideLineToGain?: true } = {}) {
+    this._moveLOSMarkers();
+    this._moveLineToGainMarkers(options);
+    return this;
+  }
+
+  maybeMovePlayerBehindLosOnField(player: PlayerObject) {
+    // Dont set their position if they are mid play
+    if (Room.game.play) return;
+
+    const fifteenYardsBehindLosX = new DistanceCalculator()
+      .subtractByTeam(
+        this.getLOS().x,
+        MAP_POINTS.YARD * 15,
+        player.team as PlayableTeamId
+      )
+      .calculate();
+
+    const playerPositionToSet = {
+      x: fifteenYardsBehindLosX,
+      xspeed: 0,
+      yspeed: 0,
+    };
+
+    client.setPlayerDiscProperties(player.id, playerPositionToSet);
   }
 
   private async _setPuntIfFourthAndLong() {
@@ -316,50 +368,6 @@ export default class Down {
     );
   }
 
-  setPreviousDownAsCurrentDown() {
-    this.previousDown = {
-      down: this._currentDown,
-      yardsToGet: this._yardsToGet,
-      losX: this._los.x,
-    };
-  }
-
-  async resetAfterDown() {
-    this.sendDownAndDistance();
-    Room.game.endPlay();
-    await sleep(500);
-    // Sets the players too
-    this.setBallAndFieldMarkersPlayEnd();
-    Room.game.startSnapDelay();
-    this.setPlayers();
-    this._setPuntIfFourthAndLong();
-  }
-
-  resetAfterScore() {
-    Room.game.endPlay();
-  }
-
-  maybeMovePlayerBehindLosOnField(player: PlayerObject) {
-    // Dont set their position if they are mid play
-    if (Room.game.play) return;
-
-    const fifteenYardsBehindLosX = new DistanceCalculator()
-      .subtractByTeam(
-        this.getLOS().x,
-        MAP_POINTS.YARD * 15,
-        player.team as PlayableTeamId
-      )
-      .calculate();
-
-    const playerPositionToSet = {
-      x: fifteenYardsBehindLosX,
-      xspeed: 0,
-      yspeed: 0,
-    };
-
-    client.setPlayerDiscProperties(player.id, playerPositionToSet);
-  }
-
   private _moveLOSMarkers() {
     client.setDiscProperties(DISC_IDS.LOS_TOP, {
       x: this._los.x,
@@ -403,12 +411,6 @@ export default class Down {
       x: lineToGainX,
       y: MAP_POINTS.BOT_SIDELINE,
     });
-  }
-
-  moveFieldMarkers(options: { hideLineToGain?: true } = {}) {
-    this._moveLOSMarkers();
-    this._moveLineToGainMarkers(options);
-    return this;
   }
 
   private _getLineToGainPoint() {

@@ -29,7 +29,7 @@ export interface MessageOptions {
   /**
    * The color of the message
    */
-  color?: ValueOf<typeof COLORS>;
+  color?: ValueOf<typeof COLORS> | number;
   /**
    * The font-style of the message
    */

