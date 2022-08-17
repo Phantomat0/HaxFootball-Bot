@@ -1,4 +1,6 @@
-# 🏈 Haxfootball Bot
+# 🏈 Haxfootball Bot [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+![Haxfootball Bot](https://i.imgur.com/7jwWrDH.png)
 
 American Football gameplay implemented in haxball. Rules adapted to fit 5v5 and 4v4 games.
 
@@ -107,3 +109,7 @@ On each room load, a randomized admin password will be outputted to the console,
 - Players are kicked if they join with duplicate auth codes or  
   connections.
 - N word filter
+
+# 🤝 Contributions
+
+Contributions, issues, and feature requests are welcome!
