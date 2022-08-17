@@ -1,20 +1,20 @@
-const PLAY_BY_WEBHOOK_URL = "URL";
+const WEB_HOOK_URL = "URL";
 
 export default class Discord {
-  log = new DiscordLogger(PLAY_BY_WEBHOOK_URL);
+  log = new DiscordLogger(WEB_HOOK_URL);
 }
 
-interface DiscordEmbedField {
-  name: string;
-  value: string;
-}
+// interface DiscordEmbedField {
+//   name: string;
+//   value: string;
+// }
 
-interface DiscordEmbed {
-  title: string;
-  description?: string;
-  color?: number;
-  fields?: DiscordEmbedField[];
-}
+// interface DiscordEmbed {
+//   title: string;
+//   description?: string;
+//   color?: number;
+//   fields?: DiscordEmbedField[];
+// }
 
 interface LogOptions {
   escapeMarkDown: boolean;
