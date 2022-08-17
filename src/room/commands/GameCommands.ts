@@ -275,7 +275,7 @@ const gameCommandsMap = new Map<string, GameCommand>([
       },
       run(player) {
         // Increment team timeout
-        Room.game.incrementTeamTimeout(player.team as PlayableTeamId);
+        Room.game.addTeamTimeOut(player.team as PlayableTeamId);
 
         const teamTimeouts = Room.game.timeOuts.filter(
           (timeout) => timeout.team === player.team
