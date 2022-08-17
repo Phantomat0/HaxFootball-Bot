@@ -11,7 +11,6 @@ import { TEAMS } from "../utils/types";
 import Down from "./Down";
 import WithStateStore from "./WithStateStore";
 import { DISC_IDS, MAP_POINTS } from "../utils/map";
-import PlayData from "./PlayData";
 
 interface GameStore {
   safetyKickoff: true;
@@ -31,15 +30,10 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     red: 0,
     blue: 0,
   };
-
   redTeamName: string = "Red";
   blueTeamName: string = "Blue";
-
   offenseTeamId: PlayableTeamId = 1;
-
   timeOuts: { time: number; team: number }[] = [];
-
-  playByPlay: PlayData[] = [];
 
   /**
    * The current play class, always starts off as a KickOff with time of 0
@@ -105,10 +99,6 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     this.offenseTeamId = teamId;
   }
 
-  savePlayData(playData: PlayData) {
-    this.playByPlay.push(playData);
-  }
-
   swapOffenseAndUpdatePlayers() {
     if (this.offenseTeamId === 1) {
       this.setOffenseTeam(2);
@@ -122,7 +112,7 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
     this.players.updateStaticPlayerList(this.offenseTeamId);
   }
 
-  incrementTeamTimeout(teamId: PlayableTeamId) {
+  addTeamTimeOut(teamId: PlayableTeamId) {
     this.timeOuts.push({ time: this.getTimeRounded(), team: teamId });
   }
 
