@@ -172,7 +172,7 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   }
 
   getTime() {
-    return client.getScores().time ?? 0;
+    return client.getScores()?.time ?? 0;
   }
 
   /**
