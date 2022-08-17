@@ -12,6 +12,7 @@ export interface PlayerSubstitution {
   time: number;
   fromTeam: TeamId;
   toTeam: TeamId;
+  wasLeave?: boolean;
 }
 
 export interface PlayerRecord {
@@ -28,7 +29,6 @@ export interface PlayerRecord {
    */
   ids: Player["id"][];
   substitutions: PlayerSubstitution[];
-
   wasAtEndOfGame: boolean;
 }
 
@@ -100,8 +100,9 @@ export default class PlayerRecorder {
 
   /**
    * Runs if the player's team is changed
+   * @return Player Record ID
    */
-  handlePlayerTeamChange(player: PlayerObject, time: number) {
+  handlePlayerTeamChange(player: PlayerObject, time: number): number {
     const { playerRecord, hasPlayerRecord } = this._getPlayerRecordSubIn(
       player.id
     );
@@ -110,44 +111,24 @@ export default class PlayerRecorder {
     if (hasPlayerRecord === false) return this.subIn(player, time);
 
     // If they are moved to specs, sub them out
-    if (player.team === TEAMS.SPECTATORS) return this.subOut(player, time);
+    if (player.team === TEAMS.SPECTATORS) return this.subOut(player, time, {});
 
-    // Did they just rejoin, meaning they will have a new ID that isn't in their IDs
-    if (playerRecord!.ids.includes(player.id) === false) {
-      playerRecord!.team === player.team;
+    // We know they are swapping teams when their last sub was to a team that is not spec aka they are on the field
+    const isSwappingTeams =
+      playerRecord!.substitutions.length !== 0 &&
+      playerRecord!.substitutions[playerRecord!.substitutions.length - 1]
+        .toTeam !== TEAMS.SPECTATORS;
+
+    if (isSwappingTeams) {
+      this.subOut(player, time, {});
       return this.subIn(player, time);
     }
 
-    // Otherwise they are just being moved from red to blue or vice versa, so sub them out and sub back in
-    this.subOut(player, time);
+    // Otherwise, just sub them in
     return this.subIn(player, time);
   }
 
-  private _getPlayerRecordSubOut(playerId: PlayerObject["id"]) {
-    const playerRecord = this.records.findOne({ ids: [playerId] });
-
-    if (!playerRecord)
-      throw Error(`No player record found with ID ${playerId}`);
-
-    return playerRecord;
-  }
-
-  private _getPlayerRecordSubIn(playerId: PlayerObject["id"]) {
-    const playerProfile = Room.players.playerCollection.get(playerId);
-
-    if (!playerProfile)
-      throw Error(`No player profile found for id ${playerId}`);
-
-    const playerRecord = this.records.findOne({ auth: playerProfile.auth });
-
-    const hasPlayerRecord = Boolean(playerRecord);
-
-    return { playerRecord, hasPlayerRecord, playerProfile };
-  }
-
   getPlayerRecordById(playerId: PlayerObject["id"]) {
-    console.log(this.records);
-    console.log(playerId);
     return this.records.findOne({
       ids: [playerId],
     });
@@ -191,11 +172,17 @@ export default class PlayerRecorder {
       wasAtEndOfGame: false,
     });
 
-    return playerRecord!.recordId;
+    return playerProfile.id;
   }
 
-  subOut(player: PlayerObject, time: number, isAtGameEnd: boolean = false) {
+  subOut(
+    player: PlayerObject,
+    time: number,
+    subOutOptions: { isAtGameEnd?: boolean; wasLeave?: boolean }
+  ) {
     const playerRecord = this._getPlayerRecordSubOut(player.id);
+
+    const { isAtGameEnd = false, wasLeave = false } = subOutOptions;
 
     if (playerRecord.substitutions.length === 0)
       throw Error(
@@ -208,6 +195,7 @@ export default class PlayerRecorder {
       type: "OUT",
       fromTeam: playerRecord!.team,
       toTeam: TEAMS.SPECTATORS,
+      wasLeave,
     });
 
     // If we are subbing at the end of the game, we wanna keep the team they ended on
@@ -216,5 +204,27 @@ export default class PlayerRecorder {
     }
 
     return playerRecord.recordId;
+  }
+
+  private _getPlayerRecordSubOut(playerId: PlayerObject["id"]) {
+    const playerRecord = this.records.findOne({ ids: [playerId] });
+
+    if (!playerRecord)
+      throw Error(`No player record found with ID ${playerId}`);
+
+    return playerRecord;
+  }
+
+  private _getPlayerRecordSubIn(playerId: PlayerObject["id"]) {
+    const playerProfile = Room.players.playerCollection.get(playerId);
+
+    if (!playerProfile)
+      throw Error(`No player profile found for id ${playerId}`);
+
+    const playerRecord = this.records.findOne({ auth: playerProfile.auth });
+
+    const hasPlayerRecord = Boolean(playerRecord);
+
+    return { playerRecord, hasPlayerRecord, playerProfile };
   }
 }
