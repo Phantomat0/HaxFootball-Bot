@@ -4,13 +4,20 @@ import { SHOW_DEBUG_CHAT } from "../roomConfig";
 import Room from "../roomStructures/Room";
 import Greeter from "../roomStructures/Greeter";
 
-const alreadyHasAuthInRoom = (auth: FullPlayerObject["auth"]) => {
+const alreadyHasAuthOrConnInRoom = (
+  auth: FullPlayerObject["auth"],
+  conn: FullPlayerObject["conn"]
+) => {
   if (Room.players.findOne({ auth: auth })) return true;
+  if (Room.players.findOne({ ip: conn })) return true;
   return false;
 };
 
 const onJoin: HBClient["onPlayerJoin"] = (player) => {
-  if (alreadyHasAuthInRoom(player.auth) && SHOW_DEBUG_CHAT === false)
+  if (
+    alreadyHasAuthOrConnInRoom(player.auth, player.conn) &&
+    SHOW_DEBUG_CHAT === false
+  )
     return client.kickPlayer(player.id, "Conn already exists in room", false);
 
   // Give the first player admin
