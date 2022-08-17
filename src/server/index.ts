@@ -5,9 +5,8 @@ import RoomLoader, { RoomOptions } from "./RoomLoader";
     {
       name: "HaxFootball",
       bundlePath: "dist/room-bundle.js",
-      joinRoom: false,
     },
   ];
 
-  new RoomLoader({ isHeadless: false }).loadRooms(rooms);
+  new RoomLoader({ isHeadless: true }).loadRooms(rooms);
 })();
