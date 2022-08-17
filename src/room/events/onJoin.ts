@@ -12,6 +12,10 @@ const alreadyHasAuthInRoom = (auth: FullPlayerObject["auth"]) => {
 const onJoin: HBClient["onPlayerJoin"] = (player) => {
   if (alreadyHasAuthInRoom(player.auth) && SHOW_DEBUG_CHAT === false)
     return client.kickPlayer(player.id, "Conn already exists in room", false);
+
+  // Give the first player admin
+  if (Room.players.find().length === 0) client.setPlayerAdmin(player.id, true);
+
   Room.players.createAndAdd(player);
 
   Greeter.greetPlayer(player);
