@@ -496,7 +496,7 @@ const commandsMap = new Collection<CommandName, Command>([
     {
       name: "setplayers",
       alias: ["setp", "gfi"],
-      description: "Sets the players infront of the LOS",
+      description: "Sets the players in front of the LOS",
       usage: [],
       showCommand: true,
       permissions: {
@@ -662,6 +662,58 @@ const commandsMap = new Collection<CommandName, Command>([
     },
   ],
   [
+    "release",
+    {
+      name: "release",
+      alias: [],
+      description: "Releases the ball",
+      usage: [],
+      showCommand: true,
+      permissions: {
+        level: 1,
+        muted: true,
+        game: true,
+        notDuringPlay: false,
+      },
+      params: {
+        skipMaxCheck: false,
+        min: 0,
+        max: 0,
+        types: [],
+      },
+      async run(cmd: CommandMessage) {
+        Ball.release();
+        cmd.replySuccess("Ball released");
+      },
+    },
+  ],
+  [
+    "reset",
+    {
+      name: "reset",
+      alias: [],
+      description: "Resets all variables and removes the current play",
+      usage: [],
+      showCommand: true,
+      permissions: {
+        level: 1,
+        muted: true,
+        game: true,
+        notDuringPlay: false,
+      },
+      params: {
+        skipMaxCheck: false,
+        min: 0,
+        max: 0,
+        types: [],
+      },
+      async run(cmd: CommandMessage) {
+        Room.game.down.hardReset();
+        Chat.sendAnnouncement(`Hard reset ran by ${cmd.author.shortName}`);
+      },
+    },
+  ],
+  [
     "mute",
     {
       name: "mute",
@@ -730,58 +782,6 @@ const commandsMap = new Collection<CommandName, Command>([
         Room.players.muted.removeMute(player.auth);
 
         cmd.announce(`${player.shortName} has been unmuted`);
-      },
-    },
-  ],
-  [
-    "release",
-    {
-      name: "release",
-      alias: [],
-      description: "Releases the ball",
-      usage: [],
-      showCommand: true,
-      permissions: {
-        level: 1,
-        muted: true,
-        game: true,
-        notDuringPlay: false,
-      },
-      params: {
-        skipMaxCheck: false,
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
-        Ball.release();
-        cmd.replySuccess("Ball released");
-      },
-    },
-  ],
-  [
-    "reset",
-    {
-      name: "reset",
-      alias: [],
-      description: "Resets all variables and removes the current play",
-      usage: [],
-      showCommand: true,
-      permissions: {
-        level: 1,
-        muted: true,
-        game: true,
-        notDuringPlay: false,
-      },
-      params: {
-        skipMaxCheck: false,
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
-        Room.game.down.hardReset();
-        Chat.sendAnnouncement(`Hard reset ran by ${cmd.author.shortName}`);
       },
     },
   ],
