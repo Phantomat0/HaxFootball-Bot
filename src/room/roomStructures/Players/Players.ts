@@ -3,14 +3,12 @@ import Player from "../../classes/Player";
 import { FullPlayerObject, PlayerObject } from "../../HBClient";
 import Collection from "../../utils/Collection";
 import { TEAMS } from "../../utils/types";
-import BanManager from "./Bans";
 import MuteManager from "./Mutes";
 
 export default class PlayerManager {
   readonly playerCollection: Collection<PlayerObject["id"], Player> =
     new Collection();
   readonly muted = new MuteManager();
-  readonly bans = new BanManager();
 
   findOne(searchQuery: Partial<Player>) {
     return this.playerCollection.findOne(searchQuery);
