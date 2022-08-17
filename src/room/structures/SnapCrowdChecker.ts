@@ -84,7 +84,7 @@ export default class SnapCrowdChecker {
    */
   private _determineCrowdBoxFrontYards(losX: number) {
     const losYardLine = DistanceConverter.toYardLine(losX);
-    const isNextToEndzone = losX <= this.CROWD_BOX_YARDS_FRONT;
+    const isNextToEndzone = losYardLine <= this.CROWD_BOX_YARDS_FRONT;
 
     const teamLosIsIn = MapReferee.getMapHalfFromPoint(losX);
 
@@ -99,7 +99,6 @@ export default class SnapCrowdChecker {
   setCrowdBoxArea(losX: number) {
     const crowdBoxFrontYards = this._determineCrowdBoxFrontYards(losX);
 
-    console.log(crowdBoxFrontYards);
     const crowdBoxFront = new DistanceCalculator()
       .addByTeam(
         losX,
