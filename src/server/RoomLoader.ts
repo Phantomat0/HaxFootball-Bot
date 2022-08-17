@@ -2,10 +2,25 @@ import Puppeteer from "puppeteer";
 import { getRandomChars } from "../room/utils/utils";
 
 export interface RoomOptions {
+  /**
+   * Name of the room (only for referencing purposes, doesnt actually change the haxball room name)
+   */
   name: string;
+  /**
+   * The path for the room bundle, found in /dist
+   */
   bundlePath: string;
+  /**
+   * Function that exposes functions to the room's page
+   */
   exposeFunction?: (page: Puppeteer.Page) => Promise<void>;
+  /**
+   * Wether or not to autojoin the room on load
+   */
   joinRoom?: boolean;
+  /**
+   * The name to use when autojoining, will be random if undefined
+   */
   joinName?: string;
 }
 
