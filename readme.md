@@ -23,6 +23,9 @@ You can use the code in two ways
 4. Select "top" from the dropdown
 5. Paste the code, and press enter
 
+**How do I change the name of the room, or make it private?**
+Do CTRL + F and search for "HAXFOOTBALL" which is the name of the room, and then you can change it to whatever you would like.
+
 ### Using Puppeteer RoomLoader
 
 Webpack will create two bundles, one for the room, and one for index.ts to actually load the rooms using puppeteer.
