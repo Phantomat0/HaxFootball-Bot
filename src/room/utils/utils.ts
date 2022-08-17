@@ -192,6 +192,26 @@ export const randFromArray = <T>(arr: T[]): T => {
   return arr[~~(arr.length * Math.random())];
 };
 
+/**
+ * Return a random item from an array
+ */
+export const randFromArrayWeighted = <T extends { weight: number }>(
+  arr: T[]
+): T => {
+  const weightOverOne = arr.some((el) => el.weight > 1);
+
+  if (weightOverOne) throw Error("Weight cannot be larger than 1");
+
+  const weight = (arr: T[]) => {
+    return ([] as T[]).concat(
+      ...arr.map((obj) => new Array(Math.ceil(obj.weight * 100)).fill(obj))
+    );
+  };
+
+  let weighted = weight(arr);
+  return weighted[Math.floor(Math.random() * weighted.length)];
+};
+
 export const containsNWord = (msg: string) => {
   msg = msg.toLowerCase();
   // const regExpTest = new RegExp(
