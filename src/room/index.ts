@@ -1,3 +1,4 @@
+import onAdminChange from "./events/onAdminChange";
 import onBallKick from "./events/onBallKick";
 import onChat from "./events/onChat";
 import onGameTick from "./events/onGameTick";
@@ -31,7 +32,7 @@ client.onGameStart = () => {
 };
 
 client.onGameStop = () => {
-  if (!Room.isBotOn) return;
+  if (!Room.isBotOn || !Room.game) return;
   Room.game.endGame();
 };
 
@@ -57,6 +58,8 @@ client.onGameUnpause = () => {
   if (!Room.isBotOn || !Room.game) return;
   Room.game.setIsPaused(false);
 };
+
+client.onPlayerAdminChange = onAdminChange;
 
 client.onPlayerTeamChange = onPlayerTeamChange;
 
