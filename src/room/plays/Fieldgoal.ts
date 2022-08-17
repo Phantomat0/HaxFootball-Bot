@@ -50,8 +50,6 @@ export default class FieldGoal extends FieldGoalEvents {
     this.setBallPositionOnSet(Ball.getPosition());
     Room.game.down.moveFieldMarkers();
     this._setPlayersInPosition();
-
-    this._initializePlayData("Field Goal");
   }
 
   run() {
@@ -77,10 +75,6 @@ export default class FieldGoal extends FieldGoalEvents {
       touchdownsRushed: 1,
     });
 
-    this._playData.setScoreType("Touchdown", `$SCORER1$ ${netYards} Yd Run`, {
-      scorer1: this._ballCarrier!.id,
-    });
-
     super.handleTouchdown(endPosition);
   }
 
@@ -93,12 +87,6 @@ export default class FieldGoal extends FieldGoalEvents {
       fgYardsAttempted: Room.game.down.getLOSYard(),
       fgYardsMade: Room.game.down.getLOSYard(),
     });
-
-    this._playData.setScoreType(
-      "Field Goal",
-      `$SCORER1$ ${Room.game.down.getLOSYard()} Yd Field Goal`,
-      { scorer1: this._kicker.id }
-    );
 
     this.scorePlay(3, Room.game.offenseTeamId, Room.game.defenseTeamId);
   }
@@ -206,8 +194,6 @@ export default class FieldGoal extends FieldGoalEvents {
 
   protected _handleRun(playerContactObj: PlayerContact) {
     const { player } = playerContactObj;
-
-    this._playData.pushDescription(`${player.name} run`);
 
     Chat.send(`${ICONS.Running} Ball Ran!`);
 

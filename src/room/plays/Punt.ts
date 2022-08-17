@@ -44,8 +44,6 @@ export default class Punt extends PuntEvents {
     this._setPlayersInPosition();
     this._createInvisibleWallForDefense();
     this.resetPlayerPhysicsAndRemoveTightEnd();
-
-    this._initializePlayData("Punt");
   }
 
   run() {
@@ -77,14 +75,6 @@ export default class Punt extends PuntEvents {
       specTouchdowns: 1,
     });
 
-    this._playData.setScoreType(
-      "Touchdown",
-      `$SCORER1$ ${netYards} Yd Return`,
-      {
-        scorer1: this._ballCarrier!.id,
-      }
-    );
-
     super.handleTouchdown(endPosition);
   }
 
@@ -105,8 +95,6 @@ export default class Punt extends PuntEvents {
       ballContactObj.playerPosition
     );
 
-    const fromYardAndHalfStr = this._getFromYardAndHalfStr();
-
     const ballPositionYardLine = DistanceConverter.toYardLine(
       adjustedCatchPosition.x
     );
@@ -116,19 +104,12 @@ export default class Punt extends PuntEvents {
       adjustedCatchPosition.x
     );
 
-    const kicker = this.getState("puntKicker");
-
     if (isOutOfBounds) {
-      Chat.send(`${ICONS.DoNotEnter} Caught out of bounds`);
-      this._playData.pushDescription(
-        `${kicker.name} punts from ${fromYardAndHalfStr} out of bounds ${ballPositionYardLineStr}.`
+      Chat.send(
+        `${ICONS.DoNotEnter} Caught out of bounds ${ballPositionYardLineStr}`
       );
       return this._endPlayAndSetNewDown({ newLosX: adjustedCatchPosition.x });
     }
-
-    this._playData.pushDescription(
-      `${kicker.name} punts from ${fromYardAndHalfStr} to ${ballPositionYardLineStr}.`
-    );
 
     Chat.send(`${ICONS.Football} Ball Caught`);
 

@@ -30,25 +30,12 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
   protected abstract _handleBallOutOfBounds(endPosition: Position): void;
 
   onBallCarrierContactDefense(playerContact: PlayerContact): void {
-    const {
-      endPosition,
-      netYards,
-      yardAndHalfStr,
-      netYardsStr,
-      netYardsStrFull,
-    } = this._getPlayDataOffense(playerContact.ballCarrierPosition);
+    const { endPosition, netYards, yardAndHalfStr, netYardsStr } =
+      this._getPlayDataOffense(playerContact.ballCarrierPosition);
 
-    const isFumble = this._checkForFumble(playerContact);
+    // const isFumble = this._checkForFumble(playerContact);
 
-    if (isFumble) this._handleFumble(playerContact, this._ballCarrier!);
-
-    this._playData.pushDescription(
-      `${
-        this._ballCarrier!.name
-      } tackled ${yardAndHalfStr} ${netYardsStrFull} (${
-        playerContact.player.name
-      })`
-    );
+    // if (isFumble) this._handleFumble(playerContact, this._ballCarrier!);
 
     Chat.send(
       `${ICONS.HandFingersSpread} Tackle ${yardAndHalfStr} | ${netYardsStr}`
@@ -84,14 +71,8 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
   }
 
   onBallCarrierOutOfBounds(ballCarrierPosition: Position): void {
-    const {
-      endPosition,
-      yardAndHalfStr,
-      netYards,
-      netYardsStr,
-      isTouchdown,
-      netYardsStrFull,
-    } = this._getPlayDataOffense(ballCarrierPosition);
+    const { endPosition, yardAndHalfStr, netYards, netYardsStr, isTouchdown } =
+      this._getPlayDataOffense(ballCarrierPosition);
 
     if (isTouchdown) return this.handleTouchdown(ballCarrierPosition);
 
@@ -99,10 +80,6 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
       `${
         this.getBallCarrier().name
       } went out of bounds ${yardAndHalfStr} | ${netYardsStr}`
-    );
-
-    this._playData.pushDescription(
-      `steps out of bounds ${yardAndHalfStr} ${netYardsStrFull}`
     );
 
     Room.game.stats.updatePlayerStat(this._ballCarrier!.id, {
@@ -134,14 +111,7 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
       Room.game.offenseTeamId
     );
 
-    if (isTouchback) {
-      const kicker = this.getState("KickOffKicker");
-
-      this._playData.pushDescription(
-        `${kicker.name} kickoff kicked out of bounds`
-      );
-      return this._handleTouchback();
-    }
+    if (isTouchback) return this._handleTouchback();
 
     this._handleBallOutOfBounds(ballPosition);
   }
@@ -171,12 +141,6 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
 
     // Ball downed by own team
     Chat.send(`${ICONS.Pushpin} Ball downed by defense ${yardAndHalfStr}`);
-
-    const kicker = this.getState("KickOffKicker");
-
-    this._playData.pushDescription(
-      `${kicker.name} kickoff downed by defense ${yardAndHalfStr} by ${ballContactObj.player.name}`
-    );
 
     // Check where the ball was downed at
     // The catch position is the same as the endzone position

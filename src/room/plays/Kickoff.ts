@@ -34,8 +34,6 @@ export default class KickOff extends KickOffEvents {
     Room.game.down.setLOS(kickOffPosition.x);
     Room.game.down.moveFieldMarkers({ hideLineToGain: true });
     this.resetPlayerPhysicsAndRemoveTightEnd();
-
-    this._initializePlayData("Kickoff");
   }
 
   run(): void {
@@ -65,14 +63,6 @@ export default class KickOff extends KickOffEvents {
       specReceivingYards: netYards,
       specTouchdowns: 1,
     });
-
-    this._playData.setScoreType(
-      "Touchdown",
-      `$SCORER1$ ${netYards} Yd Return`,
-      {
-        scorer1: this._ballCarrier!.id,
-      }
-    );
 
     super.handleTouchdown(endPosition);
   }
@@ -110,10 +100,6 @@ export default class KickOff extends KickOffEvents {
     const ballPositionYardLineStr = MessageFormatter.formatYardAndHalfStr(
       ballPositionYardLine,
       adjustedBallPositionForTeam.x
-    );
-
-    this._playData.pushDescription(
-      `${kicker.name} kickoff kicked out of bounds`
     );
 
     Chat.send(
@@ -190,12 +176,6 @@ export default class KickOff extends KickOffEvents {
     }
 
     Chat.send(`${ICONS.Football} Ball Caught`);
-
-    const kicker = this.getState("KickOffKicker");
-
-    this._playData.pushDescription(
-      `${kicker.name} kickoff caught ${yardAndHalfStr} by ${ballContactObj.player.name}`
-    );
 
     this.setState("kickOffCaught");
 

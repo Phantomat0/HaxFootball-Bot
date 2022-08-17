@@ -20,9 +20,6 @@ import DistanceCalculator from "../structures/DistanceCalculator";
 import PlayerContact from "../classes/PlayerContact";
 import Room from "../roomStructures/Room";
 import client from "..";
-import PlayDataManager from "../structures/PlayDataManager";
-import { PlayDetails } from "../classes/PlayData";
-import DownAndDistanceFormatter from "../structures/DownAndDistanceFormatter";
 
 export interface EndPlayData {
   /**
@@ -63,8 +60,6 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
    * The starting position to determine net yards
    */
   protected _startingPosition: Position;
-
-  protected _playData: PlayDataManager = new PlayDataManager();
 
   /**
    * The game time the play began
@@ -140,12 +135,6 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     this._setLivePlay(false);
 
     const { netYards } = this._getPlayDataOffense(endPosition);
-
-    if (this.stateExistsUnsafe("ballIntercepted")) {
-      this._playData.pushToStartDescription(`${netYards} yard PICK SIX off a`);
-    } else {
-      this._playData.pushToStartDescription(`${netYards} yard TOUCHDOWN off a`);
-    }
 
     const truncatedBallCarrierName = truncateName(this._ballCarrier!.name);
 
@@ -270,15 +259,8 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     teamEndZoneToScore: PlayableTeamId
   ) {
     this._setLivePlay(false);
-    this._playData.recordPlayEndTime(Room.game.getTimeRounded());
-    Chat.send(this._playData.generatePlayDescription());
 
     Room.game.addScore(team, score);
-    this._playData.setPlayDetails({
-      redScore: Room.game.score.red,
-      blueScore: Room.game.score.blue,
-    });
-    Room.game.savePlayData(this._playData.playData);
     Ball.score(teamEndZoneToScore);
     Room.game.sendScoreBoard();
     Room.game.down.resetAfterScore();
@@ -374,8 +356,6 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
    */
   _handleSafety() {
     this._setLivePlay(false);
-    this._playData.pushDescription(`(Safety)`);
-    this._playData.setScoreType("Safety", `Safety`);
     Chat.send(`${ICONS.Loudspeaker} Safety - kickoff from the 20 yard line`);
 
     Room.game.setState("safetyKickoff");
@@ -388,8 +368,6 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
    * Handles a touchback, only callable on punts or kickoffs
    */
   protected _handleTouchback() {
-    this._playData.pushDescription(`(Touchback)`);
-
     Chat.send(
       `${ICONS.Loudspeaker} Touchback - ball placed at the receiving team's 20 yard line.`
     );
@@ -424,7 +402,6 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
       isRedZonePenaltyOnDefense,
       newEndLosX,
       penaltyMessage,
-      fullName,
     } = new PenaltyDataGetter().getData(
       penaltyName,
       player,
@@ -442,8 +419,6 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     Room.game.stats.updatePlayerStat(player.id, {
       penalties: 1,
     });
-
-    this._playData.pushDescription(`[PENALTY] ${fullName} (${player.name})`);
 
     if (hasOwnHandler) return;
 
@@ -468,10 +443,6 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     addDown = true,
     setNewDown = false,
   }: EndPlayData) {
-    this._playData.recordPlayEndTime(Room.game.getTimeRounded());
-    Room.game.savePlayData(this._playData.playData);
-    Chat.send(this._playData.generatePlayDescription());
-
     this._setLivePlay(false);
 
     const gotFirstDown = this._updateDistance({
@@ -560,21 +531,5 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
       Room.game.swapOffenseAndUpdatePlayers();
       Room.game.down.startNew();
     }
-  }
-
-  protected _initializePlayData(playType: PlayDetails["type"]) {
-    this._playData.initializePlay({
-      half: 1,
-      time: this.time,
-      startTime: this.time,
-      down: Room.game.down.getDown(),
-      yardsToGet: Room.game.down.getYardsToGet(),
-      yardLine: Room.game.down.getLOSYard(),
-      losX: Room.game.down.getLOS().x,
-      mapHalf: DownAndDistanceFormatter.formatPositionToMapHalfInt(
-        Room.game.down.getLOS().x
-      ),
-      offense: Room.game.offenseTeamId,
-    });
   }
 }

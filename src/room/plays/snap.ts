@@ -28,7 +28,6 @@ import { EndPlayData } from "./BasePlay";
 import { round } from "../utils/utils";
 import client from "..";
 import Room from "../roomStructures/Room";
-import MessageFormatter from "../structures/MessageFormatter";
 
 export default class Snap extends SnapEvents {
   private _quarterback: PlayerObject;
@@ -93,11 +92,7 @@ export default class Snap extends SnapEvents {
       this.setState("twoPointAttempt");
     }
 
-    this._initializePlayData("Snap");
-
     if (isCurvePass) this.setState("curvePass");
-
-    this._playData.setPlayDetails({ quarterback: this._quarterback.id });
   }
 
   run() {
@@ -154,7 +149,7 @@ export default class Snap extends SnapEvents {
       const isInDefenseRedzone =
         MapReferee.checkIfInRedzone(losX) === Room.game.defenseTeamId;
 
-      const { penaltyMessage, fullName } = new PenaltyDataGetter().getData(
+      const { penaltyMessage } = new PenaltyDataGetter().getData(
         penaltyName,
         player,
         isInDefenseRedzone,
@@ -163,10 +158,15 @@ export default class Snap extends SnapEvents {
         penaltyData
       );
 
-      this._playData.pushDescription(`[PENALTY] ${fullName} (${player.name})`);
-
       // Lets send the penalty!
       Chat.send(`${ICONS.YellowSquare} ${penaltyMessage}`);
+
+      if (penaltyName === "crowding" || penaltyName === "crowdAbuse") {
+        Chat.send(
+          "You cannot stand in front of the blue line for more than 3 seconds without an offensive player being present.",
+          { id: player.id }
+        );
+      }
 
       // Now if the penalty was on an offensive player, handle failed two point
       if (player.team === Room.game.offenseTeamId)
@@ -195,7 +195,6 @@ export default class Snap extends SnapEvents {
       Chat.send(`${ICONS.Loudspeaker} Conversion safety!`);
       // Defense gets one point
       Room.game.addScore(Room.game.defenseTeamId, 1);
-      this._playData.setScoreType("Conversion Safety", "1 Point Safety");
       return this._handleFailedTwoPointConversion();
     }
 
@@ -210,23 +209,12 @@ export default class Snap extends SnapEvents {
       sound: 2,
     });
 
-    this._playData.pushToStartDescription(`Auto Touchdown off a`);
-
-    this._playData.setScoreType(
-      "Auto Touchdown",
-      `Auto Touchdown 3/3 Penalties`
-    );
-
     this.allowForTwoPointAttempt();
 
     this.scorePlay(7, Room.game.offenseTeamId, Room.game.defenseTeamId);
   }
 
   handleTouchdown(position: Position) {
-    if (this._ballCarrier!.id === this.getQuarterback().id) {
-      this._playData.pushDescription(`${this.getQuarterback().name} scramble`);
-    }
-
     // First we need to get the type of touchdown, then handle
     if (this.stateExistsUnsafe("twoPointAttempt"))
       return this._handleTwoPointTouchdown(position);
@@ -341,37 +329,13 @@ export default class Snap extends SnapEvents {
 
     if (isOutOfBounds) {
       Chat.send(`${ICONS.DoNotEnter} Pass Incomplete, caught out of bounds`);
-      this._playData.pushDescription(
-        `${
-          this._quarterback.name
-        } pass incomplete ${MessageFormatter.formatMapSectionName(
-          mapSection
-        )} intended for ${player.name}`
-      );
-
-      this._playData.setPlayDetails({
-        isIncomplete: true,
-        passEndPosition: ballContactObj.playerPosition,
-      });
-
       return this.endPlay({});
     }
-
-    this._playData.setPlayDetails({
-      isIncomplete: false,
-      passEndPosition: ballContactObj.playerPosition,
-    });
 
     /// Its a legal catch
     const adjustedPlayerPosition = PreSetCalculators.adjustRawEndPosition(
       playerPosition,
       player.team as PlayableTeamId
-    );
-
-    this._playData.pushDescription(
-      `${this._quarterback.name} pass ${MessageFormatter.formatMapSectionName(
-        mapSection
-      )} to ${player.name}`
     );
 
     this.setState("catchPosition", adjustedPlayerPosition);
@@ -410,8 +374,6 @@ export default class Snap extends SnapEvents {
     //   return this._handleFumble(playerContactObj, this._ballCarrier!);
 
     // return;
-
-    this._playData.pushDescription(`${player.name} run`);
 
     Chat.send(`${ICONS.Running} Ball Ran!`);
     // this._giveRunnerSpeedBoost(player, playerSpeed);
@@ -620,17 +582,7 @@ export default class Snap extends SnapEvents {
   protected _handleSuccessfulInterception() {
     Chat.send(`${ICONS.Target} Pass Intercepted!`);
 
-    this._playData.setPlayDetails({
-      isInterception: true,
-    });
-
     const interceptingPlayer = this.getState("interceptingPlayer")!;
-
-    this._playData.pushDescription(
-      `${this._quarterback.name} pass intercepted by ${interceptingPlayer.name}`
-    );
-
-    this._playData.removeStartDescription();
 
     this._updateStatsIfNotTwoPoint(interceptingPlayer.id, {
       interceptionsReceived: 1,
@@ -676,15 +628,11 @@ export default class Snap extends SnapEvents {
     // And there isnt a saved position yet for this play
     // Then its a regular ballcarrier out of bounds
     if (this.stateExists("interceptionRuling")) {
-      const { endPosition, yardAndHalfStr, netYardsStrFull } =
+      const { endPosition, yardAndHalfStr } =
         this._getPlayDataOffense(ballCarrierPosition);
 
       Chat.send(
         `${this._ballCarrier?.name} stepped out of bounds ${yardAndHalfStr}`
-      );
-
-      this._playData.pushDescription(
-        `steps out of bounds ${yardAndHalfStr} ${netYardsStrFull}`
       );
 
       const { isSafety, isTouchback } =
@@ -713,7 +661,6 @@ export default class Snap extends SnapEvents {
       netYards,
       yardAndHalfStr,
       netYardsStr,
-      netYardsStrFull,
       yardsAfterCatch,
       yardsPassed,
     } = this._getPlayDataOffense(playerContact.ballCarrierPosition);
@@ -728,18 +675,14 @@ export default class Snap extends SnapEvents {
       this.stateExists("ballRan") === false &&
       this.stateExists("ballCaught") === false;
 
-    const isFumble = this._checkForFumble(playerContact);
+    // const isFumble = this._checkForFumble(playerContact);
 
-    if (isFumble) this._handleFumble(playerContact, this._ballCarrier!);
+    // if (isFumble) this._handleFumble(playerContact, this._ballCarrier!);
 
     // No sacks on interceptions
     if (isSack && this.stateExists("ballIntercepted") === false) {
       Chat.send(
         `${ICONS.HandFingersSpread} ${playerContact.player.name} with the SACK!`
-      );
-
-      this._playData.pushDescription(
-        `${this._quarterback.name} sacked ${yardAndHalfStr} ${netYardsStrFull} (${playerContact.player.name})`
       );
 
       this._updateStatsIfNotTwoPoint(playerContact.player.id, {
@@ -754,42 +697,21 @@ export default class Snap extends SnapEvents {
         `${ICONS.HandFingersSpread} Tackle ${yardAndHalfStr} | ${netYardsStr}`
       );
 
-      if (
-        this.stateExists("runFirstTackler") &&
-        this.getState("runFirstTackler").id !== playerContact.player.id
-      ) {
-        this._playData.pushDescription(
-          `${
-            this._ballCarrier!.name
-          } tackled ${yardAndHalfStr} ${netYardsStrFull} (${
-            this.getState("runFirstTackler").name
-          }) (${playerContact.player.name})`
-        );
+      if (this.stateExists("ballRan")) {
+        this._updateStatsIfNotTwoPoint(playerContact.player.id, {
+          tackles: 0.5,
+        });
+
+        const firstTackler = this.getState("runFirstTackler");
+
+        this._updateStatsIfNotTwoPoint(firstTackler.id, {
+          tackles: 0.5,
+        });
       } else {
-        this._playData.pushDescription(
-          `${
-            this._ballCarrier!.name
-          } tackled ${yardAndHalfStr} ${netYardsStrFull} (${
-            playerContact.player.name
-          })`
-        );
+        this._updateStatsIfNotTwoPoint(playerContact.player.id, {
+          tackles: 1,
+        });
       }
-    }
-
-    if (this.stateExists("ballRan")) {
-      this._updateStatsIfNotTwoPoint(playerContact.player.id, {
-        tackles: 0.5,
-      });
-
-      const firstTackler = this.getState("runFirstTackler");
-
-      this._updateStatsIfNotTwoPoint(firstTackler.id, {
-        tackles: 0.5,
-      });
-    } else {
-      this._updateStatsIfNotTwoPoint(playerContact.player.id, {
-        tackles: 1,
-      });
     }
 
     // Tackle on a run
@@ -901,42 +823,6 @@ export default class Snap extends SnapEvents {
       sound: 2,
     });
 
-    if (endPosition === null) {
-      this._playData.setScoreType(
-        "Two Point Conversion",
-        `Auto Conversion Off Penalty`
-      );
-
-      this._playData.pushToStartDescription(
-        `Automatic Two Point Conversion off a `
-      );
-    } else {
-      const { netYards } = this._getPlayDataOffense(endPosition);
-
-      this._playData.pushToStartDescription(
-        `${netYards} yard Two Point Conversion off a `
-      );
-
-      if (this.stateExists("ballCaught")) {
-        this._playData.setScoreType(
-          "Two Point Conversion",
-          `$SCORER1$ ${netYards} Yd Pass from $SCORER2$`,
-          {
-            scorer1: this._ballCarrier!.id,
-            scorer2: this._quarterback.id,
-          }
-        );
-      } else {
-        this._playData.setScoreType(
-          "Two Point Conversion",
-          `$SCORER1$ ${netYards} Yd Run`,
-          {
-            scorer1: this._ballCarrier!.id,
-          }
-        );
-      }
-    }
-
     // Add only one, since we add 7 not 6 after a TD
     this.scorePlay(1, Room.game.offenseTeamId, Room.game.defenseTeamId);
   }
@@ -945,7 +831,6 @@ export default class Snap extends SnapEvents {
   //  * Handles unsuccessful two point conversion
   //  */
   private _handleFailedTwoPointConversion() {
-    this._playData.pushToStartDescription(`Failed Two Point Conversion off a`);
     // Remove one point
     this.scorePlay(-1, Room.game.offenseTeamId, Room.game.defenseTeamId);
   }
@@ -1021,10 +906,6 @@ export default class Snap extends SnapEvents {
       this.stateExistsUnsafe("ballRan") ||
       this._ballCarrier?.id === this._quarterback.id
     ) {
-      this._playData.setScoreType("Touchdown", `$SCORER1$ ${netYards} Yd Run`, {
-        scorer1: this._ballCarrier!.id,
-      });
-
       this._updateStatsIfNotTwoPoint(this._ballCarrier?.id!, {
         rushingAttempts: 1,
         rushingYards: netYards,
@@ -1032,15 +913,6 @@ export default class Snap extends SnapEvents {
       });
     }
     if (this.stateExistsUnsafe("ballCaught")) {
-      this._playData.setScoreType(
-        "Touchdown",
-        `$SCORER1$ ${netYards} Yd Pass from $SCORER2$`,
-        {
-          scorer1: this._ballCarrier!.id,
-          scorer2: this._quarterback!.id,
-        }
-      );
-
       const catchPosition = this.getState("catchPosition");
       const { mapSection } = this._getStatInfo(catchPosition);
 

@@ -11,7 +11,6 @@ import Chat from "../../roomStructures/Chat";
 import Room from "../../roomStructures/Room";
 import GameReferee from "../../structures/GameReferee";
 import MapReferee from "../../structures/MapReferee";
-import MessageFormatter from "../../structures/MessageFormatter";
 import ICONS from "../../utils/Icons";
 import { MapSectionName } from "../../utils/MapSectionFinder";
 import BasePlay from "../BasePlay";
@@ -86,7 +85,8 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     if (
       this.stateExists("ballCaught") ||
       this.stateExists("ballRan") ||
-      this.stateExists("ballBlitzed")
+      this.stateExists("ballBlitzed") ||
+      this.stateExists("interceptionRuling")
     )
       return;
 
@@ -117,11 +117,6 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       },
     });
 
-    this._playData.setPlayDetails({
-      isIncomplete: true,
-      passEndPosition: ballPosition,
-    });
-
     if (this.stateExists("curvePass")) {
       this._updateStatsIfNotTwoPoint(this.getQuarterback().id, {
         curvedPassAttempts: 1,
@@ -130,19 +125,6 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
 
     Chat.send(`${ICONS.DoNotEnter} Incomplete - Pass out of bounds!`);
 
-    const intendedForStr = MapReferee.getIntendedTargetStr(
-      Room.game.players.getOffense(),
-      ballPosition,
-      this.getQuarterback().id
-    );
-
-    this._playData.pushDescription(
-      `${
-        this.getQuarterback().name
-      } pass incomplete ${MessageFormatter.formatMapSectionName(
-        mapSection
-      )} ${intendedForStr}`
-    );
     return this.endPlay({});
   }
   onBallCarrierOutOfBounds(ballCarrierPosition: Position) {
@@ -160,21 +142,12 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       netYards,
       yardAndHalfStr,
       netYardsStr,
-      netYardsStrFull,
       yardsPassed,
       yardsAfterCatch,
       isTouchdown,
     } = this._getPlayDataOffense(ballCarrierPosition);
 
     if (isTouchdown) return this.handleTouchdown(ballCarrierPosition);
-
-    if (this._ballCarrier!.id === this.getQuarterback().id) {
-      this._playData.pushDescription(`${this.getQuarterback().name} scramble`);
-    }
-
-    this._playData.pushDescription(
-      `steps out of bounds ${yardAndHalfStr} ${netYardsStrFull}`
-    );
 
     Chat.send(
       `${ICONS.Pushpin} ${
@@ -271,11 +244,6 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       passDeflections: { [mapSection]: 1 },
     });
 
-    this._playData.setPlayDetails({
-      isIncomplete: true,
-      passEndPosition: ballContactObj.playerPosition,
-    });
-
     this._updateStatsIfNotTwoPoint(this.getQuarterback().id, {
       passAttempts: { [mapSection]: 1 },
     });
@@ -287,20 +255,6 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     }
 
     Chat.send(`${ICONS.DoNotEnter} Incomplete - Pass Deflected`);
-
-    const intendedForStr = MapReferee.getIntendedTargetStr(
-      Room.game.players.getOffense(),
-      ballContactObj.playerPosition,
-      this.getQuarterback().id
-    );
-
-    this._playData.pushDescription(
-      `${
-        this.getQuarterback().name
-      } pass incomplete ${MessageFormatter.formatMapSectionName(
-        mapSection
-      )} ${intendedForStr}(${ballContactObj.player.name})`
-    );
 
     this.setState("ballDeflected");
 
