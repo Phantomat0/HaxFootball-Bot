@@ -2,6 +2,7 @@ import Chat, { MessageOptions } from "../roomStructures/Chat";
 import gameCommandsMap from "../commands/GameCommands";
 import COLORS from "../utils/colors";
 import Player from "./Player";
+import { containsNWord } from "../utils/utils";
 
 export default class ChatMessage {
   /**
@@ -36,7 +37,7 @@ export default class ChatMessage {
    * Check if the message contains any offensive language
    */
   isOffensive(): boolean {
-    return false;
+    return containsNWord(this.content);
   }
 
   /**
