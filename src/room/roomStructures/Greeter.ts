@@ -8,12 +8,9 @@ export default class Greeter {
       id: player.id,
       color: COLORS.LightBlue,
     });
-    Chat.send(
-      `Whats new: Tight End Position, | Ball emoji | Can use !stats after a game has ended`,
-      {
-        id: player.id,
-        color: COLORS.LightGreen,
-      }
-    );
+    Chat.send(`Whats new: Bug Fixes`, {
+      id: player.id,
+      color: COLORS.LightGreen,
+    });
   }
 }
