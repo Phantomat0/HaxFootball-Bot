@@ -306,9 +306,8 @@ export default class PlayerStats implements IPlayerStat {
   }
 
   getStatsStringNormal(): string {
-    console.log(this);
     const recStats = `Receiving | Rec: ${this.totalReceptions} ${ICONS.SmallBlackSquare} Yds: ${this.totalReceivingYards} ${ICONS.SmallBlackSquare} Yac: ${this.totalYardsAfterCatch} ${ICONS.SmallBlackSquare} Ratt: ${this.rushingAttempts} ${ICONS.SmallBlackSquare} Ruyd: ${this.rushingYards} | TD: ${this.touchdownsReceived} ${ICONS.SmallBlackSquare} RuTD: ${this.touchdownsRushed}`;
-    const qbStats = `Quarterback | Cmp/Att: ${this.totalPassCompletions}/${
+    const qbStats = `Passing | Cmp/Att: ${this.totalPassCompletions}/${
       this.totalPassAttempts
     } ${ICONS.SmallBlackSquare} Pyds: ${this.totalPassYards} | TD: ${
       this.touchdownsThrown
@@ -321,7 +320,6 @@ export default class PlayerStats implements IPlayerStat {
   }
 
   getStatsStringMini(): string {
-    console.log(this);
     const receivingStats =
       this.totalReceptions > 0
         ? `Rec: ${this.totalReceptions} | RecYds: ${this.totalReceivingYards}`
