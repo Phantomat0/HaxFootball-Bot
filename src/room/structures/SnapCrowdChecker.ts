@@ -1,3 +1,4 @@
+import client from "..";
 import { PlayableTeamId, PlayerObject } from "../HBClient";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
 import { MAP_POINTS } from "../utils/map";
@@ -27,13 +28,14 @@ class PlayerCrowdData {
 
 export default class SnapCrowdChecker {
   private CROWD_BOX_YARDS_FRONT: number = 5;
-  private CROWD_BOX_YARDS_BEHIND: number = 5;
+  private CROWD_BOX_YARDS_BEHIND: number = 8;
   private MAX_CROWDING_SECONDS: number = 3;
   private MAX_CROWD_ABUSE_SECONDS: number = 2.25;
 
   private _playersInCrowdBoxList: PlayerCrowdData[] = [];
   private _offenseTeamId: PlayableTeamId;
   private _playCrowdBoxArea: { x1: number; y1: number; x2: number; y2: number };
+  private _crowdBoxDiscIndexes = [22, 23, 24, 25];
 
   checkPlayersInCrowdBox(
     players: PlayerObject[],
@@ -134,6 +136,50 @@ export default class SnapCrowdChecker {
 
       this._playCrowdBoxArea = boxArea;
     }
+  }
+
+  drawCrowdBoxLines() {
+    // Front
+    client.setDiscProperties(this._crowdBoxDiscIndexes[0], {
+      x: this._playCrowdBoxArea.x1,
+      y: MAP_POINTS.TOP_HASH,
+    });
+    client.setDiscProperties(this._crowdBoxDiscIndexes[1], {
+      x: this._playCrowdBoxArea.x1,
+      y: MAP_POINTS.BOT_HASH,
+    });
+
+    // Back
+    client.setDiscProperties(this._crowdBoxDiscIndexes[2], {
+      x: this._playCrowdBoxArea.x2,
+      y: MAP_POINTS.BOT_HASH,
+    });
+    client.setDiscProperties(this._crowdBoxDiscIndexes[3], {
+      x: this._playCrowdBoxArea.x2,
+      y: MAP_POINTS.TOP_HASH,
+    });
+  }
+
+  eraseCrowdBoxLines() {
+    // Front
+    client.setDiscProperties(this._crowdBoxDiscIndexes[0], {
+      x: MAP_POINTS.HIDDEN,
+      y: MAP_POINTS.TOP_HASH,
+    });
+    client.setDiscProperties(this._crowdBoxDiscIndexes[1], {
+      x: MAP_POINTS.HIDDEN,
+      y: MAP_POINTS.BOT_HASH,
+    });
+
+    // Back
+    client.setDiscProperties(this._crowdBoxDiscIndexes[2], {
+      x: MAP_POINTS.HIDDEN,
+      y: MAP_POINTS.TOP_HASH,
+    });
+    client.setDiscProperties(this._crowdBoxDiscIndexes[3], {
+      x: MAP_POINTS.HIDDEN,
+      y: MAP_POINTS.BOT_HASH,
+    });
   }
 
   private _checkIfPlayerInCrowdBox(playerId: PlayerObject["id"]) {
