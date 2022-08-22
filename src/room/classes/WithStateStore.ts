@@ -1,10 +1,13 @@
-import { SHOW_DEBUG_CHAT } from "../roomConfig";
+import { SHOW_DEBUG_CHAT } from "../room.config";
 import Chat from "../roomStructures/Chat";
 
 interface StateStoreType {
   [key: string]: any;
 }
 
+/**
+ * Class allowing for managing state
+ */
 export default class WithStateStore<
   T extends StateStoreType,
   R extends string
@@ -14,10 +17,8 @@ export default class WithStateStore<
   /**
    * Set state
    */
-  //@ts-ignore
-  setState<K extends keyof T>(state: K, value: T[K] = true) {
+  setState<K extends keyof T>(state: K, value: T[K] = true as T[K]) {
     this._stateStore[state] = value;
-
     if (SHOW_DEBUG_CHAT) {
       Chat.send(`StateChange: ${String(state)}`);
     }
@@ -63,7 +64,6 @@ export default class WithStateStore<
    * Clears all state keys
    */
   clearState() {
-    console.log("CLEARED ALL STATE");
     this._stateStore = {};
   }
 
