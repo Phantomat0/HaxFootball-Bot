@@ -13,7 +13,7 @@ import PreSetCalculators from "../structures/PreSetCalculators";
 import { flattenPlayer, quickPause } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
 import MapSectionFinder, { MapSectionName } from "../utils/MapSectionFinder";
-import { addPlus, plural, truncateName } from "../utils/utils";
+import { addPlus, plural, sleep, truncateName } from "../utils/utils";
 import Snap from "./Snap";
 import BasePlayAbstract, { PLAY_TYPES } from "./BasePlayAbstract";
 import DistanceCalculator from "../structures/DistanceCalculator";
@@ -382,7 +382,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
   /**
    * Handles the penalty and ends the down
    */
-  protected _handlePenalty<T extends PenaltyName>(
+  protected async _handlePenalty<T extends PenaltyName>(
     penaltyName: T,
     player: PlayerObjFlat,
     penaltyData: AdditionalPenaltyData = {}
@@ -423,6 +423,8 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
 
     if (hasOwnHandler) return;
 
+    if (penaltyData?.delay) await sleep(1500);
+
     if (isRedZonePenaltyOnDefense) {
       Room.game.down.incrementRedZonePenalties();
 
@@ -432,7 +434,11 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
         return this.getMaskPlay<Snap>().handleAutoTouchdown();
     }
 
-    this.endPlay({ addDown, newLosX: newEndLosX, netYards: penaltyYards });
+    await this.endPlay({
+      addDown,
+      newLosX: newEndLosX,
+      netYards: penaltyYards,
+    });
   }
 
   /**

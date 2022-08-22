@@ -131,13 +131,15 @@ export default class Snap extends SnapEvents {
         return this._handlePenalty("crowdAbuse", crowder!);
       return this._handlePenalty("crowding", crowder!);
     }
+
+    return null;
   }
 
-  protected _handlePenalty<T extends PenaltyName>(
+  protected async _handlePenalty<T extends PenaltyName>(
     penaltyName: T,
     player: PlayerObjFlat,
     penaltyData: AdditionalPenaltyData = {}
-  ): void {
+  ): Promise<void> {
     // We have to check the room and play state, since play state may not be sent on a snap penalty
     if (
       this.stateExists("twoPointAttempt") ||
@@ -181,6 +183,8 @@ export default class Snap extends SnapEvents {
         this.crowdChecker.eraseCrowdBoxLines.bind(this.crowdChecker),
         2000
       );
+      // Add the delay
+      penaltyData.delay = true;
     }
 
     super._handlePenalty(penaltyName, player, penaltyData);

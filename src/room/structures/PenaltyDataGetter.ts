@@ -14,6 +14,7 @@ interface Penalty {
 
 export interface AdditionalPenaltyData {
   time?: number;
+  delay?: boolean;
 }
 
 export type PenaltyName =
