@@ -129,10 +129,7 @@ export default class Down {
     Chat.send(downAndDistanceStr, { sound: 0 });
   }
 
-  private _setTightEndPosition(
-    playerId: PlayerObject["id"],
-    position: Position
-  ) {
+  setTightEndPosition(playerId: PlayerObject["id"], position: Position) {
     client.setPlayerDiscProperties(playerId, position);
     Room.game.moveTightEndDiscs(position);
   }
@@ -163,7 +160,7 @@ export default class Down {
 
       const isTightEnd = Room.game.checkIfPlayerIsTightEnd(player.id);
       if (isTightEnd)
-        return this._setTightEndPosition(player.id, playerPositionToSet);
+        return this.setTightEndPosition(player.id, playerPositionToSet);
 
       client.setPlayerDiscProperties(player.id, playerPositionToSet);
     }
@@ -198,7 +195,7 @@ export default class Down {
 
       const isTightEnd = Room.game.checkIfPlayerIsTightEnd(player.id);
       if (isTightEnd)
-        return this._setTightEndPosition(player.id, playerPositionToSet);
+        return this.setTightEndPosition(player.id, playerPositionToSet);
 
       client.setPlayerDiscProperties(player.id, playerPositionToSet);
     });
@@ -225,6 +222,15 @@ export default class Down {
           player.team as PlayableTeamId
         )
         .calculate();
+
+      const isTightEnd = Room.game.checkIfPlayerIsTightEnd(player.id);
+      if (isTightEnd) {
+        const tightEndPosition = client.getPlayerDiscProperties(player.id)!;
+        return this.setTightEndPosition(player.id, {
+          x: sevenYardsBehindLosX,
+          y: tightEndPosition.y,
+        });
+      }
 
       client.setPlayerDiscProperties(player.id, {
         x: sevenYardsBehindLosX,

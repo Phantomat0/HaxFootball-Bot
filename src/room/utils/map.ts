@@ -421,7 +421,11 @@ const HFL_MAP = `{
 		{ "pos" : [10000,13 ], "trait" : "teweight" },
 		{ "pos" : [9987,0 ], "trait" : "teweight" },
 		{ "pos" : [10000,-13 ], "trait" : "teweight" },
-		{ "pos" : [10013,0 ], "trait" : "teweight" }
+		{ "pos" : [10013,0 ], "trait" : "teweight" },
+		{ "pos" : [9960,280 ], "trait" : "crowdboxmarker" },
+		{ "pos" : [9960,-280 ], "trait" : "crowdboxmarker" },
+		{ "pos" : [9950,280 ], "trait" : "crowdboxmarker" },
+		{ "pos" : [9950,-280 ], "trait" : "crowdboxmarker" }
 
 	],
 
@@ -437,6 +441,11 @@ const HFL_MAP = `{
 		{ "d0" : 19, "d1" : 20, "trait" : "joint" },
 		{ "d0" : 20, "d1" : 21, "trait" : "joint" },
 		{ "d0" : 21, "d1" : 18, "trait" : "joint" }
+
+		// { "d0" : 22, "d1" : 23, "trait" : "crowdboxline" },
+		// { "d0" : 23, "d1" : 24, "trait" : "crowdboxline" },
+		// { "d0" : 24, "d1" : 25, "trait" : "crowdboxline" },
+		// { "d0" : 25, "d1" : 22, "trait" : "crowdboxline" }
 
 	],
 
@@ -465,10 +474,12 @@ const HFL_MAP = `{
 		"goalmarker" : { "vis" : true, "color" : "FFA500", "cMask" : [ ], "radius" : 3 },
 		"losmarker" : { "vis" : true, "color" : "273d6b", "cMask" : [ ], "radius" : 3 },
 		"yardtogetmarker" : { "vis" : true, "color" : "8FE271", "cMask" : [ ], "radius" : 3 },
-		"teweight" : { "vis" : false, "radius" : 0, "cMask" : ["red", "blue" ], "invMass" : 1.5 },
-		"teweight1" : { "vis" : false, "radius" : 0, "cMask" : ["" ], "invMass" : 1.5, "color" : "F2F2F2" },
+		"teweight" : { "vis" : false, "radius" : 0, "cMask" : ["red", "blue" ], "invMass" : 1.2 },
+		"teweight1" : { "vis" : false, "radius" : 0, "cMask" : [], "invMass" : 1.2, "color" : "F2F2F2" },
 		"losline" : { "vis" : true, "color" : "273d6b" },
 		"yardtogetline" : { "color" : "8FE271" },
+		"crowdboxline" : { "color" : "ff8164", "invMass" : 0.1 },
+		"crowdboxmarker" : { "color" : "ff6242", "radius" : 3, "vis" : true, "cMask" : [ ], "invMass" : 0.1 },
 		"goal" : { "vis" : true, "color" : "FFA500" }
 
 	},

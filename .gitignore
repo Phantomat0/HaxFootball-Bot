@@ -1,1 +1,4 @@
 /node_modules
+/src/room/secret.ts
+/src/room/roomConfig.ts
+/webpack.config.js

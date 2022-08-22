@@ -1,6 +1,6 @@
 import BallContact from "../classes/BallContact";
 import { PlayableTeamId, PlayerObjFlat, Position } from "../HBClient";
-import { SHOW_DEBUG_CHAT } from "../roomConfig";
+import { SHOW_DEBUG_CHAT } from "../room.config";
 import Chat from "../roomStructures/Chat";
 import Ball from "../roomStructures/Ball";
 import MapReferee from "../structures/MapReferee";
@@ -17,7 +17,6 @@ import { addPlus, plural, truncateName } from "../utils/utils";
 import Snap from "./Snap";
 import BasePlayAbstract, { PLAY_TYPES } from "./BasePlayAbstract";
 import DistanceCalculator from "../structures/DistanceCalculator";
-import PlayerContact from "../classes/PlayerContact";
 import Room from "../roomStructures/Room";
 import client from "..";
 
@@ -154,69 +153,69 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
 
   handleDefenseLineBlitz() {}
 
-  protected _checkForFumble(playerContact: PlayerContact) {
-    if (this.stateExistsUnsafe("twoPointAttempt")) return false;
+  // protected _checkForFumble(playerContact: PlayerContact) {
+  //   if (this.stateExistsUnsafe("twoPointAttempt")) return false;
 
-    // We want a max speed just incase the player is moving fast
-    // because he got hit with the ball, it will mess with our
-    // speed
-    const MAX_SPEED = 2.5;
+  //   // We want a max speed just incase the player is moving fast
+  //   // because he got hit with the ball, it will mess with our
+  //   // speed
+  //   const MAX_SPEED = 2.5;
 
-    // A fumble is
+  //   // A fumble is
 
-    const MIN_SUM_SPEED_FOR_FUMBLE = 3.8;
+  //   const MIN_SUM_SPEED_FOR_FUMBLE = 3.8;
 
-    const { playerSpeed, ballCarrierSpeed } = playerContact;
+  //   const { playerSpeed, ballCarrierSpeed } = playerContact;
 
-    // Adjusts the speeds, since we can have negative speeds
-    const playerXSpeed = Math.min(Math.abs(playerSpeed.x), MAX_SPEED);
-    // const playerYSpeed = Math.min(Math.abs(playerSpeed.y), MAX_SPEED);
+  //   // Adjusts the speeds, since we can have negative speeds
+  //   const playerXSpeed = Math.min(Math.abs(playerSpeed.x), MAX_SPEED);
+  //   // const playerYSpeed = Math.min(Math.abs(playerSpeed.y), MAX_SPEED);
 
-    const ballCarrierXSpeed = Math.min(Math.abs(ballCarrierSpeed.x), MAX_SPEED);
-    // const ballCarrierYSpeed = Math.min(Math.abs(ballCarrierSpeed.y), MAX_SPEED);
+  //   const ballCarrierXSpeed = Math.min(Math.abs(ballCarrierSpeed.x), MAX_SPEED);
+  //   // const ballCarrierYSpeed = Math.min(Math.abs(ballCarrierSpeed.y), MAX_SPEED);
 
-    Chat.send(`X: ${playerXSpeed.toFixed(3)}`, {
-      id: Room.getPlayerTestingId(),
-    });
+  //   Chat.send(`X: ${playerXSpeed.toFixed(3)}`, {
+  //     id: Room.getPlayerTestingId(),
+  //   });
 
-    Chat.send(`Total: ${(playerXSpeed + ballCarrierXSpeed).toFixed(3)}`, {
-      id: Room.getPlayerTestingId(),
-    });
+  //   Chat.send(`Total: ${(playerXSpeed + ballCarrierXSpeed).toFixed(3)}`, {
+  //     id: Room.getPlayerTestingId(),
+  //   });
 
-    const sumSpeed = playerXSpeed + ballCarrierXSpeed;
+  //   const sumSpeed = playerXSpeed + ballCarrierXSpeed;
 
-    if (sumSpeed >= MIN_SUM_SPEED_FOR_FUMBLE) return true;
+  //   if (sumSpeed >= MIN_SUM_SPEED_FOR_FUMBLE) return true;
 
-    return false;
-  }
+  //   return false;
+  // }
 
-  protected _handleFumble(
-    playerContact: PlayerContact,
-    ballCarrier: PlayerObjFlat
-  ) {
-    Chat.send(`Would have been a fumble`, {
-      id: Room.getPlayerTestingId(),
-      sound: 2,
-      icon: ICONS.Dizzy,
-    });
-    // const { player } = playerContact;
-    // // Announce it
-    // Chat.send(`${ICONS.Dizzy} Fumble! Recovered by ${player.name}`, {
-    //   sound: 2,
-    // });
+  // protected _handleFumble(
+  //   playerContact: PlayerContact,
+  //   ballCarrier: PlayerObjFlat
+  // ) {
+  //   Chat.send(`Would have been a fumble`, {
+  //     id: Room.getPlayerTestingId(),
+  //     sound: 2,
+  //     icon: ICONS.Dizzy,
+  //   });
+  //   // const { player } = playerContact;
+  //   // // Announce it
+  //   // Chat.send(`${ICONS.Dizzy} Fumble! Recovered by ${player.name}`, {
+  //   //   sound: 2,
+  //   // });
 
-    // // Update stats
-    // Room.game.stats.updatePlayerStat(player.id, { forcedFumbles: 1 });
-    // Room.game.stats.updatePlayerStat(ballCarrier.id, { fumbles: 1 });
+  //   // // Update stats
+  //   // Room.game.stats.updatePlayerStat(player.id, { forcedFumbles: 1 });
+  //   // Room.game.stats.updatePlayerStat(ballCarrier.id, { fumbles: 1 });
 
-    // // Swap offense
-    // Room.game.swapOffenseAndUpdatePlayers();
+  //   // // Swap offense
+  //   // Room.game.swapOffenseAndUpdatePlayers();
 
-    // // Check for a touchback or a safety
+  //   // // Check for a touchback or a safety
 
-    // //End the play if neither
-    // this.endPlay({ setNewDown: true });
-  }
+  //   // //End the play if neither
+  //   // this.endPlay({ setNewDown: true });
+  // }
 
   /**
    * Sets the starting position to determine net yards
@@ -388,6 +387,8 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     player: PlayerObjFlat,
     penaltyData: AdditionalPenaltyData = {}
   ) {
+    this._setLivePlay(false);
+
     quickPause();
 
     const losX = Room.game.down.getLOS().x;

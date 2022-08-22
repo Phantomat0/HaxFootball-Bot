@@ -5,8 +5,8 @@ const roomConfig: HBClientConfig = {
   maxPlayers: 14,
   //   password: ""
   noPlayer: true,
-  public: true,
-  token: "thr1.AAAAAGL9AZEuSxhVEssujQ.zFaAnDPk-Ao",
+  public: false,
+  token: "thr1.AAAAAGMC1liVsu1rf65fxg.yn4Ifg9MnjQ",
 };
 
 // For testing purposes

@@ -1,6 +1,6 @@
 import client from "..";
 import HBClient, { FullPlayerObject } from "../HBClient";
-import { SHOW_DEBUG_CHAT } from "../roomConfig";
+import { SHOW_DEBUG_CHAT } from "../room.config";
 import Room from "../roomStructures/Room";
 import Greeter from "../roomStructures/Greeter";
 

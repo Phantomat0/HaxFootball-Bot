@@ -7,7 +7,7 @@ import onLeave from "./events/onLeave";
 import onPlayerTeamChange from "./events/onPlayerTeamChange";
 import HBClient, { HBClientConfig } from "./HBClient";
 import KickOff from "./plays/Kickoff";
-import roomConfig from "./roomConfig";
+import roomConfig from "./room.config";
 import Room from "./roomStructures/Room";
 import HFL_MAP from "./utils/map";
 
