@@ -225,7 +225,18 @@ export const containsNWord = (msg: string) => {
 
   // return regExpTest || wordTest;
 
-  const filters = ["nig", "nigger", "n1gger", "n1gg3r", "niger", "n1g3r"];
+  const filters = [
+    "nig",
+    "nigger",
+    "n1gger",
+    "n1gg3r",
+    "niger",
+    "n1g3r",
+    "nigga",
+    "n1gg@",
+    "n1g@",
+    "niga",
+  ];
 
   const isOffensive = filters.some((filterWord) => msg.includes(filterWord));
 
