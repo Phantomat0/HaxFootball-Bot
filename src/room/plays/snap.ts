@@ -28,6 +28,7 @@ import { EndPlayData } from "./BasePlay";
 import { round } from "../utils/utils";
 import client from "..";
 import Room from "../roomStructures/Room";
+import COLORS from "../utils/colors";
 
 export default class Snap extends SnapEvents {
   private _quarterback: PlayerObject;
@@ -161,13 +162,6 @@ export default class Snap extends SnapEvents {
       // Lets send the penalty!
       Chat.send(`${ICONS.YellowSquare} ${penaltyMessage}`);
 
-      if (penaltyName === "crowding" || penaltyName === "crowdAbuse") {
-        Chat.send(
-          "You cannot stand in front of the blue line for more than 3 seconds without an offensive player being present.",
-          { id: player.id }
-        );
-      }
-
       // Now if the penalty was on an offensive player, handle failed two point
       if (player.team === Room.game.offenseTeamId)
         return this._handleFailedTwoPointConversion();
@@ -175,12 +169,26 @@ export default class Snap extends SnapEvents {
       return this._handleTwoPointTouchdown(null);
     }
 
+    // Show the crowd box and send the crowding explanation message
+    if (penaltyName === "crowding" || penaltyName === "crowdAbuse") {
+      this._setLivePlay(false);
+      Chat.sendWarning(
+        "You cannot stand inside the red box for more than 3 seconds without an offensive player being present.",
+        { id: player.id, color: COLORS.LightRed }
+      );
+      this.crowdChecker.drawCrowdBoxLines();
+      setTimeout(
+        this.crowdChecker.eraseCrowdBoxLines.bind(this.crowdChecker),
+        2000
+      );
+    }
+
     super._handlePenalty(penaltyName, player, penaltyData);
   }
 
   endPlay(endPlayData: EndPlayData) {
     if (this.stateExists("twoPointAttempt")) {
-      // Endplay will only run when we didn't score a touchdown, so means unsuccessful fg
+      // Endplay will only run when we didn't score a touchdown, so means unsuccessful two point
       return this._handleFailedTwoPointConversion();
     }
     super.endPlay(endPlayData);
@@ -407,6 +415,16 @@ export default class Snap extends SnapEvents {
         `⚠️ You were offside (infront of the blue line), you have been moved 15 yards back.`,
         { id: player.id }
       );
+
+      const isTightEnd = Room.game.checkIfPlayerIsTightEnd(player.id);
+      if (isTightEnd) {
+        const tightEndPosition = client.getPlayerDiscProperties(player.id)!;
+        return Room.game.down.setTightEndPosition(player.id, {
+          x: fifteenYardsBehindLosX,
+          y: tightEndPosition.y,
+        });
+      }
+
       // Set their x value 15 yards behind LOS
       client.setPlayerDiscProperties(player.id, {
         x: fifteenYardsBehindLosX,
