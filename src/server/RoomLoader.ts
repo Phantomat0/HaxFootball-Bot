@@ -75,7 +75,7 @@ export default class RoomLoader {
 
     const roomLink = await roomLinkTag!.getProperty("href");
 
-    const roomLinkAsString: string = await roomLink.jsonValue();
+    const roomLinkAsString: string = (await roomLink.jsonValue()) as string;
 
     console.log(`${name} booted: ${roomLinkAsString}`);
 
@@ -114,6 +114,10 @@ export default class RoomLoader {
 
   private async _loadBrowser(isHeadless: boolean) {
     const browser = await Puppeteer.launch({
+      executablePath:
+        "./node_modules/puppeteer/.local-chromium/win64-982053/chrome-win/chrome.exe",
+      // ./node_modules/puppeteer/.local-chromium/win64-656675/chrome-win/chrome.exe"
+
       headless: isHeadless,
       args: MINIMAL_ARGS,
     });
