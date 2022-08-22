@@ -12,10 +12,6 @@ const ANNOUNCEMENTS: Announcement[] = [
     weight: 0.3,
   },
   {
-    text: `!rules2 for more indepth rules!`,
-    weight: 0.3,
-  },
-  {
     text: `Join our Discord discord.gg/VdrD2p7`,
     weight: 0.3,
   },
