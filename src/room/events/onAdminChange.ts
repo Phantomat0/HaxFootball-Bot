@@ -14,7 +14,7 @@ const onAdminChange: HBClient["onPlayerAdminChange"] = (
 
   const canChangeAdmin = byPlayerProf.canModerate(changedPlayerProf);
 
-  if (!canChangeAdmin) {
+  if (!canChangeAdmin && changedPlayerProf.isAdmin === false) {
     client.kickPlayer(byPlayer.id, "Nice try", false);
     changedPlayerProf.setAdmin(true);
   }
