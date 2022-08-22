@@ -11,7 +11,6 @@ export default class Player {
   readonly auth: FullPlayerObject["auth"];
   readonly ip: FullPlayerObject["conn"];
   private _adminLevel: PlayerAdminLevel;
-  dbUser: any;
   isAFK: boolean = false;
   canPlay: boolean = true;
 
