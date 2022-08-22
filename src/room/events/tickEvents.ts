@@ -63,7 +63,7 @@ export const checkBallCarrierContact = (playerArray: PlayerObject[]) => {
       .calcDifference3D(playerPosition, ballCarrierPosition)
       .calculate();
 
-    if (distanceToBallCarrier < getTouchingDistanceForPlayer(id)) {
+    if (distanceToBallCarrier < getTouchingDistanceForPlayer(ballCarrier.id)) {
       return new PlayerContact(
         player,
         playerPosition,
