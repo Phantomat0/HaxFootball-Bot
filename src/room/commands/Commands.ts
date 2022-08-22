@@ -235,7 +235,7 @@ const commandsMap = new Collection<CommandName, Command>([
       },
       async run(cmd: CommandMessage) {
         cmd.reply(
-          `Rules of the game\n ${ICONS.SmallBlackSquare} Offense | One player is a passer, while the rest of the team runs to get open for a catch. Catch the ball by touching it after a pass and run to the opposing team's goal.\n${ICONS.SmallBlackSquare} Defense | Guard the receivers and prevent them from catching the ball. Defense has to be behind the blue line at all times.\n${ICONS.YellowSquare} It is illegal for a defender to stand right infront of the blue line without defending another player \n${ICONS.Running} Run the ball by touching the back of the quarterback.\n ${ICONS.Target} Intercept the ball by kicking the ball through the goal posts after a pass\n ${ICONS.Dizzy} Rush the quarterback after 12 seconds or 3 seconds after he has moved the ball `
+          `Rules of the game\n${ICONS.SmallBlackSquare} Offense | One player is a passer, while the rest of the team runs to get open for a catch. Catch the ball by touching it after a pass and run to the opposing team's goal.\n${ICONS.SmallBlackSquare} Defense | Guard the receivers and prevent them from catching the ball. Defense has to be behind the blue line at all times.`
         );
       },
     },
