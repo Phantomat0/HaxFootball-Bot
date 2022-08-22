@@ -226,7 +226,7 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   }
 
   private _setTightEndPhysicsAndDiscs(playerId: PlayerObject["id"]) {
-    const TIGHT_END_INV_MASS = 0.45;
+    const TIGHT_END_INV_MASS = 0.35;
 
     // Set physics
     client.setPlayerDiscProperties(playerId, {
