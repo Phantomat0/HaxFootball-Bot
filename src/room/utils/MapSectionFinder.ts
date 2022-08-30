@@ -31,14 +31,15 @@ export default class MapSectionFinder {
     {
       name: "cornerTop",
       getRectangleArea: function (
-        fifteenYardsBehindLOS,
-        fifteenYardsInFrontOfLOS
+        fifteenYardsLeftOfLOS,
+        fifteenYardsRightOfLOS
       ) {
         const { TOP_SIDELINE, ABOVE_HASH } = MAP_POINTS;
+
         return {
-          x1: fifteenYardsBehindLOS,
+          x1: fifteenYardsLeftOfLOS,
           y1: TOP_SIDELINE - 1000,
-          x2: fifteenYardsInFrontOfLOS,
+          x2: fifteenYardsRightOfLOS,
           y2: ABOVE_HASH,
         };
       },
@@ -46,15 +47,15 @@ export default class MapSectionFinder {
     {
       name: "cornerBottom",
       getRectangleArea: function (
-        fifteenYardsBehindLOS,
-        fifteenYardsInFrontOfLOS
+        fifteenYardsLeftOfLOS,
+        fifteenYardsRightOfLOS
       ) {
         const { BOT_SIDELINE, BELOW_HASH } = MAP_POINTS;
 
         return {
-          x1: fifteenYardsBehindLOS,
+          x1: fifteenYardsLeftOfLOS,
           y1: BELOW_HASH,
-          x2: fifteenYardsInFrontOfLOS,
+          x2: fifteenYardsRightOfLOS,
           y2: BOT_SIDELINE + 1000,
         };
       },
@@ -62,14 +63,14 @@ export default class MapSectionFinder {
     {
       name: "middle",
       getRectangleArea: function (
-        fifteenYardsBehindLOS,
-        fifteenYardsInFrontOfLOS
+        fifteenYardsLeftOfLOS,
+        fifteenYardsRightOfLOS
       ) {
         const { ABOVE_HASH, BELOW_HASH } = MAP_POINTS;
         return {
-          x1: fifteenYardsBehindLOS,
+          x1: fifteenYardsLeftOfLOS,
           y1: ABOVE_HASH,
-          x2: fifteenYardsInFrontOfLOS,
+          x2: fifteenYardsRightOfLOS,
           y2: BELOW_HASH,
         };
       },
@@ -77,8 +78,8 @@ export default class MapSectionFinder {
     {
       name: "deep",
       getRectangleArea: function (
-        fifteenYardsBehindLOS,
-        fifteenYardsInFrontOfLOS,
+        fifteenYardsLeftOfLOS,
+        fifteenYardsRightOfLOS,
         losX,
         offenseTeamId: PlayableTeamId
       ) {
@@ -96,18 +97,16 @@ export default class MapSectionFinder {
     O----y2------O
     */
         // X1 is the limit for blue, X2 is the limit for red
-        if (offenseTeamId === TEAMS.BLUE)
-          return {
-            x1: unlimitedYardsInFrontOfLOS,
-            y1: TOP_SIDELINE - 1000,
-            x2: fifteenYardsInFrontOfLOS,
-            y2: BOT_SIDELINE + 1000,
-          };
-
         return {
-          x1: fifteenYardsInFrontOfLOS,
+          x1:
+            offenseTeamId === TEAMS.RED
+              ? fifteenYardsLeftOfLOS
+              : unlimitedYardsInFrontOfLOS,
           y1: TOP_SIDELINE - 1000,
-          x2: unlimitedYardsInFrontOfLOS,
+          x2:
+            offenseTeamId === TEAMS.RED
+              ? unlimitedYardsInFrontOfLOS
+              : fifteenYardsRightOfLOS,
           y2: BOT_SIDELINE + 1000,
         };
       },
@@ -121,17 +120,13 @@ export default class MapSectionFinder {
   ): MapSectionName {
     const { YARD } = MAP_POINTS;
 
-    const fifteenYardsInFrontOfLOS = new DistanceCalculator()
-      .addByTeam(losX, YARD * 15, offenseTeamId)
-      .calculate();
-    const fifteenYardsBehindLOS = new DistanceCalculator()
-      .subtractByTeam(losX, YARD * 15, offenseTeamId)
-      .calculate();
+    const fifteenYardsLeftOfLOS = losX - YARD * 15;
+    const fifteenYardsRightOfLOS = losX + YARD * 15;
 
     const sectionObj = this._mapSectionsList.find((section) => {
       const rectangleArea = section.getRectangleArea(
-        fifteenYardsInFrontOfLOS,
-        fifteenYardsBehindLOS,
+        fifteenYardsLeftOfLOS,
+        fifteenYardsRightOfLOS,
         losX,
         offenseTeamId
       );
