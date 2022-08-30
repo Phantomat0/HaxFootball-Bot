@@ -416,7 +416,7 @@ export default class Snap extends SnapEvents {
     offsidePlayers.forEach((player) => {
       // Send the message they are offside
       Chat.send(
-        `⚠️ You were offside (infront of the blue line), you have been moved 15 yards back.`,
+        `⚠️ You were offside (in front of the blue line), you have been moved 15 yards back.`,
         { id: player.id }
       );
 
@@ -456,7 +456,7 @@ export default class Snap extends SnapEvents {
     offsidePlayers.forEach((player) => {
       // Send the message they are offside
       Chat.send(
-        `⚠️ You were offside (infront of the blue line), you have been moved 15 yards back.`,
+        `⚠️ You were offside (in front of the blue line), you have been moved 15 yards back.`,
         { id: player.id }
       );
       // Set their x value 15 yards behind LOS
