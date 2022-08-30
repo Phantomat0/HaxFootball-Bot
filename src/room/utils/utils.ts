@@ -238,9 +238,14 @@ export const containsNWord = (msg: string) => {
     "niga",
   ];
 
+  const regExpText = new RegExp(
+    /(n|i){1,32}((g{2,32}|q){1,32}|[gq]{2,32})[e3r]{1,32}/,
+    "i"
+  ).test(msg);
+
   const isOffensive = filters.some((filterWord) => msg.includes(filterWord));
 
-  return isOffensive;
+  return isOffensive || regExpText;
 };
 
 export const sumObjectValues = (object: { [key: string | number]: number }) => {
