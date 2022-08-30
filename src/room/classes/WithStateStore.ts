@@ -20,7 +20,7 @@ export default class WithStateStore<
   setState<K extends keyof T>(state: K, value: T[K] = true as T[K]) {
     this._stateStore[state] = value;
     if (SHOW_DEBUG_CHAT) {
-      Chat.send(`StateChange: ${String(state)}`);
+      Chat.send(`StateChange: ${String(state)}`, { color: 0xffef5c });
     }
   }
 
@@ -41,7 +41,7 @@ export default class WithStateStore<
 
   deleteState<K extends keyof T>(state: K) {
     if (SHOW_DEBUG_CHAT) {
-      Chat.send(`State delete: ${String(state)}`);
+      Chat.send(`State delete: ${String(state)}`, { color: 0xffef5c });
     }
     delete this._stateStore[state];
   }

@@ -478,7 +478,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
   protected _setLivePlay(bool: boolean) {
     this._isLivePlay = bool;
     if (SHOW_DEBUG_CHAT) {
-      Chat.send(`SET LIVE PLAY TO: ${bool}`);
+      Chat.send(`SET LIVE PLAY TO: ${bool}`, { color: 0xffef5c });
     }
   }
 
