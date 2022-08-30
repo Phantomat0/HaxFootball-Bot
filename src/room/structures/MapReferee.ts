@@ -66,7 +66,12 @@ class MapReferee {
       const {
         position: { x },
       } = getPlayerDiscProperties(player.id)!;
-      const isOnside = this.checkIfBehind(x, pointToBeBehind, team);
+
+      const adjustedX = new DistanceCalculator()
+        .addByTeam(x, MAP_POINTS.PLAYER_RADIUS, team)
+        .calculate();
+
+      const isOnside = this.checkIfBehind(adjustedX, pointToBeBehind, team);
       return isOnside === false;
     });
 
