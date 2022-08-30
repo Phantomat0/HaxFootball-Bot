@@ -157,6 +157,12 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
 
   endGame() {
     this._isActive = false;
+
+    const mvpObj = this.stats.getMVP();
+
+    if (!mvpObj) return;
+
+    this.sendManOfTheMatch(mvpObj.recordId, mvpObj.pointTotal);
   }
 
   setScore(teamID: PlayableTeamId, score: number) {
