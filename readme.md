@@ -4,11 +4,15 @@
 
 American Football gameplay implemented in haxball. Rules adapted to fit 5v5 and 4v4 games.
 
+- 25+ unique stats for each player
+- All American Football Plays (Snap, Run, Scramble, Field Goal, Onside Kick, Blitz, Two Point Conversion, Kickoff, Punt, Safety, Touchback, Penalties)
+- MVP at the end of each game determined using Fantasy Football Rating system
+
 Contents:
 
 1.  Full source code, separated into files and folders, found in **/src**
 2.  Single file, compiled source code, found in **/dist/room-bundle.js**
-3.  Single file, old Season 13 HFL bot, by I'llhaveanother found in **/dist/hfl-13.js**
+3.  Single file, old Season 13 HFL bot, by I'llhaveanother (@anarcer) found in **/dist/hfl-13.js**
 
 # ⚙️ Usage
 
@@ -42,6 +46,15 @@ Webpack will create two bundles, one for the room, and one for index.ts to actua
 
    npm run start
 
+# 🔧 Debugging
+
+Set **SHOW_DEBUG_CHAT** to true in **room.config.ts** to show state and stat changes in the haxball chat.
+
+```js
+// For testing purposes
+export const SHOW_DEBUG_CHAT: boolean = true;
+```
+
 # 🛠️Features
 
 Alongside the standard Haxfootball rules and gameplay are additional features to enhance the room.
@@ -49,7 +62,8 @@ Alongside the standard Haxfootball rules and gameplay are additional features to
 #### Stats
 
 - 25+ unique stats for each player
-- MVP at the end of each game determined using Fantasy Football Rating system
+- Passer Rating
+- Stats by area on the field (Corner, Middle, Deep)
 
 #### Command System
 
