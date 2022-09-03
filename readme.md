@@ -86,6 +86,7 @@ Command system with permissions, alias names, error handling.
 | Name       | Alias | Description                                              | Usage                   |
 | ---------- | ----- | -------------------------------------------------------- | ----------------------- |
 | dd         |       | Returns the down and distance                            |                         |
+| info       |       | Returns helpful command info                             |                         |
 | score      |       | Returns the score                                        |                         |
 | setscore   | ss    | Sets the score for a team                                | setscore blue 7, ss b 7 |
 | setlos     | sl    | Sets the line of scrimmage at a certain yard             | setlos blue 10, sl b 10 |
