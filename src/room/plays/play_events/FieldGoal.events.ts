@@ -106,7 +106,6 @@ export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
 
     // If the FG was kicked
     if (this.stateExists("fieldGoalKicked")) {
-      console.log(this.readAllState());
       // If it was kicked before the blitz, its a penalty, if it was after, its a block
       if (this.stateExists("fieldGoalLineBlitzed"))
         return this.handleUnsuccessfulFg("Field goal blocked!");
