@@ -150,9 +150,9 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     if (isTouchdown) return this.handleTouchdown(ballCarrierPosition);
 
     Chat.send(
-      `${ICONS.Pushpin} ${
-        this.getBallCarrier().name
-      } stepped out of bounds ${yardAndHalfStr} | ${netYardsStr}`
+      `${
+        ICONS.Pushpin
+      } ${this.getBallCarrier().name.trim()} stepped out of bounds ${yardAndHalfStr} | ${netYardsStr}`
     );
 
     const { isSafety } = GameReferee.checkIfSafetyOrTouchbackPlayer(

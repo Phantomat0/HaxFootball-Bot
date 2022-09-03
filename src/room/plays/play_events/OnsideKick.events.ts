@@ -64,9 +64,7 @@ export default abstract class OnsideKickEvents extends BasePlay<OnsideKickStore>
       this._getPlayDataOffense(ballCarrierPosition);
 
     Chat.send(
-      `${
-        this.getBallCarrier().name
-      } went out of bounds ${yardAndHalfStr} | ${netYardsStr}`
+      `${this.getBallCarrier().name.trim()} went out of bounds ${yardAndHalfStr} | ${netYardsStr}`
     );
 
     Room.game.stats.updatePlayerStat(this._ballCarrier!.id, {

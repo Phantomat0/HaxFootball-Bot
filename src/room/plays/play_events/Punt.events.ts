@@ -79,9 +79,7 @@ export default abstract class PuntEvents extends BasePlay<PuntStore> {
     if (isTouchdown) return this.handleTouchdown(ballCarrierPosition);
 
     Chat.send(
-      `${
-        this.getBallCarrier().name
-      } went out of bounds ${yardAndHalfStr} | ${netYardsStr}`
+      `${this.getBallCarrier().name.trim()} went out of bounds ${yardAndHalfStr} | ${netYardsStr}`
     );
 
     Room.game.stats.updatePlayerStat(this._ballCarrier!.id, {

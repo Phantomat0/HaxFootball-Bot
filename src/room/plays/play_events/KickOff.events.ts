@@ -77,9 +77,7 @@ export default abstract class KickOffEvents extends BasePlay<KickOffStore> {
     if (isTouchdown) return this.handleTouchdown(ballCarrierPosition);
 
     Chat.send(
-      `${
-        this.getBallCarrier().name
-      } went out of bounds ${yardAndHalfStr} | ${netYardsStr}`
+      `${this.getBallCarrier().name.trim()} went out of bounds ${yardAndHalfStr} | ${netYardsStr}`
     );
 
     Room.game.stats.updatePlayerStat(this._ballCarrier!.id, {
