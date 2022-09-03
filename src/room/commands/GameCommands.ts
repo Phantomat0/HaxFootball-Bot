@@ -10,6 +10,7 @@ import Chat from "../roomStructures/Chat";
 import Room from "../roomStructures/Room";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import COLORS from "../utils/colors";
+import { quickPause } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
 import { GameCommandError } from "./GameCommandHandler";
 
@@ -88,7 +89,7 @@ const gameCommandsMap = new Map<string, GameCommand>([
     },
   ],
   [
-    "tei",
+    "sette",
     {
       showCommand: false,
       permissions: {
@@ -139,7 +140,7 @@ const gameCommandsMap = new Map<string, GameCommand>([
     },
   ],
   [
-    "fg",
+    "setfg",
     {
       showCommand: true,
       permissions: {
@@ -173,7 +174,7 @@ const gameCommandsMap = new Map<string, GameCommand>([
     },
   ],
   [
-    "2pt",
+    "set2",
     {
       showCommand: true,
       permissions: {
@@ -220,12 +221,13 @@ const gameCommandsMap = new Map<string, GameCommand>([
         Room.game.down.hardSetPlayers();
         Ball.setPosition(Room.game.down.getSnapPosition());
         Ball.setGravity({ y: 0 });
+        quickPause();
         //
       },
     },
   ],
   [
-    "onside",
+    "setonside",
     {
       showCommand: true,
       permissions: {
