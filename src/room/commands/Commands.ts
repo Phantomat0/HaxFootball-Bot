@@ -185,7 +185,7 @@ const commandsMap = new Collection<CommandName, Command>([
       },
       async run(cmd: CommandMessage) {
         cmd.reply(
-          `cp | Curved pass\n!setlos (yard) | Sets the line of scrimmage position\n!setdown (down) (yard) | Sets the down and distance \n!setscore (team) (score) | Sets the score of a team\n!setplayers | Sets the players in front of ball | !dd | Returns the down and distance \n!swapo | Swaps offense and defense`
+          `setfg | Attempt a Field Goal ${ICONS.SmallBlackSquare} sette | Sets you as the tight end ${ICONS.SmallBlackSquare} setonside | Attempt an onside kick ${ICONS.SmallBlackSquare}\nto | Calls a timeout ${ICONS.SmallBlackSquare} cp | Curved pass ${ICONS.SmallBlackSquare} set2 | Attempt a two point conversion\n!setlos (yard) | Sets the line of scrimmage position\n!setdown (down) (yard) | Sets the down and distance \n!setscore (team) (score) | Sets the score of a team\n!setplayers | Sets the players in front of ball\n!dd | Returns the down and distance \n!swapo | Swaps offense and defense`
         );
       },
     },
