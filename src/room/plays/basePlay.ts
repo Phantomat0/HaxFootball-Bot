@@ -135,7 +135,9 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
 
     const { netYards } = this._getPlayDataOffense(endPosition);
 
-    const truncatedBallCarrierName = truncateName(this._ballCarrier!.name);
+    const truncatedBallCarrierName = truncateName(
+      this._ballCarrier!.name.trim()
+    );
 
     Chat.send(
       `${ICONS.Fire} TOUCHDOWN ${truncatedBallCarrierName} ${plural(
@@ -200,7 +202,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
   //   });
   //   // const { player } = playerContact;
   //   // // Announce it
-  //   // Chat.send(`${ICONS.Dizzy} Fumble! Recovered by ${player.name}`, {
+  //   // Chat.send(`${ICONS.Dizzy} Fumble! Recovered by ${player.name.trim()}`, {
   //   //   sound: 2,
   //   // });
 
@@ -353,7 +355,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
   /**
    * Handles a safety
    */
-  _handleSafety() {
+  protected _handleSafety() {
     this._setLivePlay(false);
     Chat.send(`${ICONS.Loudspeaker} Safety - kickoff from the 20 yard line`);
 
