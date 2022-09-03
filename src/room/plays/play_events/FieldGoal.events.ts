@@ -14,11 +14,14 @@ export interface FieldGoalStore {
   fieldGoalLineBlitzed: true;
   fieldGoalBlitzed: true;
   ballRan: true;
+  runFirstTackler: PlayerObjFlat;
+  canSecondTackle: true;
 }
 
 export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
   protected abstract _kicker: PlayerObjFlat;
   protected abstract _setPlayersInPosition(): void;
+  protected abstract _handleRunTackle(playerContactObj: PlayerContact): void;
   protected abstract _handleTackle(playerContactObj: PlayerContact): void;
   protected abstract _handleRun(playerContact: PlayerContact): void;
   protected abstract _handleBallContactKicker(
@@ -47,9 +50,9 @@ export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
     if (isTouchdown) return this.handleTouchdown(ballCarrierPosition);
 
     Chat.send(
-      `${ICONS.Pushpin} ${
-        this.getBallCarrier().name
-      } went out of bounds ${yardAndHalfStr}`
+      `${
+        ICONS.Pushpin
+      } ${this.getBallCarrier().name.trim()} went out of bounds ${yardAndHalfStr}`
     );
 
     const { isSafety, isTouchback } =
@@ -89,6 +92,8 @@ export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
   }
 
   onBallCarrierContactDefense(playerContact: PlayerContact) {
+    if (this.stateExists("ballRan"))
+      return this._handleRunTackle(playerContact);
     this._handleTackle(playerContact);
   }
 

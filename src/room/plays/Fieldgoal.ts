@@ -200,14 +200,60 @@ export default class FieldGoal extends FieldGoalEvents {
     this.setBallCarrier(player).setState("ballRan");
   }
 
+  protected _handleRunTackle(playerContactObj: PlayerContact): void {
+    // First tackle
+    const isFirstTackle = this.stateExists("runFirstTackler") === false;
+
+    if (isFirstTackle) {
+      this.setState("runFirstTackler", playerContactObj.player);
+      Chat.send("First tackle");
+
+      setTimeout(() => {
+        this.setState("canSecondTackle");
+      }, 500);
+      return;
+    }
+    // Second Tackle
+    const isSamePlayedWhoInitiallyTackled =
+      this.getState("runFirstTackler").id === playerContactObj.player.id;
+
+    if (
+      this.stateExists("canSecondTackle") === false &&
+      isSamePlayedWhoInitiallyTackled
+    )
+      return;
+
+    // Handle second tackle
+    return this._handleTackle(playerContactObj);
+  }
+
+  private _handleRunTackleStats(playerContactObj: PlayerContact) {
+    const { netYards } = this._getPlayDataOffense(
+      playerContactObj.ballCarrierPosition
+    );
+
+    // Update Tackles
+    Room.game.stats.updatePlayerStat(playerContactObj.player.id, {
+      tackles: 0.5,
+    });
+
+    const firstTackler = this.getState("runFirstTackler");
+
+    Room.game.stats.updatePlayerStat(firstTackler.id, {
+      tackles: 0.5,
+    });
+
+    // Update rushing stats
+    Room.game.stats.updatePlayerStat(this._ballCarrier!.id, {
+      rushingAttempts: 1,
+      rushingYards: netYards,
+    });
+  }
+
   protected _handleTackle(playerContactObj: PlayerContact) {
     const { endPosition, netYards, yardAndHalfStr } = this._getPlayDataOffense(
       playerContactObj.ballCarrierPosition
     );
-
-    Room.game.stats.updatePlayerStat(playerContactObj.player.id, {
-      tackles: 1,
-    });
 
     // Check for sack
     const isSack =
@@ -219,7 +265,9 @@ export default class FieldGoal extends FieldGoalEvents {
 
     if (isSack) {
       Chat.send(
-        `${ICONS.HandFingersSpread} ${playerContactObj.player.name} with the SACK!`
+        `${
+          ICONS.HandFingersSpread
+        } ${playerContactObj.player.name.trim()} with the SACK!`
       );
 
       Room.game.stats.updatePlayerStat(playerContactObj.player.id, {
@@ -233,26 +281,30 @@ export default class FieldGoal extends FieldGoalEvents {
       Chat.send(`${ICONS.HandFingersSpread} Tackle ${yardAndHalfStr}`);
     }
 
-    // Tackle on a run, or the kicker just goes out of bounds
-    if (
-      this.stateExists("ballRan") ||
-      this._kicker.id === this._ballCarrier!.id
-    ) {
+    // Tackles on runs are dealt differently, since there can be half tackles
+    if (this.stateExists("ballRan")) {
+      this._handleRunTackleStats(playerContactObj);
+    } else {
+      Room.game.stats.updatePlayerStat(playerContactObj.player.id, {
+        tackles: 1,
+      });
+    }
+
+    // Tackle on a kicker run
+    if (this._ballCarrier!.id === this._kicker.id) {
       Room.game.stats.updatePlayerStat(this._ballCarrier!.id, {
         rushingAttempts: 1,
         rushingYards: netYards,
       });
     }
 
-    const { isSafety, isTouchback } =
-      GameReferee.checkIfSafetyOrTouchbackPlayer(
-        this._startingPosition,
-        endPosition,
-        Room.game.offenseTeamId
-      );
+    const { isSafety } = GameReferee.checkIfSafetyOrTouchbackPlayer(
+      this._startingPosition,
+      endPosition,
+      Room.game.offenseTeamId
+    );
 
     if (isSafety) return this._handleSafety();
-    if (isTouchback) return this._handleTouchback();
 
     this.endPlay({
       newLosX: endPosition.x,
