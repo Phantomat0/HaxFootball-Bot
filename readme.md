@@ -36,13 +36,25 @@ Do CTRL + F and search for "HAXFOOTBALL" which is the name of the room, and then
 
 Webpack will create two bundles, one for the room, and one for index.ts to actually load the rooms using puppeteer.
 
-1. First run the **build** command so you can build both bundles.
+If you decide to use the Puppeteer RoomLoader, you **must** skip the reCAPCTHA by setting the token in **HBClientConfig** in the **room.config.ts** file. You can receive a token by visiting this [link](https://www.haxball.com/headlesstoken) where a token will be generated after solving the captcha. This token is only valid for an hour or two. Failing to provide a valid token in the **HBClientConfig** will prevent the room from loading, and Puppeteer will timeout and close.
+
+1. Set the token in room.config.ts to skip the reCAPCTHA
+
+```js
+const roomConfig: HBClientConfig = {
+  roomName: "🏈 HAXFOOTBALL 🏈",
+  //...
+  token: "thr1.AAAAAGMSZwGFVjuVLpD-ng.N4LFrFAnou8",
+};
+```
+
+2. Next run the **build** command so you can build both bundles.
 
    npm run build
 
-2. Configure changes in **/server/index.ts** to your liking, i.e headless mode and auto join
+3. Configure changes in **/server/index.ts** to your liking, i.e headless mode and auto join
 
-3. Run the **start** command to load the room.
+4. Run the **start** command to load the room.
 
    npm run start
 
@@ -88,16 +100,16 @@ Command system with permissions, alias names, error handling.
 
 **Play Commands**
 
-| Name   | Description                                        |
-| ------ | -------------------------------------------------- |
-| hike   | Snaps the ball                                     |
-| cp     | Enables a curved pass                              |
-| tei    | Sets you as the tight end                          |
-| punt   | Calls a punt                                       |
-| fg     | Field Goal                                         |
-| 2pt    | Initiates a two point conversion after a touchdown |
-| onside | Initiates an onside kick during a kickoff          |
-| to     | Calls a timeout and pauses the game                |
+| Name      | Description                                        |
+| --------- | -------------------------------------------------- |
+| hike      | Snaps the ball                                     |
+| cp        | Enables a curved pass                              |
+| sette     | Sets you as the tight end                          |
+| punt      | Calls a punt                                       |
+| setfg     | Field Goal                                         |
+| set2      | Initiates a two point conversion after a touchdown |
+| setonside | Initiates an onside kick during a kickoff          |
+| to        | Calls a timeout and pauses the game                |
 
 Use t to team chat
 
