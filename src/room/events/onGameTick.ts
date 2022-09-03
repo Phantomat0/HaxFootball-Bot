@@ -129,6 +129,7 @@ const eventListeners: EventListener[] = [
       "fieldGoal",
       "puntCaught",
       "kickOffCaught",
+      "fieldGoalKicked",
       "onsideKickCaught",
     ],
     stopWhen: ["interceptionPlayerEndPosition"],
