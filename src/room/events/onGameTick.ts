@@ -146,7 +146,13 @@ const eventListeners: EventListener[] = [
     // Runs
     name: "BallCarrier Player Contact Offense",
     runWhen: ["ballSnapped", "fieldGoal"],
-    stopWhen: ["ballPassed", "ballRan", "lineBlitzed"],
+    stopWhen: [
+      "ballPassed",
+      "ballRan",
+      "lineBlitzed",
+      "fieldGoalLineBlitzed",
+      "fieldGoalKicked",
+    ],
     run: () => {
       // Here we get the offensive team, filter out the QB or the kicker (which will always be he ball carrier in when the ball hasnt been passed or caught yet), and use as an argument to the function
       const offensePlayersNoQb = Room.game.players
