@@ -153,16 +153,24 @@ export default class OnsideKick extends OnsideKickEvents {
 
     const ballPosition = Ball.getPosition();
     // Check that the position is after the 0, we use defensive position since offense switches on the kick
-    const isAfterHalfway = MapReferee.checkIfInFront(
+
+    const offenseFortyFiveYardLine = new DistanceCalculator()
+      .subtractByTeam(0, MAP_POINTS.YARD * 5, Room.game.offenseTeamId)
+      .calculate();
+
+    const isAfterOffenseFortyFiveYardLine = MapReferee.checkIfInFront(
       ballPosition.x,
-      0,
+      offenseFortyFiveYardLine,
       Room.game.defenseTeamId
     );
 
-    if (isAfterHalfway) return this._handleSuccessfulOnsideKick(ballContactObj);
+    if (isAfterOffenseFortyFiveYardLine)
+      return this._handleSuccessfulOnsideKick(ballContactObj);
 
     // If hes not after half way, adjust the ball for the offense and end the play there
-    Chat.send("Onside kick illegally recovered in own half");
+    Chat.send(
+      "Onside kick illegally recovered behind the receiving team's 45 yard line"
+    );
 
     const adjustedBallPositionForTeam =
       PreSetCalculators.adjustBallPositionOnOutOfBounds(
@@ -174,7 +182,7 @@ export default class OnsideKick extends OnsideKickEvents {
   }
 
   private _setPlayersInPosition() {
-    this._setKickerInPosition()._setDefenseInPosition()._setOffenseInPosition();
+    this._setKickerInPosition()._setOffenseInPosition();
   }
 
   private _setKickerInPosition() {
@@ -194,19 +202,23 @@ export default class OnsideKick extends OnsideKickEvents {
     return this;
   }
 
-  private _setDefenseInPosition() {
-    const defensePlayers = Room.game.players.getDefense();
-    const opposingEndzone = MapReferee.getOpposingTeamEndzone(
-      Room.game.offenseTeamId
-    );
-    const fiveYardLineOnReceivingTeam = new DistanceCalculator()
-      .addByTeam(opposingEndzone, MAP_POINTS.YARD * 5, Room.game.defenseTeamId)
-      .calculate();
-    defensePlayers.forEach(({ id }) => {
-      client.setPlayerDiscProperties(id, { x: fiveYardLineOnReceivingTeam });
-    });
-    return this;
-  }
+  // private _setDefenseInPosition() {
+  //   // const defensePlayers = Room.game.players.getDefense();
+  //   // const opposingEndzone = MapReferee.getOpposingTeamEndzone(
+  //   //   Room.game.offenseTeamId
+  //   // );
+  //   // const oneYardInFrontOfEndzone = new DistanceCalculator()
+  //   //   .subtractByTeam(
+  //   //     opposingEndzone,
+  //   //     MAP_POINTS.YARD * 1,
+  //   //     Room.game.defenseTeamId
+  //   //   )
+  //   //   .calculate();
+  //   // defensePlayers.forEach(({ id }) => {
+  //   //   client.setPlayerDiscProperties(id, { x: oneYardInFrontOfEndzone });
+  //   // });
+  //   // return this;
+  // }
 
   private _setOffenseInPosition() {
     const offensePlayers = Room.game.players.getOffense();
@@ -215,14 +227,18 @@ export default class OnsideKick extends OnsideKickEvents {
       Room.game.offenseTeamId
     );
 
-    const tenYardLineOnReceivingTeam = new DistanceCalculator()
-      .addByTeam(opposingEndzone, MAP_POINTS.YARD * 10, Room.game.defenseTeamId)
+    const fiveYardsInsideEndzone = new DistanceCalculator()
+      .subtractByTeam(
+        opposingEndzone,
+        MAP_POINTS.YARD * 5,
+        Room.game.offenseTeamId
+      )
       .calculate();
 
     offensePlayers.forEach(({ id }) => {
       // Dont set the kicker's position, we already do that
       if (id === this._kicker.id) return;
-      client.setPlayerDiscProperties(id, { x: tenYardLineOnReceivingTeam });
+      client.setPlayerDiscProperties(id, { x: fiveYardsInsideEndzone });
     });
     return this;
   }
