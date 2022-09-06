@@ -174,7 +174,7 @@ export default class OnsideKick extends OnsideKickEvents {
   }
 
   private _setPlayersInPosition() {
-    this._setKickerInPosition()._setOffenseInPosition();
+    this._setKickerInPosition()._setDefenseInPosition()._setOffenseInPosition();
   }
 
   private _setKickerInPosition() {
@@ -194,23 +194,19 @@ export default class OnsideKick extends OnsideKickEvents {
     return this;
   }
 
-  // private _setDefenseInPosition() {
-  //   // const defensePlayers = Room.game.players.getDefense();
-  //   // const opposingEndzone = MapReferee.getOpposingTeamEndzone(
-  //   //   Room.game.offenseTeamId
-  //   // );
-  //   // const oneYardInFrontOfEndzone = new DistanceCalculator()
-  //   //   .subtractByTeam(
-  //   //     opposingEndzone,
-  //   //     MAP_POINTS.YARD * 1,
-  //   //     Room.game.defenseTeamId
-  //   //   )
-  //   //   .calculate();
-  //   // defensePlayers.forEach(({ id }) => {
-  //   //   client.setPlayerDiscProperties(id, { x: oneYardInFrontOfEndzone });
-  //   // });
-  //   // return this;
-  // }
+  private _setDefenseInPosition() {
+    const defensePlayers = Room.game.players.getDefense();
+    const opposingEndzone = MapReferee.getOpposingTeamEndzone(
+      Room.game.offenseTeamId
+    );
+    const fiveYardLineOnReceivingTeam = new DistanceCalculator()
+      .addByTeam(opposingEndzone, MAP_POINTS.YARD * 5, Room.game.defenseTeamId)
+      .calculate();
+    defensePlayers.forEach(({ id }) => {
+      client.setPlayerDiscProperties(id, { x: fiveYardLineOnReceivingTeam });
+    });
+    return this;
+  }
 
   private _setOffenseInPosition() {
     const offensePlayers = Room.game.players.getOffense();
@@ -219,18 +215,14 @@ export default class OnsideKick extends OnsideKickEvents {
       Room.game.offenseTeamId
     );
 
-    const fiveYardsBeforeEndzone = new DistanceCalculator()
-      .subtractByTeam(
-        opposingEndzone,
-        MAP_POINTS.YARD * 5,
-        Room.game.offenseTeamId
-      )
+    const tenYardLineOnReceivingTeam = new DistanceCalculator()
+      .addByTeam(opposingEndzone, MAP_POINTS.YARD * 10, Room.game.defenseTeamId)
       .calculate();
 
     offensePlayers.forEach(({ id }) => {
       // Dont set the kicker's position, we already do that
       if (id === this._kicker.id) return;
-      client.setPlayerDiscProperties(id, { x: fiveYardsBeforeEndzone });
+      client.setPlayerDiscProperties(id, { x: tenYardLineOnReceivingTeam });
     });
     return this;
   }
