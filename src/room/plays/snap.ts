@@ -771,93 +771,89 @@ export default class Snap extends SnapEvents {
       Chat.send(
         `${ICONS.HandFingersSpread} Tackle ${yardAndHalfStr} | ${netYardsStr}`
       );
+    }
 
-      // Tackles on runs are dealt differently, since there can be half tackles
-      if (this.stateExists("ballRan")) {
-        this._handleRunTackleStats(playerContact);
-      } else {
-        this._updateStatsIfNotTwoPoint(playerContact.player.id, {
-          tackles: 1,
-        });
-      }
-
-      // Tackle on a QB run
-      if (this._ballCarrier!.id === this._quarterback.id) {
-        this._updateStatsIfNotTwoPoint(this._ballCarrier!.id, {
-          rushingAttempts: 1,
-          rushingYards: netYards,
-        });
-      }
-
-      // Tackle on a reception
-      if (this.stateExists("ballCaught")) {
-        const { mapSection } = this._getStatInfo(
-          this.getState("catchPosition")
-        );
-
-        this._updateStatsIfNotTwoPoint(this._ballCarrier!.id, {
-          receptions: { [mapSection]: 1 },
-          receivingYards: { [mapSection]: netYards },
-          receivingYardsAfterCatch: { [mapSection]: yardsAfterCatch },
-        });
-
-        if (this.stateExists("nearestDefenderToCatch")) {
-          const nearestDefenderToCatch = this.getState(
-            "nearestDefenderToCatch"
-          );
-
-          this._updateStatsIfNotTwoPoint(nearestDefenderToCatch.id, {
-            yardsAllowed: { [mapSection]: netYards },
-          });
-        }
-
-        this._updateStatsIfNotTwoPoint(this._quarterback!.id, {
-          passYards: { [mapSection]: netYards },
-          passYardsDistance: { [mapSection]: yardsPassed },
-        });
-      }
-
-      // Allows us to reset the down
-      if (this.stateExists("ballIntercepted")) {
-        return this.endPlay({
-          newLosX: endPosition.x,
-          netYards,
-          setNewDown: true,
-        });
-      }
-
-      const startingPosition = this.stateExists("catchPosition")
-        ? this.getState("catchPosition")
-        : this._startingPosition;
-
-      const { isSafety } = GameReferee.checkIfSafetyOrTouchbackPlayer(
-        startingPosition,
-        playerContact.ballCarrierPosition,
-        Room.game.offenseTeamId
-      );
-
-      if (isSafety && this.stateExists("ballIntercepted") === false)
-        return this._handleSafety();
-
-      if (this.stateExists("ballIntercepted")) {
-        const { isSafety, isTouchback } =
-          GameReferee.checkIfSafetyOrTouchbackPlayer(
-            this.getState("interceptionBallPositionFirstTouch"),
-            playerContact.ballCarrierPosition,
-            Room.game.offenseTeamId
-          );
-
-        if (isSafety) return this._handleSafety();
-        if (isTouchback) return this._handleTouchback();
-      }
-
-      // Set new down if interception
-      this.endPlay({
-        newLosX: endPosition.x,
-        netYards,
-        setNewDown: this.stateExists("ballIntercepted"),
+    // Tackles on runs are dealt differently, since there can be half tackles
+    if (this.stateExists("ballRan")) {
+      this._handleRunTackleStats(playerContact);
+    } else {
+      this._updateStatsIfNotTwoPoint(playerContact.player.id, {
+        tackles: 1,
       });
     }
+
+    // Tackle on a QB run
+    if (this._ballCarrier!.id === this._quarterback.id) {
+      this._updateStatsIfNotTwoPoint(this._ballCarrier!.id, {
+        rushingAttempts: 1,
+        rushingYards: netYards,
+      });
+    }
+
+    // Tackle on a reception
+    if (this.stateExists("ballCaught")) {
+      const { mapSection } = this._getStatInfo(this.getState("catchPosition"));
+
+      this._updateStatsIfNotTwoPoint(this._ballCarrier!.id, {
+        receptions: { [mapSection]: 1 },
+        receivingYards: { [mapSection]: netYards },
+        receivingYardsAfterCatch: { [mapSection]: yardsAfterCatch },
+      });
+
+      if (this.stateExists("nearestDefenderToCatch")) {
+        const nearestDefenderToCatch = this.getState("nearestDefenderToCatch");
+
+        this._updateStatsIfNotTwoPoint(nearestDefenderToCatch.id, {
+          yardsAllowed: { [mapSection]: netYards },
+        });
+      }
+
+      this._updateStatsIfNotTwoPoint(this._quarterback!.id, {
+        passYards: { [mapSection]: netYards },
+        passYardsDistance: { [mapSection]: yardsPassed },
+      });
+    }
+
+    // Allows us to reset the down
+    if (this.stateExists("ballIntercepted")) {
+      return this.endPlay({
+        newLosX: endPosition.x,
+        netYards,
+        setNewDown: true,
+      });
+    }
+
+    const startingPosition = this.stateExists("catchPosition")
+      ? this.getState("catchPosition")
+      : this._startingPosition;
+
+    const { isSafety } = GameReferee.checkIfSafetyOrTouchbackPlayer(
+      startingPosition,
+      playerContact.ballCarrierPosition,
+      Room.game.offenseTeamId
+    );
+
+    if (isSafety && this.stateExists("ballIntercepted") === false)
+      return this._handleSafety();
+
+    if (this.stateExists("ballIntercepted")) {
+      const { isSafety, isTouchback } =
+        GameReferee.checkIfSafetyOrTouchbackPlayer(
+          this.getState("interceptionBallPositionFirstTouch"),
+          playerContact.ballCarrierPosition,
+          Room.game.offenseTeamId
+        );
+
+      if (isSafety) return this._handleSafety();
+      if (isTouchback) return this._handleTouchback();
+    }
+
+    // Set new down if interception
+    this.endPlay({
+      newLosX: endPosition.x,
+      netYards,
+      setNewDown: this.stateExists("ballIntercepted"),
+    });
   }
 
   protected _handleInterceptionTackle(playerContactObj: PlayerContact) {
