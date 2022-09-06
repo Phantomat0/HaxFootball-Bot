@@ -74,11 +74,25 @@ const gameCommandsMap = new Map<string, GameCommand>([
         canRunDuringTwoPointAttempt: true,
       },
       run(player) {
-        Room.game.setState("curvePass");
-        // We probs should inform all the team members
-
         const offensePlayers = Room.game.players.getOffense();
 
+        const isAlreadyCurvePass = Room.game.stateExists("curvePass");
+
+        if (isAlreadyCurvePass) {
+          Room.game.deleteState("curvePass");
+
+          // Inform team members of the command
+          offensePlayers.forEach((teamPlayer) => {
+            Chat.send(`${ICONS.Frisbee} Curve pass disabled`, {
+              id: teamPlayer.id,
+              color: COLORS.Gray,
+            });
+          });
+          return;
+        }
+        Room.game.setState("curvePass");
+
+        // Inform team members of the command
         offensePlayers.forEach((teamPlayer) => {
           Chat.send(`${ICONS.Frisbee} Curve pass enabled`, {
             id: teamPlayer.id,
