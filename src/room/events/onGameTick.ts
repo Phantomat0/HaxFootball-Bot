@@ -129,10 +129,9 @@ const eventListeners: EventListener[] = [
       "fieldGoal",
       "puntCaught",
       "kickOffCaught",
-      "fieldGoalKicked",
       "onsideKickCaught",
     ],
-    stopWhen: ["interceptionPlayerEndPosition"],
+    stopWhen: ["interceptionPlayerEndPosition", "fieldGoalKicked"],
     run: () => {
       // Here we get the defensive team, and use as an argument to the function
       const defensePlayers = Room!.game!.players.getDefense();
