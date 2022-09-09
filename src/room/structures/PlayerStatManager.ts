@@ -1,4 +1,7 @@
-import PlayerStats, { PlayerStatQuery } from "../classes/PlayerStats";
+import PlayerStats, {
+  EMPTY_MAP_SECTION_STAT,
+  PlayerStatQuery,
+} from "../classes/PlayerStats";
 import { PlayerObject } from "../HBClient";
 import { SHOW_DEBUG_CHAT } from "../room.config";
 import Chat from "../roomStructures/Chat";
@@ -34,46 +37,47 @@ export default class PlayerStatManager {
   getMVP() {
     const POINT_PER_STAT_MAP: Partial<Record<keyof PlayerStats, number>> = {
       // Receiving
-      totalReceptions: 1,
-      totalReceivingYards: 0.1,
+      receptions: 3,
+      receivingYards: 0.5,
       rushingYards: 1,
       touchdownsReceived: 6,
       touchdownsRushed: 6,
 
       // Passing
-      totalPassAttempts: 0,
-      totalPassCompletions: 1,
-      totalPassYards: 0.04,
+      passAttempts: 0,
+      passCompletions: 2,
+      passYards: 0.3,
       touchdownsThrown: 4,
-      interceptionsThrown: -12,
-      qbSacks: 0,
+      interceptionsThrown: -6,
+      qbSacks: -2,
 
       // Defense
-      totalPassDeflections: 5,
+      passDeflections: 3,
       tackles: 3,
-      totalYardsAllowed: -1,
+      yardsAllowed: -1,
       sacks: 6,
       forcedFumbles: 0,
       interceptionsReceived: 12,
 
       // Misc
-      penalties: -10,
+      penalties: -5,
     };
 
     const playersStatsWithPoints = this.statsCollection
       .find()
       .map((statsObj) => {
-        const statsPoints = Object.entries(
-          Object.getOwnPropertyDescriptors(statsObj)
-        ).reduce(
+        const statsPoints = Object.entries(statsObj).reduce(
           (
             acc: Partial<Record<keyof typeof POINT_PER_STAT_MAP, number>>,
-            propKeyDescriptor
+            keyAndValueArr
           ) => {
-            const [statName, keyValue] = propKeyDescriptor;
+            const [statName, keyValue] = keyAndValueArr;
 
+            // If its an object, sum all its values
             const statValue =
-              (keyValue.value || (keyValue.get && keyValue.get())) ?? 0;
+              keyValue instanceof EMPTY_MAP_SECTION_STAT
+                ? keyValue.all
+                : keyValue;
 
             if (statName in POINT_PER_STAT_MAP === false) return acc;
 
@@ -86,17 +90,16 @@ export default class PlayerStatManager {
           {}
         );
 
-        return { playerAuth: statsObj.recordId, statsPoints };
+        return { recordId: statsObj.recordId, statsPoints };
       });
 
     // Ok now just add up the points
-
     const eachPlayersPoints = playersStatsWithPoints.map((playerStatObj) => {
       const pointTotal = Object.values(playerStatObj.statsPoints).reduce(
         (a, b) => a + b
       );
       return {
-        recordId: playerStatObj.playerAuth,
+        recordId: playerStatObj.recordId,
         pointTotal,
       };
     });
