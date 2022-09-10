@@ -1,6 +1,5 @@
 import Chat, { MessageOptions } from "../roomStructures/Chat";
 import gameCommandsMap from "../commands/GameCommands";
-import COLORS from "../utils/colors";
 import Player from "./Player";
 import { containsNWord } from "../utils/utils";
 
@@ -68,7 +67,7 @@ export default class ChatMessage {
    * Reply to the message
    */
   reply(msg: string, options: MessageOptions = {}) {
-    options.color = COLORS.Gray;
+    options.color = 0xcceb94;
     options.id = this.author?.id;
     Chat.send(msg, options);
   }

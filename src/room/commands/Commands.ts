@@ -709,7 +709,7 @@ const commandsMap = new Collection<CommandName, Command>([
       },
       async run(cmd: CommandMessage) {
         Room.game.down.hardReset();
-        Chat.sendAnnouncement(`Hard reset ran by ${cmd.author.shortName}`);
+        Chat.sendAnnouncement(`Reset ran by ${cmd.author.shortName}`);
       },
     },
   ],
