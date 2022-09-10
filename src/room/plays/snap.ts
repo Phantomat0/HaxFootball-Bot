@@ -814,27 +814,9 @@ export default class Snap extends SnapEvents {
       });
     }
 
-    // Allows us to reset the down
-    if (this.stateExists("ballIntercepted")) {
-      return this.endPlay({
-        newLosX: endPosition.x,
-        netYards,
-        setNewDown: true,
-      });
-    }
-
     const startingPosition = this.stateExists("catchPosition")
       ? this.getState("catchPosition")
       : this._startingPosition;
-
-    const { isSafety } = GameReferee.checkIfSafetyOrTouchbackPlayer(
-      startingPosition,
-      playerContact.ballCarrierPosition,
-      Room.game.offenseTeamId
-    );
-
-    if (isSafety && this.stateExists("ballIntercepted") === false)
-      return this._handleSafety();
 
     if (this.stateExists("ballIntercepted")) {
       const { isSafety, isTouchback } =
@@ -846,6 +828,14 @@ export default class Snap extends SnapEvents {
 
       if (isSafety) return this._handleSafety();
       if (isTouchback) return this._handleTouchback();
+    } else {
+      const { isSafety } = GameReferee.checkIfSafetyOrTouchbackPlayer(
+        startingPosition,
+        playerContact.ballCarrierPosition,
+        Room.game.offenseTeamId
+      );
+
+      if (isSafety) return this._handleSafety();
     }
 
     // Set new down if interception
