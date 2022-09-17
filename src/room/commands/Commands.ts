@@ -880,6 +880,32 @@ const commandsMap = new Collection<CommandName, Command>([
     },
   ],
   [
+    "clearbans",
+    {
+      name: "clearbans",
+      alias: [],
+      description: "Clears bans",
+      usage: [],
+      showCommand: true,
+      permissions: {
+        level: 1,
+        muted: false,
+        game: false,
+        notDuringPlay: false,
+      },
+      params: {
+        skipMaxCheck: false,
+        min: 0,
+        max: 0,
+        types: [],
+      },
+      async run(cmd: CommandMessage) {
+        client.clearBans();
+        cmd.replySuccess("Bans have been cleared!");
+      },
+    },
+  ],
+  [
     "testingid",
     {
       name: "testingid",
