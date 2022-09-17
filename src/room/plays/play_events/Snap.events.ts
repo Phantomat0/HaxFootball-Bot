@@ -75,6 +75,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     playerId: PlayerObject["id"],
     statsQuery: Partial<PlayerStatQuery>
   ): void;
+  protected abstract _handleFailedTwoPointConversion(): void;
 
   /**
    * Determines whether the ball contact was offense or defense and handles
@@ -257,6 +258,9 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     Chat.send(`${ICONS.DoNotEnter} Incomplete - Pass Deflected`);
 
     this.setState("ballDeflected");
+
+    if (this.stateExists("twoPointAttempt"))
+      return this._handleFailedTwoPointConversion();
 
     this._handleInterceptionAttempt(ballContactObj);
   }

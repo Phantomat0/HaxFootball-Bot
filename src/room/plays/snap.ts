@@ -572,9 +572,6 @@ export default class Snap extends SnapEvents {
   }
 
   protected _handleInterceptionAttempt(ballContactObj: BallContact) {
-    // No ints on two point conversions
-    if (this.stateExists("twoPointAttempt")) return;
-
     // Before we can handle it, lets make sure they are within bounds
     const isOutOfBoundsOnAttempt = MapReferee.checkIfPlayerOutOfBounds(
       ballContactObj.playerPosition
@@ -874,7 +871,7 @@ export default class Snap extends SnapEvents {
   // /**
   //  * Handles unsuccessful two point conversion
   //  */
-  private _handleFailedTwoPointConversion() {
+  protected _handleFailedTwoPointConversion() {
     // Remove one point
     this.scorePlay(-1, Room.game.offenseTeamId, Room.game.defenseTeamId);
   }
