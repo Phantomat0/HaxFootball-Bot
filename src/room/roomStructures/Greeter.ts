@@ -8,9 +8,5 @@ export default class Greeter {
       id: player.id,
       color: COLORS.LightBlue,
     });
-    Chat.send(`Whats new: Bug Fixes`, {
-      id: player.id,
-      color: COLORS.LightGreen,
-    });
   }
 }
