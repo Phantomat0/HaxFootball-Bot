@@ -10,11 +10,11 @@ interface Penalty {
   netYards: number;
   addDown: boolean;
   hasOwnHandler?: boolean;
+  delay?: boolean;
 }
 
 export interface AdditionalPenaltyData {
   time?: number;
-  delay?: boolean;
 }
 
 export type PenaltyName =
@@ -87,12 +87,14 @@ export default class PenaltyDataGetter {
         message: `Crowding ${playerName}, 15 yard penalty, repeat the down`,
         netYards: 15,
         addDown: false,
+        delay: true,
       },
       crowdAbuse: {
         fullName: "Crowd Abuse",
         message: `Crowd Abuse ${playerName}, 20 yard penalty, repeat the down`,
         netYards: 20,
         addDown: false,
+        delay: true,
       },
       illegalPass: {
         fullName: "Illegal Pass In Front Of Line Of Scrimmage",
@@ -230,6 +232,7 @@ export default class PenaltyDataGetter {
       hasOwnHandler = false,
       message,
       fullName,
+      delay,
     } = this._getPenalty(penaltyName, player, penaltyData);
 
     const isRedZonePenaltyOnDefense = isInDefenseRedzone && netYards > 0;
@@ -269,6 +272,7 @@ export default class PenaltyDataGetter {
       hasOwnHandler,
       penaltyMessage: message,
       fullName,
+      delay,
     };
   }
 }

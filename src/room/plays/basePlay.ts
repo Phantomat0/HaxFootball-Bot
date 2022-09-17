@@ -1,6 +1,6 @@
 import BallContact from "../classes/BallContact";
 import { PlayableTeamId, PlayerObjFlat, Position } from "../HBClient";
-import { SHOW_DEBUG_CHAT } from "../room.config";
+import { DEBUG_MODE } from "../room.config";
 import Chat from "../roomStructures/Chat";
 import Ball from "../roomStructures/Ball";
 import MapReferee from "../structures/MapReferee";
@@ -405,6 +405,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
       isRedZonePenaltyOnDefense,
       newEndLosX,
       penaltyMessage,
+      delay,
     } = new PenaltyDataGetter().getData(
       penaltyName,
       player,
@@ -425,7 +426,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
 
     if (hasOwnHandler) return;
 
-    if (penaltyData?.delay) await sleep(1500);
+    if (delay) await sleep(1750);
 
     if (isRedZonePenaltyOnDefense) {
       Room.game.down.incrementRedZonePenalties();
@@ -479,7 +480,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
 
   protected _setLivePlay(bool: boolean) {
     this._isLivePlay = bool;
-    if (SHOW_DEBUG_CHAT) {
+    if (DEBUG_MODE) {
       Chat.send(`SET LIVE PLAY TO: ${bool}`, { color: 0xffef5c });
     }
   }
