@@ -106,10 +106,23 @@ export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
 
     // If the FG was kicked
     if (this.stateExists("fieldGoalKicked")) {
-      // If it was kicked before the blitz, its a penalty, if it was after, its a block
-      if (this.stateExists("fieldGoalLineBlitzed"))
-        return this.handleUnsuccessfulFg("Field goal blocked!");
-      return this.handleSuccessfulFg("Auto fg, defense kicked it");
+      // We have to check where the player was when he touche the ball
+      // If he was over the los, then its a blocked fg, otherwise defense kicked it
+
+      const isBehindLOS = MapReferee.checkIfBehind(
+        ballContactObj.playerPosition.x,
+        Room.game.down.getLOS().x,
+        Room.game.defenseTeamId
+      );
+
+      if (isBehindLOS)
+        return this.handleSuccessfulFg(
+          "Automatic Field Goal, defense touched ahead of LOS"
+        );
+
+      return this.handleUnsuccessfulFg(
+        "Field Goal Blocked by Defense behind LOS"
+      );
     }
 
     // They blitzed the ball before the kick
