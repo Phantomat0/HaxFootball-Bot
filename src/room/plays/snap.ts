@@ -183,8 +183,6 @@ export default class Snap extends SnapEvents {
         this.crowdChecker.eraseCrowdBoxLines.bind(this.crowdChecker),
         2000
       );
-      // Add the delay
-      penaltyData.delay = true;
     }
 
     super._handlePenalty(penaltyName, player, penaltyData);

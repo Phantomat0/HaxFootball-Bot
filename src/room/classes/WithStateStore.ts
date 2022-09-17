@@ -1,4 +1,4 @@
-import { SHOW_DEBUG_CHAT } from "../room.config";
+import { DEBUG_MODE } from "../room.config";
 import Chat from "../roomStructures/Chat";
 
 interface StateStoreType {
@@ -19,7 +19,7 @@ export default class WithStateStore<
    */
   setState<K extends keyof T>(state: K, value: T[K] = true as T[K]) {
     this._stateStore[state] = value;
-    if (SHOW_DEBUG_CHAT) {
+    if (DEBUG_MODE) {
       Chat.send(`StateChange: ${String(state)}`, { color: 0xffef5c });
     }
   }
@@ -40,7 +40,7 @@ export default class WithStateStore<
   }
 
   deleteState<K extends keyof T>(state: K) {
-    if (SHOW_DEBUG_CHAT) {
+    if (DEBUG_MODE) {
       Chat.send(`State delete: ${String(state)}`, { color: 0xffef5c });
     }
     delete this._stateStore[state];

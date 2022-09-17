@@ -3,7 +3,7 @@ import PlayerStats, {
   PlayerStatQuery,
 } from "../classes/PlayerStats";
 import { PlayerObject } from "../HBClient";
-import { SHOW_DEBUG_CHAT } from "../room.config";
+import { DEBUG_MODE } from "../room.config";
 import Chat from "../roomStructures/Chat";
 import { PlayerRecord } from "../roomStructures/PlayerRecorder";
 import Room from "../roomStructures/Room";
@@ -28,7 +28,7 @@ export default class PlayerStatManager {
     if (!playerRecord) throw Error("Error finding player record");
     this.statsCollection.get(playerRecord.recordId)?.updateStats(statQuery);
 
-    if (SHOW_DEBUG_CHAT)
+    if (DEBUG_MODE)
       Chat.send(`STAT UPDATE: ${JSON.stringify(statQuery)}`, {
         color: 0xffef5c,
       });

@@ -1,6 +1,6 @@
 import client from "..";
 import { FullPlayerObject, PlayerObject, Position, TeamId } from "../HBClient";
-import { SHOW_DEBUG_CHAT } from "../room.config";
+import { DEBUG_MODE } from "../room.config";
 import Room from "../roomStructures/Room";
 import { getRandomChars, truncateName } from "../utils/utils";
 
@@ -18,9 +18,9 @@ export default class Player {
   constructor({ name, id, auth, conn }: FullPlayerObject) {
     this.name = name.trim();
     this.id = id;
-    this.auth = SHOW_DEBUG_CHAT ? getRandomChars(6) : auth;
+    this.auth = DEBUG_MODE ? getRandomChars(6) : auth;
     this._adminLevel = 0;
-    this.ip = SHOW_DEBUG_CHAT ? getRandomChars(6) : conn;
+    this.ip = DEBUG_MODE ? getRandomChars(6) : conn;
   }
 
   setCanPlay(bool: boolean) {

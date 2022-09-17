@@ -1,6 +1,6 @@
 import client from "..";
 import HBClient, { FullPlayerObject } from "../HBClient";
-import { SHOW_DEBUG_CHAT } from "../room.config";
+import { DEBUG_MODE } from "../room.config";
 import Room from "../roomStructures/Room";
 import Greeter from "../roomStructures/Greeter";
 
@@ -16,7 +16,7 @@ const alreadyHasAuthOrConnInRoom = (
 const onJoin: HBClient["onPlayerJoin"] = (player) => {
   if (
     alreadyHasAuthOrConnInRoom(player.auth, player.conn) &&
-    SHOW_DEBUG_CHAT === false
+    DEBUG_MODE === false
   )
     return client.kickPlayer(player.id, "Conn already exists in room", false);
 
@@ -28,7 +28,7 @@ const onJoin: HBClient["onPlayerJoin"] = (player) => {
   Greeter.greetPlayer(player);
   if (!Room.isBotOn) return;
 
-  if (SHOW_DEBUG_CHAT) {
+  if (DEBUG_MODE) {
     client.setPlayerAdmin(player.id, true);
     if (client.getPlayerList().length === 1) {
       client.startGame();
