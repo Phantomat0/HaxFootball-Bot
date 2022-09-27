@@ -46,7 +46,7 @@ export interface MessageOptions {
 
 class Chat {
   PREFIX = {
-    TEAMCHAT: "t",
+    TEAMCHAT: ["t", "#", ";"],
     COMMAND: "!",
   };
 

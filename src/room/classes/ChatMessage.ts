@@ -58,9 +58,11 @@ export default class ChatMessage {
    */
   startsWithTeamChatPrefix(): boolean {
     const [firstWord = null] = this._splitContentByWhiteSpaceAndToLower();
+
+    if (!firstWord) return false;
     // First word has to equal, that way if someone starts a sentence with
     // t, it doesnt flag as team chat
-    return firstWord === Chat.PREFIX.TEAMCHAT;
+    return Chat.PREFIX.TEAMCHAT.includes(firstWord);
   }
 
   /**
