@@ -9,11 +9,13 @@ export const getPlayerDiscProperties = (id: number) => {
     yspeed = 0,
     x = 0,
     y = 0,
+    radius = 0,
   } = client.getPlayerDiscProperties(id) ?? {};
   if (xspeed === null) return null;
   return {
     position: { x, y },
     speed: { x: xspeed, y: yspeed },
+    radius,
   };
 };
 
