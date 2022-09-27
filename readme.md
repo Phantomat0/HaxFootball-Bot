@@ -60,11 +60,11 @@ const roomConfig: HBClientConfig = {
 
 # 🔧 Debugging
 
-Set **SHOW_DEBUG_CHAT** to true in **room.config.ts** to show state and stat changes in the haxball chat.
+Set **DEBUG_MODE** to true in **room.config.ts** to show state and stat changes in the haxball chat.
 
 ```js
 // For testing purposes
-export const SHOW_DEBUG_CHAT: boolean = true;
+export const DEBUG_MODE: boolean = true;
 ```
 
 # 🛠️Features
