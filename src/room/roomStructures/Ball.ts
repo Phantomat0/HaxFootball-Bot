@@ -48,6 +48,13 @@ class Ball {
     return this;
   }
 
+  makeImmovableButKeepSpeed() {
+    client.setDiscProperties(DISC_IDS.BALL, {
+      invMass: this.IMMOVABLE_INV_MASS,
+    });
+    return this;
+  }
+
   score(teamEndzoneToScore: PlayableTeamId) {
     const x =
       teamEndzoneToScore === TEAMS.BLUE

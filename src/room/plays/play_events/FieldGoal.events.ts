@@ -39,7 +39,7 @@ export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
   }
 
   onBallOutOfBounds(ballPosition: Position) {
-    // This actually will never run since we stop play when the ball leaves the hashes
+    this.handleUnsuccessfulFg("Missed");
   }
 
   onBallCarrierOutOfBounds(ballCarrierPosition: Position) {
@@ -105,25 +105,7 @@ export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
     // If the field goal was kicked, and it was kicked before the blitz and they touched it
 
     // If the FG was kicked
-    if (this.stateExists("fieldGoalKicked")) {
-      // We have to check where the player was when he touche the ball
-      // If he was over the los, then its a blocked fg, otherwise defense kicked it
-
-      const isBehindLOS = MapReferee.checkIfBehind(
-        ballContactObj.playerPosition.x,
-        Room.game.down.getLOS().x,
-        Room.game.defenseTeamId
-      );
-
-      if (isBehindLOS)
-        return this.handleSuccessfulFg(
-          "Automatic Field Goal, defense touched ahead of LOS"
-        );
-
-      return this.handleUnsuccessfulFg(
-        "Field Goal Blocked by Defense behind LOS"
-      );
-    }
+    if (this.stateExists("fieldGoalKicked")) return;
 
     // They blitzed the ball before the kick
     this.setState("fieldGoalBlitzed");
@@ -134,10 +116,5 @@ export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
 
     if (player.id === this._kicker.id)
       return this._handleBallContactKicker(ballContactObj);
-
-    // If offense touches the ball at anytime, its an incomplete field goal
-
-    Chat.send("Illegal fg, touched by offense");
-    return this.endPlay({});
   }
 }

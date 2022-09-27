@@ -35,7 +35,7 @@ const eventListeners: EventListener[] = [
     },
   },
   {
-    // Field Goal Out Of Hashes, Field Goal Successful
+    // Field Goal Rulings, Missed, Out Of Bounds,
     name: "Ball Field Goal",
     runWhen: ["fieldGoal"],
     stopWhen: ["fieldGoalBlitzed", "ballRan"],
@@ -46,20 +46,16 @@ const eventListeners: EventListener[] = [
 
       const ballPosition = Ball.getPosition();
 
+      // Check if ball is out of bounds AFTER checking if it was successful or not
+      const ballOutOfBounds = MapReferee.checkIfBallOutOfBounds(ballPosition); // This returns either null or the ballPosition,
+
       const withinHash = MapReferee.checkIfWithinHash(
         ballPosition,
         MAP_POINTS.BALL_RADIUS
       );
-      if (!withinHash) return Room.getPlay<FieldGoal>().onBallOutOfHashes();
 
-      const successfulFieldGoal = GameReferee.checkIfFieldGoalSuccessful(
-        ballPosition,
-        Room.game.offenseTeamId
-      );
-      if (successfulFieldGoal)
-        return Room.getPlay<FieldGoal>().handleSuccessfulFg(
-          "Field goal is good!"
-        );
+      if (ballOutOfBounds && withinHash === false)
+        return Room?.game?.play?.onBallOutOfBounds(ballOutOfBounds);
 
       const ballSpeed = Ball.getSpeed();
 

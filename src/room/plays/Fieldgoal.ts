@@ -47,7 +47,10 @@ export default class FieldGoal extends FieldGoalEvents {
   prepare() {
     Room.game.updateStaticPlayers();
     this._setStartingPosition(Room.game.down.getLOS());
-    this.setBallPositionOnSet(Ball.getPosition());
+
+    const ballStartingPos = this._setBallInPosition();
+    this.setBallPositionOnSet(ballStartingPos);
+
     Room.game.down.moveFieldMarkers();
     this._setPlayersInPosition();
   }
@@ -112,6 +115,16 @@ export default class FieldGoal extends FieldGoalEvents {
     return this._kicker;
   }
 
+  protected _setBallInPosition() {
+    const positionToSet = {
+      y: MAP_POINTS.TOP_HASH,
+      x: Room.game.down.getSnapPosition().x,
+    };
+    Ball.setPosition(positionToSet);
+
+    return positionToSet;
+  }
+
   protected _setKickerInPosition() {
     const sevenYardsBehindBall = new DistanceCalculator()
       .subtractByTeam(
@@ -121,9 +134,11 @@ export default class FieldGoal extends FieldGoalEvents {
       )
       .calculate();
 
+    const sixYardsAboveTopHash = MAP_POINTS.TOP_HASH - MAP_POINTS.YARD * 6;
+
     client.setPlayerDiscProperties(this._kicker.id, {
       x: sevenYardsBehindBall,
-      y: MAP_POINTS.TOP_HASH,
+      y: sixYardsAboveTopHash,
     });
 
     return this;
@@ -179,9 +194,6 @@ export default class FieldGoal extends FieldGoalEvents {
   }
 
   protected _handleBallContactKicker(ballContactObj: BallContact) {
-    if (this.stateExists("fieldGoalKicked"))
-      return this.handleUnsuccessfulFg("Illegal fg, touched by kicker");
-
     if (ballContactObj.type === "touch") return;
 
     // Now we know its a kick
@@ -190,6 +202,8 @@ export default class FieldGoal extends FieldGoalEvents {
     if (this.stateExists("ballRan")) return this.setState("fieldGoalBlitzed");
 
     this.setState("fieldGoalKicked");
+
+    Ball.makeImmovableButKeepSpeed();
   }
 
   protected _handleRun(playerContactObj: PlayerContact) {
