@@ -9,7 +9,7 @@ import MapReferee from "../structures/MapReferee";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import { quickPause } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
-import { MAP_POINTS } from "../utils/map";
+import { DISC_IDS, MAP_POINTS } from "../utils/map";
 import { EndPlayData } from "./BasePlay";
 import OnsideKickEvents from "./play_events/OnsideKick.events";
 
@@ -37,7 +37,8 @@ export default class OnsideKick extends OnsideKickEvents {
     Ball.setPosition(kickOffPosition);
     this.setBallPositionOnSet(kickOffPosition);
     Room.game.down.setLOS(kickOffPosition.x);
-    Room.game.down.moveFieldMarkers({ hideLineToGain: true });
+    Room.game.down.moveFieldMarkers();
+    this._moveLineToGetToFortyFiveYardLine();
 
     this._setPlayersInPosition();
 
@@ -150,12 +151,11 @@ export default class OnsideKick extends OnsideKickEvents {
     }
 
     // The kicker touches after he has kicked off
-
     const ballPosition = Ball.getPosition();
-    // Check that the position is after the 0, we use defensive position since offense switches on the kick
 
+    // Offense is kicking team BEFORE the kick
     const offenseFortyFiveYardLine = new DistanceCalculator()
-      .subtractByTeam(0, MAP_POINTS.YARD * 5, Room.game.offenseTeamId)
+      .addByTeam(0, MAP_POINTS.YARD * 5, Room.game.defenseTeamId)
       .calculate();
 
     const isAfterOffenseFortyFiveYardLine = MapReferee.checkIfInFront(
@@ -241,5 +241,23 @@ export default class OnsideKick extends OnsideKickEvents {
       client.setPlayerDiscProperties(id, { x: fiveYardsInsideEndzone });
     });
     return this;
+  }
+
+  private _moveLineToGetToFortyFiveYardLine() {
+    // Offense is kicking team on kickoffs
+    const receivingTeamFortyFiveYardKLine = new DistanceCalculator()
+      .addByTeam(0, MAP_POINTS.YARD * 5, Room.game.offenseTeamId)
+      .calculate();
+
+    // Move the line to gain
+
+    client.setDiscProperties(DISC_IDS.LTG_TOP, {
+      x: receivingTeamFortyFiveYardKLine,
+      y: MAP_POINTS.TOP_SIDELINE,
+    });
+    client.setDiscProperties(DISC_IDS.LTG_BOT, {
+      x: receivingTeamFortyFiveYardKLine,
+      y: MAP_POINTS.BOT_SIDELINE,
+    });
   }
 }
