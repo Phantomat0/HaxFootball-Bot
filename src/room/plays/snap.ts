@@ -870,6 +870,7 @@ export default class Snap extends SnapEvents {
   //  * Handles unsuccessful two point conversion
   //  */
   protected _handleFailedTwoPointConversion() {
+    Chat.send(`${ICONS.X} Failed Two Point Conversion`);
     // Remove one point
     this.scorePlay(-1, Room.game.offenseTeamId, Room.game.defenseTeamId);
   }

@@ -81,8 +81,8 @@ export default class FieldGoal extends FieldGoalEvents {
     super.handleTouchdown(endPosition);
   }
 
-  handleSuccessfulFg(msg: string) {
-    Chat.send(msg);
+  handleSuccessfulFg() {
+    Chat.send(`${ICONS.GreenCheck} Field Goal is good!`);
 
     Room.game.stats.updatePlayerStat(this._kicker.id, {
       fgAttempts: 1,
@@ -94,8 +94,8 @@ export default class FieldGoal extends FieldGoalEvents {
     this.scorePlay(3, Room.game.offenseTeamId, Room.game.defenseTeamId);
   }
 
-  handleUnsuccessfulFg(msg: string) {
-    Chat.send(msg);
+  handleUnsuccessfulFg() {
+    Chat.send(`${ICONS.X} Field Goal is no good!`);
 
     Room.game.stats.updatePlayerStat(this._kicker.id, {
       fgAttempts: 1,
@@ -328,9 +328,5 @@ export default class FieldGoal extends FieldGoalEvents {
 
   handleIllegalCrossOffense() {
     return this._handlePenalty("illegalLosCross", this._kicker);
-  }
-
-  onBallOutOfHashes() {
-    this.handleUnsuccessfulFg("Missed");
   }
 }

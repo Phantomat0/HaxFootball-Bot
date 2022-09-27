@@ -46,6 +46,13 @@ const eventListeners: EventListener[] = [
 
       const ballPosition = Ball.getPosition();
 
+      const successfulFieldGoal = GameReferee.checkIfFieldGoalSuccessful(
+        ballPosition,
+        Room.game.offenseTeamId
+      );
+      if (successfulFieldGoal)
+        return Room.getPlay<FieldGoal>().handleSuccessfulFg();
+
       // Check if ball is out of bounds AFTER checking if it was successful or not
       const ballOutOfBounds = MapReferee.checkIfBallOutOfBounds(ballPosition); // This returns either null or the ballPosition,
 
@@ -63,7 +70,7 @@ const eventListeners: EventListener[] = [
         const ballMoving = MapReferee.checkIfBallIsMoving(ballSpeed);
 
         if (!ballMoving)
-          return Room.getPlay<FieldGoal>().handleUnsuccessfulFg("Miss!");
+          return Room.getPlay<FieldGoal>().handleUnsuccessfulFg();
       }
     },
   },
