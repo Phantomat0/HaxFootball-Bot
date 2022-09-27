@@ -82,7 +82,7 @@ export default class FieldGoal extends FieldGoalEvents {
   }
 
   handleSuccessfulFg() {
-    Chat.send(`${ICONS.GreenCheck} Field Goal is good!`);
+    Chat.send(`${ICONS.GreenCheck} Field Goal is good!`, { sound: 2 });
 
     Room.game.stats.updatePlayerStat(this._kicker.id, {
       fgAttempts: 1,

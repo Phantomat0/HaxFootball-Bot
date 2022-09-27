@@ -27,8 +27,8 @@ export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
   protected abstract _handleBallContactKicker(
     ballContactObj: BallContact
   ): void;
-  abstract handleUnsuccessfulFg(msg: string): void;
-  abstract handleSuccessfulFg(msg: string): void;
+  abstract handleUnsuccessfulFg(): void;
+  abstract handleSuccessfulFg(): void;
 
   onBallContact(ballContactObj: BallContact) {
     // We have to do this check AGAIN because playerOnkick is not an event listener, but a native listener
@@ -39,7 +39,7 @@ export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
   }
 
   onBallOutOfBounds(ballPosition: Position) {
-    this.handleUnsuccessfulFg("Missed");
+    this.handleUnsuccessfulFg();
   }
 
   onBallCarrierOutOfBounds(ballCarrierPosition: Position) {
