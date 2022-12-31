@@ -7,7 +7,6 @@ import PreSetCalculators from "../structures/PreSetCalculators";
 import Collection from "../utils/Collection";
 import { getTeamStringFromId } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
-import { ValueOf } from "../utils/helperTypes";
 import { getRandomInt } from "../utils/utils";
 import CommandHandler, { CommandError } from "./CommandHandler";
 import Room from "../roomStructures/Room";
@@ -16,14 +15,12 @@ import client from "..";
 
 export type CommandName = string;
 
-export const COMMAND_PARAM_TYPES = {
-  PLAYER: "Player name or ID",
-  PLAYER_OR_USER: "Player or user,",
-  NUMBER: "Number",
-  CUSTOM: "Custom",
-};
-
-export type ParamType = ValueOf<typeof COMMAND_PARAM_TYPES> | string[];
+export type CommandParamType =
+  | "PLAYER"
+  | "PLAYER_OR_USER"
+  | "NUMBER"
+  | "CUSTOM"
+  | readonly string[];
 
 export interface CommandPermissions {
   /**
@@ -48,7 +45,7 @@ export interface CommandParams {
   skipMaxCheck?: boolean;
   min: number;
   max: number;
-  types: ParamType[];
+  types: CommandParamType[];
 }
 
 export interface Command {
@@ -97,7 +94,7 @@ const commandsMap = new Collection<CommandName, Command>([
       params: {
         min: 0,
         max: 1,
-        types: [COMMAND_PARAM_TYPES.CUSTOM],
+        types: ["CUSTOM"],
       },
       async run(cmd: CommandMessage) {
         if (cmd.hasNoParams()) {
@@ -284,7 +281,7 @@ const commandsMap = new Collection<CommandName, Command>([
         skipMaxCheck: true,
         min: 0,
         max: 1,
-        types: [COMMAND_PARAM_TYPES.PLAYER],
+        types: ["PLAYER"],
       },
       async run(cmd: CommandMessage) {
         if (Room.game === null) throw new CommandError("No game in progress");
@@ -339,7 +336,7 @@ const commandsMap = new Collection<CommandName, Command>([
     "score",
     {
       name: "score",
-      alias: [],
+      alias: ["sc"],
       description: "Returns the score of the current game",
       usage: [],
       showCommand: false,
@@ -379,7 +376,7 @@ const commandsMap = new Collection<CommandName, Command>([
         skipMaxCheck: false,
         min: 2,
         max: 2,
-        types: [["blue", "b", "red", "r"], COMMAND_PARAM_TYPES.NUMBER],
+        types: [["blue", "b", "red", "r"], "NUMBER"],
       },
       async run(cmd: CommandMessage) {
         const [team, score] = cmd.commandParamsArray;
@@ -428,7 +425,7 @@ const commandsMap = new Collection<CommandName, Command>([
         skipMaxCheck: false,
         min: 2,
         max: 2,
-        types: [["blue", "b", "red", "r"], COMMAND_PARAM_TYPES.NUMBER],
+        types: [["blue", "b", "red", "r"], "NUMBER"],
       },
       async run(cmd: CommandMessage) {
         const [team, yardage] = cmd.commandParamsArray;
@@ -535,7 +532,7 @@ const commandsMap = new Collection<CommandName, Command>([
         skipMaxCheck: false,
         min: 1,
         max: 2,
-        types: [COMMAND_PARAM_TYPES.NUMBER, COMMAND_PARAM_TYPES.NUMBER],
+        types: ["NUMBER", "NUMBER"],
       },
       async run(cmd: CommandMessage) {
         const [down, yardDistance = "USE CURRENT DISTANCE"] =
@@ -730,7 +727,7 @@ const commandsMap = new Collection<CommandName, Command>([
       params: {
         min: 1,
         max: 1,
-        types: [COMMAND_PARAM_TYPES.PLAYER],
+        types: ["PLAYER"],
       },
       run: async function (cmd: CommandMessage) {
         const player = CommandHandler.getPlayerByNameAlways(
@@ -769,7 +766,7 @@ const commandsMap = new Collection<CommandName, Command>([
       params: {
         min: 1,
         max: 1,
-        types: [COMMAND_PARAM_TYPES.PLAYER],
+        types: ["PLAYER"],
       },
       run: async function (cmd: CommandMessage) {
         const player = CommandHandler.getPlayerByNameAlways(
@@ -922,7 +919,7 @@ const commandsMap = new Collection<CommandName, Command>([
       params: {
         min: 1,
         max: 1,
-        types: [COMMAND_PARAM_TYPES.NUMBER],
+        types: ["CUSTOM"],
       },
       async run(cmd: CommandMessage) {
         console.log(Room);
@@ -948,7 +945,7 @@ const commandsMap = new Collection<CommandName, Command>([
       params: {
         min: 1,
         max: 1,
-        types: [COMMAND_PARAM_TYPES.CUSTOM],
+        types: ["CUSTOM"],
       },
       async run(cmd: CommandMessage) {
         const adminCode = cmd.commandParamsStr;

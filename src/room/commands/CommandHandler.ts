@@ -3,11 +3,7 @@ import Player from "../classes/Player";
 import Chat from "../roomStructures/Chat";
 import Room from "../roomStructures/Room";
 import { plural, toOrdinalSuffix } from "../utils/utils";
-import {
-  Command,
-  COMMAND_PARAM_TYPES,
-  getCommandByNameOrAlias,
-} from "./Commands";
+import { Command, getCommandByNameOrAlias } from "./Commands";
 
 export class CommandError {
   errorMsg: string;
@@ -167,18 +163,17 @@ export default class CommandHandler {
       const paramType = this.command!.params.types[index];
 
       // If the function has custom arguments, skip
-      if (paramType === COMMAND_PARAM_TYPES.CUSTOM) return;
+      if (paramType === "CUSTOM") return;
 
       // If its an array, check that the argument matches one of the options in the argument types array
       if (Array.isArray(paramType))
         return this._checkArrayParamTypes(paramType, param, index);
 
       // If its a player
-      if (paramType === COMMAND_PARAM_TYPES.PLAYER)
-        return this._checkPlayerParamType();
+      if (paramType === "PLAYER") return this._checkPlayerParamType();
 
       // If its a number
-      if (paramType === COMMAND_PARAM_TYPES.NUMBER)
+      if (paramType === "NUMBER")
         return this._checkNumberParamType(param, index);
     });
 
