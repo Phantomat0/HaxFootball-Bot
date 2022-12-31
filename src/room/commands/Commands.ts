@@ -15,6 +15,13 @@ import client from "..";
 
 export type CommandName = string;
 
+const TEAM_NAME_PARAM = ["blue", "b", "red", "r"] as const;
+
+const getTeamIdFromTeamNameParam = (param: typeof TEAM_NAME_PARAM[number]) => {
+  if (param === "b" || param === "blue") return TEAMS.BLUE as PlayableTeamId;
+  return TEAMS.RED as PlayableTeamId;
+};
+
 export type CommandParamType =
   | "PLAYER"
   | "PLAYER_OR_USER"
@@ -376,7 +383,7 @@ const commandsMap = new Collection<CommandName, Command>([
         skipMaxCheck: false,
         min: 2,
         max: 2,
-        types: [["blue", "b", "red", "r"], "NUMBER"],
+        types: [TEAM_NAME_PARAM, "NUMBER"],
       },
       async run(cmd: CommandMessage) {
         const [team, score] = cmd.commandParamsArray;
@@ -391,16 +398,11 @@ const commandsMap = new Collection<CommandName, Command>([
 
         // Figure out which team to update
 
-        const isRedTeam = team === "red" || team === "r";
-        const isBlueTeam = team === "blue" || team === "b";
+        const teamToUpdate = getTeamIdFromTeamNameParam(
+          team as typeof TEAM_NAME_PARAM[number]
+        );
 
-        if (isRedTeam) {
-          Room.game.setScore(TEAMS.RED as PlayableTeamId, scoreParsed);
-        }
-
-        if (isBlueTeam) {
-          Room.game.setScore(TEAMS.BLUE as PlayableTeamId, scoreParsed);
-        }
+        Room.game.setScore(teamToUpdate, scoreParsed);
 
         cmd.announce(`Score updated by ${cmd.author.shortName}`);
         Room.game.sendScoreBoard();
@@ -425,7 +427,7 @@ const commandsMap = new Collection<CommandName, Command>([
         skipMaxCheck: false,
         min: 2,
         max: 2,
-        types: [["blue", "b", "red", "r"], "NUMBER"],
+        types: [TEAM_NAME_PARAM, "NUMBER"],
       },
       async run(cmd: CommandMessage) {
         const [team, yardage] = cmd.commandParamsArray;
@@ -436,12 +438,13 @@ const commandsMap = new Collection<CommandName, Command>([
           throw new CommandError(`Yardage must be a number between 1 and 50`);
 
         // Figure out which team to update
-        const teamHalf =
-          team === "red" || team === "r" ? TEAMS.RED : TEAMS.BLUE;
+        const teamHalf = getTeamIdFromTeamNameParam(
+          team as typeof TEAM_NAME_PARAM[number]
+        );
 
         const yardAsDistance = PreSetCalculators.getPositionOfTeamYard(
           yardageParsed,
-          teamHalf as PlayableTeamId
+          teamHalf
         );
 
         Room.game.down.setLOS(yardAsDistance);
