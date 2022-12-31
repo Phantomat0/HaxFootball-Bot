@@ -55,7 +55,7 @@ export default class FieldGoal extends FieldGoalEvents {
     this.setBallPositionOnSet(ballStartingPos);
 
     Room.game.down.moveFieldMarkers();
-    this._setPlayersInPosition();
+    this._setPlayersInPosition(topOrBottomHashCoordinate);
   }
 
   run() {
@@ -132,7 +132,7 @@ export default class FieldGoal extends FieldGoalEvents {
     return positionToSet;
   }
 
-  protected _setKickerInPosition() {
+  protected _setKickerInPosition(topOrBottomHashCoordinate: number) {
     const sevenYardsBehindBall = new DistanceCalculator()
       .subtractByTeam(
         Room.game.down.getSnapPosition().x,
@@ -141,11 +141,14 @@ export default class FieldGoal extends FieldGoalEvents {
       )
       .calculate();
 
-    const sixYardsAboveTopHash = MAP_POINTS.TOP_HASH - MAP_POINTS.YARD * 6;
+    const sixYardsAwayFromHash =
+      topOrBottomHashCoordinate < 0
+        ? topOrBottomHashCoordinate - MAP_POINTS.YARD * 6
+        : topOrBottomHashCoordinate + MAP_POINTS.YARD * 6;
 
     client.setPlayerDiscProperties(this._kicker.id, {
       x: sevenYardsBehindBall,
-      y: sixYardsAboveTopHash,
+      y: sixYardsAwayFromHash,
     });
 
     return this;
@@ -196,8 +199,10 @@ export default class FieldGoal extends FieldGoalEvents {
     return this;
   }
 
-  protected _setPlayersInPosition() {
-    this._setKickerInPosition()._setDefenseInPosition()._setOffenseInPosition();
+  protected _setPlayersInPosition(topOrBottomHashCoordinate: number) {
+    this._setKickerInPosition(topOrBottomHashCoordinate)
+      ._setDefenseInPosition()
+      ._setOffenseInPosition();
   }
 
   protected _handleBallContactKicker(ballContactObj: BallContact) {
@@ -209,6 +214,9 @@ export default class FieldGoal extends FieldGoalEvents {
     if (this.stateExists("ballRan")) return this.setState("fieldGoalBlitzed");
 
     this.setState("fieldGoalKicked");
+
+    // Set ball carrier to null to remove emoji
+    this.setBallCarrier(null);
 
     Ball.makeImmovableButKeepSpeed();
   }
