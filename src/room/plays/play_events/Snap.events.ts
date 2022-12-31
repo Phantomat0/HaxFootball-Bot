@@ -91,7 +91,7 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     )
       return;
 
-    // Handle any contact during an int seperately
+    // Handle any contact during an int separately
     if (this.stateExists("interceptionAttempt"))
       return this._handleBallContactDuringInterception(ballContactObj);
 
@@ -254,6 +254,8 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
         curvedPassAttempts: 1,
       });
     }
+
+    Room.game.setLastPlayEndPosition(ballContactObj.playerPosition);
 
     Chat.send(`${ICONS.DoNotEnter} Incomplete - Pass Deflected`);
 

@@ -25,16 +25,17 @@ export default class Down {
     x: 0,
     y: 0,
   };
+  private _mostRecentQb: PlayerObject | null = null;
   private _currentDown: 1 | 2 | 3 | 4 | 5 = 1;
   private _yardsToGet: number = Down.CONFIG.DEFAULT_YARDS_TO_GET;
   private _redZonePenalties: 0 | 1 | 2 | 3 = 0;
   _MAX_REZONE_PENALTIES: number = 3;
+
   previousDown: {
     down: 1 | 2 | 3 | 4 | 5;
     yardsToGet: number;
     losX: number;
   };
-
   getLOS() {
     return this._los;
   }
@@ -83,6 +84,11 @@ export default class Down {
     return;
   }
 
+  setMostRecentQuarterback(player: PlayerObject | null) {
+    if (!player) return (this._mostRecentQb = player);
+    this._mostRecentQb = { ...player };
+  }
+
   getSnapPosition() {
     const x = new DistanceCalculator()
       .subtractByTeam(this._los.x, MAP_POINTS.YARD * 5, Room.game.offenseTeamId)
@@ -126,6 +132,7 @@ export default class Down {
 
   sendDownAndDistance() {
     const downAndDistanceStr = this.getDownAndDistanceString();
+
     Chat.send(downAndDistanceStr, { sound: 0 });
   }
 
@@ -143,16 +150,16 @@ export default class Down {
         MAP_POINTS.BOT_HASH
       );
 
-      const tenYardsBehindLosX = new DistanceCalculator()
+      const twelveYardsBehindLosX = new DistanceCalculator()
         .subtractByTeam(
           this.getLOS().x,
-          MAP_POINTS.YARD * 10,
+          MAP_POINTS.YARD * 12,
           player.team as PlayableTeamId
         )
         .calculate();
 
       const playerPositionToSet = {
-        x: tenYardsBehindLosX,
+        x: twelveYardsBehindLosX,
         y: randomYCoordinate,
         xspeed: 0,
         yspeed: 0,
@@ -165,29 +172,54 @@ export default class Down {
       client.setPlayerDiscProperties(player.id, playerPositionToSet);
     }
 
+    const getYardsBehindLosX = (player: PlayerObject) => {
+      // If they were the most recent QB, spawn them right behind the ball
+      if (this._mostRecentQb && this._mostRecentQb.id === player.id) {
+        // If there is a mostRecent QB, but on the wrong team, i.e turnover, just reset
+        if (this._mostRecentQb.team !== Room.game.offenseTeamId) {
+          this.setMostRecentQuarterback(null);
+          return 10;
+        }
+
+        return 7;
+      }
+
+      return 10;
+    };
+
     // Set the position of every fielded player
     fieldedPlayers.forEach((player) => {
       const hasSavedPosition = Room.game.players.playerPositionsMap.has(
         player.id
       );
 
-      // If we dont have a saved position, field him 10 yards behin LOS randomly between one of the hashes
+      // If we dont have a saved position, field him 10 yards behind LOS randomly between one of the hashes
       if (!hasSavedPosition)
         return setPlayerPositionRandom.bind(this, player)();
 
       // Otherwise set him 7 yards behind LOS, but at the same y coordinate
-      const { position } = Room.game.players.playerPositionsMap.get(player.id)!;
 
-      const sevenYardsBehindLosX = new DistanceCalculator()
+      const { position, team } = Room.game.players.playerPositionsMap.get(
+        player.id
+      )!;
+
+      if (this._mostRecentQb) {
+        if (this._mostRecentQb.team !== Room.game.offenseTeamId)
+          this.setMostRecentQuarterback(null);
+      }
+
+      const yardsBehindLosX = getYardsBehindLosX(player);
+
+      const numbYardsBehindLosX = new DistanceCalculator()
         .subtractByTeam(
           this.getLOS().x,
-          MAP_POINTS.YARD * 7,
-          player.team as PlayableTeamId
+          MAP_POINTS.YARD * yardsBehindLosX,
+          team as PlayableTeamId
         )
         .calculate();
 
       const playerPositionToSet = {
-        x: sevenYardsBehindLosX,
+        x: numbYardsBehindLosX,
         y: position.y,
         xspeed: 0,
         yspeed: 0,
@@ -209,9 +241,6 @@ export default class Down {
     Ball.setProperties({ damping: MAP_POINTS.DEF_DAMPING });
   }
 
-  /**
-   * Sets the players without using their past position information
-   */
   hardSetPlayers() {
     const fieldedPlayers = Room.game.players.getFielded();
 
@@ -225,13 +254,11 @@ export default class Down {
         .calculate();
 
       const isTightEnd = Room.game.checkIfPlayerIsTightEnd(player.id);
-      if (isTightEnd) {
-        const tightEndPosition = client.getPlayerDiscProperties(player.id)!;
+      if (isTightEnd)
         return this.setTightEndPosition(player.id, {
           x: sevenYardsBehindLosX,
-          y: tightEndPosition.y,
+          y: 0,
         });
-      }
 
       client.setPlayerDiscProperties(player.id, {
         x: sevenYardsBehindLosX,
@@ -241,9 +268,6 @@ export default class Down {
     });
   }
 
-  /**
-   * Terminates the current play, and all variables associated with it
-   */
   hardReset() {
     Room.game.play?.terminatePlayDuringError();
     Room.game.setTightEnd(null);
@@ -255,62 +279,12 @@ export default class Down {
     Room.game.startSnapDelay();
   }
 
-  setPreviousDownAsCurrentDown() {
-    this.previousDown = {
-      down: this._currentDown,
-      yardsToGet: this._yardsToGet,
-      losX: this._los.x,
-    };
-  }
-
-  async resetAfterDown() {
-    this.sendDownAndDistance();
-    Room.game.endPlay();
-    await sleep(500);
-    // Sets the players too
-    this.setBallAndFieldMarkersPlayEnd();
-    Room.game.startSnapDelay();
-    this.setPlayers();
-    this._setPuntIfFourthAndLong();
-  }
-
-  resetAfterScore() {
-    Room.game.endPlay();
-  }
-
-  moveFieldMarkers(options: { hideLineToGain?: true } = {}) {
-    this._moveLOSMarkers();
-    this._moveLineToGainMarkers(options);
-    return this;
-  }
-
-  maybeMovePlayerBehindLosOnField(player: PlayerObject) {
-    // Dont set their position if they are mid play
-    if (Room.game.play) return;
-
-    const fifteenYardsBehindLosX = new DistanceCalculator()
-      .subtractByTeam(
-        this.getLOS().x,
-        MAP_POINTS.YARD * 15,
-        player.team as PlayableTeamId
-      )
-      .calculate();
-
-    const playerPositionToSet = {
-      x: fifteenYardsBehindLosX,
-      xspeed: 0,
-      yspeed: 0,
-    };
-
-    client.setPlayerDiscProperties(player.id, playerPositionToSet);
-  }
-
   private async _setPuntIfFourthAndLong() {
     const FOURTH_DOWN = 4;
     // How many yards need to be left for there to be an auto punt
     const MIN_YARDS_FOR_AUTO_PUNT = 15;
     // Dont do auto punt after this time
-    const MAX_TIME_FOR_AUTO_PUNT = 60 * 6;
+    const MAX_TIME_FOR_AUTO_PUNT = 60 * 5;
     if (this.getDown() !== FOURTH_DOWN) return;
 
     // If they are not in their own half, return
@@ -375,6 +349,51 @@ export default class Down {
     );
   }
 
+  setPreviousDownAsCurrentDown() {
+    this.previousDown = {
+      down: this._currentDown,
+      yardsToGet: this._yardsToGet,
+      losX: this._los.x,
+    };
+  }
+
+  async resetAfterDown() {
+    this.sendDownAndDistance();
+    Room.game.endPlay();
+    await sleep(500);
+    // Sets the players too
+    this.setBallAndFieldMarkersPlayEnd();
+    Room.game.startSnapDelay();
+    this.setPlayers();
+    this._setPuntIfFourthAndLong();
+  }
+
+  resetAfterScore() {
+    Ball.setProperties({ damping: MAP_POINTS.DEF_DAMPING });
+    Room.game.endPlay();
+  }
+
+  maybeMovePlayerBehindLosOnField(player: PlayerObject) {
+    // Dont set their position if they are mid play
+    if (Room.game.play) return;
+
+    const fifteenYardsBehindLosX = new DistanceCalculator()
+      .subtractByTeam(
+        this.getLOS().x,
+        MAP_POINTS.YARD * 15,
+        player.team as PlayableTeamId
+      )
+      .calculate();
+
+    const playerPositionToSet = {
+      x: fifteenYardsBehindLosX,
+      xspeed: 0,
+      yspeed: 0,
+    };
+
+    client.setPlayerDiscProperties(player.id, playerPositionToSet);
+  }
+
   private _moveLOSMarkers() {
     client.setDiscProperties(DISC_IDS.LOS_TOP, {
       x: this._los.x,
@@ -387,7 +406,7 @@ export default class Down {
   private _moveLineToGainMarkers(options: { hideLineToGain?: true } = {}) {
     const lineToGainPoint = this._getLineToGainPoint();
 
-    const maybehideLineToGain = () => {
+    const maybeHideLineToGain = () => {
       // Hide line to gain if any of the following occurs:
       // 1. Line to gain is in the endzone
       // 2. During a punt or kickoff
@@ -406,7 +425,7 @@ export default class Down {
       return false;
     };
 
-    const lineToGainX = maybehideLineToGain()
+    const lineToGainX = maybeHideLineToGain()
       ? MAP_POINTS.HIDDEN
       : lineToGainPoint;
 
@@ -418,6 +437,12 @@ export default class Down {
       x: lineToGainX,
       y: MAP_POINTS.BOT_SIDELINE,
     });
+  }
+
+  moveFieldMarkers(options: { hideLineToGain?: true } = {}) {
+    this._moveLOSMarkers();
+    this._moveLineToGainMarkers(options);
+    return this;
   }
 
   private _getLineToGainPoint() {

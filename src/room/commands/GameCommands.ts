@@ -236,7 +236,6 @@ const gameCommandsMap = new Map<string, GameCommand>([
         Ball.setPosition(Room.game.down.getSnapPosition());
         Ball.setGravity({ y: 0 });
         quickPause();
-        //
       },
     },
   ],

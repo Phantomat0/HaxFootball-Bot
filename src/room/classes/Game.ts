@@ -34,10 +34,6 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   blueTeamName: string = "Blue";
   offenseTeamId: PlayableTeamId = 1;
   timeOuts: { time: number; team: number }[] = [];
-
-  /**
-   * The current play class, always starts off as a KickOff with time of 0
-   */
   play: PLAY_TYPES | null = null;
   down: Down = new Down();
   players: PlayerRecorder = new PlayerRecorder();
