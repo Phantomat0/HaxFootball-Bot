@@ -42,14 +42,17 @@ export const checkBallCarrierContact = (playerArray: PlayerObject[]) => {
   for (const player of playerArray) {
     const { id } = player;
     if (id === ballCarrier.id) continue;
-    const { position: playerPosition, speed: playerSpeed } =
-      getPlayerDiscProperties(id)!;
+    const {
+      position: playerPosition,
+      speed: playerSpeed,
+      radius: defenseRadius,
+    } = getPlayerDiscProperties(id)!;
 
     const distanceToBallCarrier = new DistanceCalculator()
       .calcDifference3D(playerPosition, ballCarrierPosition)
       .calculate();
 
-    if (distanceToBallCarrier < ballCarrierRadius * 2 + 1) {
+    if (distanceToBallCarrier < ballCarrierRadius + defenseRadius + 1) {
       return new PlayerContact(
         player,
         playerPosition,
