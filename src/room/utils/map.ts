@@ -425,7 +425,7 @@ const HFL_MAP = `{
 		{ "pos" : [9960,280 ], "trait" : "crowdboxmarker" },
 		{ "pos" : [9960,-280 ], "trait" : "crowdboxmarker" },
 		{ "pos" : [9950,280 ], "trait" : "crowdboxmarker" },
-		{ "pos" : [9950,-280 ], "trait" : "crowdboxmarker" }
+		{ "pos" : [9950,-280 ], "trait" : "crowdboxmarker" },
 
 	],
 
@@ -498,7 +498,8 @@ const HFL_MAP = `{
 		"kickStrength" : 7.6,
         "kickback" : 0,
 		"bCoef" : 0.75,
-		"invMass" : 0.8
+		"invMass" : 0.8,
+		"radius" : 14,
 
 	},
 
@@ -517,17 +518,18 @@ const HFL_MAP = `{
 /*
 bCoef: 0.5
 invMass: 0.5
-Damping: 0.96
+Damping: 0.99
 Kicking damping: 0.96
 Acceleration: 0.1
-Kicking acceleraton: 0.07
+Kicking acceleration: 0.07
 Kick Strength: 5
 */
 
 export const MAP_POINTS = {
-  PLAYER_RADIUS: 15,
+  PLAYER_RADIUS: 14,
   TE_PLAYER_RADIUS: 17,
   BALL_RADIUS: 6.7,
+  DEF_DAMPING: 0.99,
   // =============
   KICKOFF: 0,
   HIDDEN: 10000,
@@ -562,6 +564,7 @@ export const DISC_IDS = {
   LTG_TOP: 3,
   LTG_BOT: 4,
   TE: [17, 18, 19, 20, 21],
+  CROWD_BOX: [22, 23, 24, 25],
 };
 
 export default HFL_MAP;

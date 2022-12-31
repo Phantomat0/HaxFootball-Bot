@@ -1,7 +1,8 @@
 import client from "..";
 import { PlayableTeamId, PlayerObject } from "../HBClient";
+import Room from "../roomStructures/Room";
 import { getPlayerDiscProperties } from "../utils/haxUtils";
-import { MAP_POINTS } from "../utils/map";
+import { DISC_IDS, MAP_POINTS } from "../utils/map";
 import { TEAMS } from "../utils/types";
 import { isInRectangleArea } from "../utils/utils";
 import DistanceCalculator, { DistanceConverter } from "./DistanceCalculator";
@@ -27,15 +28,14 @@ class PlayerCrowdData {
 }
 
 export default class SnapCrowdChecker {
-  private CROWD_BOX_YARDS_FRONT: number = 5;
-  private CROWD_BOX_YARDS_BEHIND: number = 8;
+  private CROWD_BOX_YARDS_FRONT: number = 6;
+  private CROWD_BOX_YARDS_BEHIND: number = 6;
   private MAX_CROWDING_SECONDS: number = 3;
-  private MAX_CROWD_ABUSE_SECONDS: number = 2.25;
+  private MAX_CROWD_ABUSE_SECONDS: number = 2.2;
 
   private _playersInCrowdBoxList: PlayerCrowdData[] = [];
   private _offenseTeamId: PlayableTeamId;
   private _playCrowdBoxArea: { x1: number; y1: number; x2: number; y2: number };
-  private _crowdBoxDiscIndexes = [22, 23, 24, 25];
 
   checkPlayersInCrowdBox(
     players: PlayerObject[],
@@ -80,9 +80,53 @@ export default class SnapCrowdChecker {
     this._offenseTeamId = offenseTeamId;
   }
 
+  drawCrowdBoxLines() {
+    // Front
+    client.setDiscProperties(DISC_IDS.CROWD_BOX[0], {
+      x: this._playCrowdBoxArea.x1,
+      y: MAP_POINTS.TOP_HASH,
+    });
+    client.setDiscProperties(DISC_IDS.CROWD_BOX[1], {
+      x: this._playCrowdBoxArea.x1,
+      y: MAP_POINTS.BOT_HASH,
+    });
+
+    // Back
+    client.setDiscProperties(DISC_IDS.CROWD_BOX[2], {
+      x: this._playCrowdBoxArea.x2,
+      y: MAP_POINTS.BOT_HASH,
+    });
+    client.setDiscProperties(DISC_IDS.CROWD_BOX[3], {
+      x: this._playCrowdBoxArea.x2,
+      y: MAP_POINTS.TOP_HASH,
+    });
+  }
+
+  eraseCrowdBoxLines() {
+    // Front
+    client.setDiscProperties(DISC_IDS.CROWD_BOX[0], {
+      x: MAP_POINTS.HIDDEN,
+      y: MAP_POINTS.TOP_HASH,
+    });
+    client.setDiscProperties(DISC_IDS.CROWD_BOX[1], {
+      x: MAP_POINTS.HIDDEN,
+      y: MAP_POINTS.BOT_HASH,
+    });
+
+    // Back
+    client.setDiscProperties(DISC_IDS.CROWD_BOX[2], {
+      x: MAP_POINTS.HIDDEN,
+      y: MAP_POINTS.TOP_HASH,
+    });
+    client.setDiscProperties(DISC_IDS.CROWD_BOX[3], {
+      x: MAP_POINTS.HIDDEN,
+      y: MAP_POINTS.BOT_HASH,
+    });
+  }
+
   /**
    *
-   * Dont extend crowd box into endzone
+   * Don't extend crowd box into endzone
    */
   private _determineCrowdBoxFrontYards(losX: number) {
     const losYardLine = DistanceConverter.toYardLine(losX);
@@ -138,50 +182,6 @@ export default class SnapCrowdChecker {
     }
   }
 
-  drawCrowdBoxLines() {
-    // Front
-    client.setDiscProperties(this._crowdBoxDiscIndexes[0], {
-      x: this._playCrowdBoxArea.x1,
-      y: MAP_POINTS.TOP_HASH,
-    });
-    client.setDiscProperties(this._crowdBoxDiscIndexes[1], {
-      x: this._playCrowdBoxArea.x1,
-      y: MAP_POINTS.BOT_HASH,
-    });
-
-    // Back
-    client.setDiscProperties(this._crowdBoxDiscIndexes[2], {
-      x: this._playCrowdBoxArea.x2,
-      y: MAP_POINTS.BOT_HASH,
-    });
-    client.setDiscProperties(this._crowdBoxDiscIndexes[3], {
-      x: this._playCrowdBoxArea.x2,
-      y: MAP_POINTS.TOP_HASH,
-    });
-  }
-
-  eraseCrowdBoxLines() {
-    // Front
-    client.setDiscProperties(this._crowdBoxDiscIndexes[0], {
-      x: MAP_POINTS.HIDDEN,
-      y: MAP_POINTS.TOP_HASH,
-    });
-    client.setDiscProperties(this._crowdBoxDiscIndexes[1], {
-      x: MAP_POINTS.HIDDEN,
-      y: MAP_POINTS.BOT_HASH,
-    });
-
-    // Back
-    client.setDiscProperties(this._crowdBoxDiscIndexes[2], {
-      x: MAP_POINTS.HIDDEN,
-      y: MAP_POINTS.TOP_HASH,
-    });
-    client.setDiscProperties(this._crowdBoxDiscIndexes[3], {
-      x: MAP_POINTS.HIDDEN,
-      y: MAP_POINTS.BOT_HASH,
-    });
-  }
-
   private _checkIfPlayerInCrowdBox(playerId: PlayerObject["id"]) {
     const { position } = getPlayerDiscProperties(playerId)!;
     return isInRectangleArea(this._playCrowdBoxArea, position);
@@ -201,7 +201,8 @@ export default class SnapCrowdChecker {
     // Ok hes in crowd box, now check if hes alone
     const isAlone =
       this._playersInCrowdBoxList.filter(
-        (player) => player.playerTeam === this._offenseTeamId
+        (playerInCrowdBox) =>
+          playerInCrowdBox.playerTeam === this._offenseTeamId
       ).length === 0;
 
     return (
@@ -228,6 +229,7 @@ export default class SnapCrowdChecker {
     if (offensivePlayerInCrowd) {
       this._playersInCrowdBoxList.forEach((player) => {
         player.timeGotInCrowdBox = timeNow;
+        player.wasAlone = false;
       });
       return false;
     }
@@ -244,7 +246,32 @@ export default class SnapCrowdChecker {
       differenceInCrowdingTime >= crowdingSeconds &&
       crowdingData.playerTeam !== this._offenseTeamId;
 
-    return isCrowding;
+    if (!isCrowding) return false;
+
+    const crowdingPlayerPosition = getPlayerDiscProperties(
+      crowdingData.playerId
+    )!.position;
+
+    const isTouchingOffensivePlayer = Room.game.players
+      .getOffense()
+      .some((offensivePlayer) => {
+        const { position: offensivePlayerPosition, radius } =
+          getPlayerDiscProperties(offensivePlayer.id)!;
+
+        const distanceToCrowdingPlayer = new DistanceCalculator()
+          .calcDifference3D(offensivePlayerPosition, crowdingPlayerPosition)
+          .calculate();
+
+        return distanceToCrowdingPlayer < radius * 2 + 1;
+      });
+
+    if (isTouchingOffensivePlayer) {
+      this._playersInCrowdBoxList[index].timeGotInCrowdBox = timeNow;
+      this._playersInCrowdBoxList[index].wasAlone = false;
+      return false;
+    }
+
+    return true;
   }
 
   private _maybeRemoveFromCrowdBoxList(playerId: PlayerObject["id"]) {
