@@ -1,6 +1,3 @@
-import { ParamType } from "./commands/Commands";
-import { onFunctions } from "./utils/helperTypes";
-
 export type HBRecording = string;
 
 type TeamId = 0 | 1 | 2;
@@ -219,7 +216,7 @@ export interface HBClientConfig {
   /**
    * If set to true the room player list will be empty, the playerName setting will be ignored.
    */
-  noPlayer?: boolean;
+  noPlayer: true;
 }
 
 /**
