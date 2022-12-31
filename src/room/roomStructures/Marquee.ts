@@ -8,11 +8,11 @@ interface Announcement {
 
 const ANNOUNCEMENTS: Announcement[] = [
   {
-    text: `!stats or !stats partialplayername to view your stats or that of another player`,
+    text: `!stats or !stats [name] to view your stats or that of another player`,
     weight: 0.3,
   },
   {
-    text: `Join our Discord discord.gg/VdrD2p7`,
+    text: `Join the HFL Discord discord.gg/VdrD2p7`,
     weight: 0.3,
   },
 ];
