@@ -7,6 +7,7 @@ import {
   PlayerObjFlat,
   Position,
 } from "../../HBClient";
+import Ball from "../../roomStructures/Ball";
 import Chat from "../../roomStructures/Chat";
 import Room from "../../roomStructures/Room";
 import GameReferee from "../../structures/GameReferee";
@@ -204,8 +205,6 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
   onBallCarrierContactOffense(playerContact: PlayerContact) {
     const { player, playerPosition, ballCarrierPosition } = playerContact;
 
-    // return this._handleRun(playerContact);
-
     // Verify that its a legal run
     const isBehindQuarterBack = MapReferee.checkIfBehind(
       playerPosition.x,
@@ -236,6 +235,8 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
   }
 
   protected _onBallContactDefense(ballContactObj: BallContact) {
+    if (this.stateExists("curvePass")) Ball.setGravity({ y: 0 });
+
     // If the ball wasn't passed yet, ball must have been blitzed
     if (!this.stateExists("ballPassed")) return this.setState("ballBlitzed");
 
@@ -268,6 +269,8 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
   }
 
   protected _onBallContactOffense(ballContactObj: BallContact) {
+    if (this.stateExists("curvePass")) Ball.setGravity({ y: 0 });
+
     if (this.stateExists("ballDeflected"))
       return this._handleBallContactDuringInterception(ballContactObj);
 
