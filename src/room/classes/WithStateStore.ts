@@ -1,23 +1,16 @@
 import { DEBUG_MODE } from "../room.config";
 import Chat from "../roomStructures/Chat";
 
-interface StateStoreType {
-  [key: string]: any;
-}
-
 /**
  * Class allowing for managing state
  */
-export default class WithStateStore<
-  T extends StateStoreType,
-  R extends string
-> {
+export default class WithStateStore<T extends object, R extends string> {
   private _stateStore: Partial<T> = {};
 
   /**
    * Set state
    */
-  setState<K extends keyof T>(state: K, value: T[K] = true as T[K]) {
+  setState<K extends keyof T>(state: K, value: T[K] = true as unknown as T[K]) {
     this._stateStore[state] = value;
     if (DEBUG_MODE) {
       Chat.send(`StateChange: ${String(state)}`, { color: 0xffef5c });
