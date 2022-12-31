@@ -8,5 +8,5 @@ import RoomLoader, { RoomOptions } from "./RoomLoader";
     },
   ];
 
-  new RoomLoader({ isHeadless: false }).loadRooms(rooms);
+  new RoomLoader({ isHeadless: true }).loadRooms(rooms);
 })();
