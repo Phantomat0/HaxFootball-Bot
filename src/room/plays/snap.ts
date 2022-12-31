@@ -583,6 +583,8 @@ export default class Snap extends SnapEvents {
   protected _handleInterceptionKick(ballContactObj: BallContact) {
     this.setState("interceptionAttemptKicked");
 
+    Ball.setProperties({ damping: 0.992 });
+
     this.setState(
       "interceptionPlayerKickPosition",
       ballContactObj.playerPosition

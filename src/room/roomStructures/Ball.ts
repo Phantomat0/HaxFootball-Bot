@@ -1,4 +1,4 @@
-import { PlayableTeamId, Position } from "../HBClient";
+import { DiscPropertiesObject, PlayableTeamId, Position } from "../HBClient";
 import { DISC_IDS, MAP_POINTS } from "../utils/map";
 import client from "..";
 import { TEAMS } from "../utils/types";
@@ -84,6 +84,10 @@ class Ball {
     }
 
     return this;
+  }
+
+  setProperties(properties: Partial<DiscPropertiesObject>) {
+    client.setDiscProperties(DISC_IDS.BALL, properties);
   }
 
   removeGravity() {

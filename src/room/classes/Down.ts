@@ -206,6 +206,7 @@ export default class Down {
     const snapPosition = this.getSnapPosition();
     Ball.setPosition(snapPosition);
     Ball.suppress();
+    Ball.setProperties({ damping: MAP_POINTS.DEF_DAMPING });
   }
 
   /**
