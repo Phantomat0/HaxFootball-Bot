@@ -60,7 +60,15 @@ export default class OnsideKick extends OnsideKickEvents {
     quickPause();
   }
 
-  cleanUp(): void {}
+  cleanUp(): void {
+    const offensePlayers = Room.game.players.getOffense();
+
+    offensePlayers.forEach(({ id }) => {
+      client.setPlayerDiscProperties(id, {
+        radius: MAP_POINTS.PLAYER_RADIUS,
+      });
+    });
+  }
 
   /**
    * Extension to our regular endPlay, but in a onside kick we always want to set a new down
@@ -182,7 +190,7 @@ export default class OnsideKick extends OnsideKickEvents {
   }
 
   private _setPlayersInPosition() {
-    this._setKickerInPosition()._setOffenseInPosition();
+    this._setKickerInPosition()._setOffenseInPositionAndAdjustSize();
   }
 
   private _setKickerInPosition() {
@@ -202,32 +210,14 @@ export default class OnsideKick extends OnsideKickEvents {
     return this;
   }
 
-  // private _setDefenseInPosition() {
-  //   // const defensePlayers = Room.game.players.getDefense();
-  //   // const opposingEndzone = MapReferee.getOpposingTeamEndzone(
-  //   //   Room.game.offenseTeamId
-  //   // );
-  //   // const oneYardInFrontOfEndzone = new DistanceCalculator()
-  //   //   .subtractByTeam(
-  //   //     opposingEndzone,
-  //   //     MAP_POINTS.YARD * 1,
-  //   //     Room.game.defenseTeamId
-  //   //   )
-  //   //   .calculate();
-  //   // defensePlayers.forEach(({ id }) => {
-  //   //   client.setPlayerDiscProperties(id, { x: oneYardInFrontOfEndzone });
-  //   // });
-  //   // return this;
-  // }
-
-  private _setOffenseInPosition() {
+  private _setOffenseInPositionAndAdjustSize() {
     const offensePlayers = Room.game.players.getOffense();
 
     const opposingEndzone = MapReferee.getOpposingTeamEndzone(
       Room.game.offenseTeamId
     );
 
-    const fiveYardsInsideEndzone = new DistanceCalculator()
+    const fiveYardsBeforeEndzone = new DistanceCalculator()
       .subtractByTeam(
         opposingEndzone,
         MAP_POINTS.YARD * 5,
@@ -238,7 +228,10 @@ export default class OnsideKick extends OnsideKickEvents {
     offensePlayers.forEach(({ id }) => {
       // Dont set the kicker's position, we already do that
       if (id === this._kicker.id) return;
-      client.setPlayerDiscProperties(id, { x: fiveYardsInsideEndzone });
+      client.setPlayerDiscProperties(id, {
+        x: fiveYardsBeforeEndzone,
+        radius: MAP_POINTS.TE_PLAYER_RADIUS,
+      });
     });
     return this;
   }
