@@ -252,7 +252,7 @@ export default class Snap extends SnapEvents {
 
     // So we don't have "0" seconds
     this._handlePenalty("illegalBlitz", player, {
-      time: this._blitzClockTime === 0 ? 1 : this._blitzClockTime,
+      time: this._blitzClockTime,
     });
   }
 
@@ -347,14 +347,17 @@ export default class Snap extends SnapEvents {
   private _ballMoveBlitzTimerInterval() {
     this._ballMoveBlitzClockTime++;
     if (this._ballMoveBlitzClockTime >= this.BALL_MOVE_BLITZ_TIME_SECONDS) {
+      this._stopBallMoveBlitzClock();
+
+      const passAlreadyDead = this.stateExists("canBlitz");
+      this.stateExists("ballPassed") ||
+        this.stateExists("ballRan") ||
+        this.stateExists("lineBlitzed");
+
+      if (passAlreadyDead) return;
+
       this.setState("canBlitz");
 
-      const playAlreadyDead =
-        this.stateExists("ballPassed") ||
-        this.stateExists("ballRan") ||
-        this.stateExists("ballBlitzed");
-      this._stopBallMoveBlitzClock();
-      if (playAlreadyDead) return;
       Chat.send(`${ICONS.Bell} Can Blitz`, { sound: 2 });
     }
   }
@@ -926,6 +929,8 @@ export default class Snap extends SnapEvents {
     Chat.send(`${ICONS.Fire} Two point conversion!`, {
       sound: 2,
     });
+
+    Room.game.setState("twoPointAttempt");
 
     // Add only one, since we add 7 not 6 after a TD
     this.scorePlay(1, Room.game.offenseTeamId, Room.game.defenseTeamId);
