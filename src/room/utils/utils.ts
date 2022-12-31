@@ -243,7 +243,7 @@ export const containsNWord = (msg: string) => {
   ).test(msg);
 
   const isOffensive = filters.some(
-    (filterWord) => msg.includes(filterWord) || msg === filterWord
+    (filterWord) => msg.includes(filterWord) || msg === "nig"
   );
 
   return isOffensive || regExpText;
