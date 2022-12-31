@@ -34,6 +34,7 @@ export type PenaltyName =
   | "illegalRun"
   | "illegalLosCross"
   | "illegalBlitz"
+  | "illegalPush"
   | "kickOffDrag"
   | "kickOffDragSafety"
   | "kickOffOutOfBounds"
@@ -46,7 +47,9 @@ export default class PenaltyDataGetter {
     player: PlayerObjFlat,
     penaltyData: AdditionalPenaltyData
   ) {
-    const { time = 0 } = penaltyData;
+    // Adjust time so it doesn't read "penalty at 0 seconds"
+    const { time: timeNotAdjusted = 1 } = penaltyData;
+    const time = timeNotAdjusted === 0 ? 1 : timeNotAdjusted;
 
     // If we have a player defined, truncate his name
     const playerName = truncateName(player.name);
@@ -146,6 +149,12 @@ export default class PenaltyDataGetter {
           "seconds"
         )}, 10 yard penalty, repeat the down`,
         netYards: 10,
+        addDown: false,
+      },
+      illegalPush: {
+        fullName: "Illegal Push",
+        message: `Illegal Pushing by ${playerName} , 10 yard penalty, repeat the down`,
+        netYards: -10,
         addDown: false,
       },
       // These have their own handlers
@@ -252,7 +261,7 @@ export default class PenaltyDataGetter {
     const constrainedLosXInCaseEndsInEndzone =
       this._maybeConstrainNewEndLosXToOneYardLine(newEndLosX);
 
-    // Check if the constained LosX is in the offense team's own endzone
+    // Check if the constrained LosX is in the offense team's own endzone
     // otherwise they can get infinite penalties and waste time
     // So we should add down in that case
     const offenseEndzone = MapReferee.getTeamEndzone(offenseTeamId);

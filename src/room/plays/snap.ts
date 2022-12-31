@@ -237,7 +237,15 @@ export default class Snap extends SnapEvents {
   }
 
   handleIllegalBlitz(player: PlayerObject) {
-    this._handlePenalty("illegalBlitz", player, { time: this._blitzClockTime });
+    // Check if player was pushed
+    const pushingPlayer = this._checkIfPlayerWasPushedToIllegalBlitz(player);
+
+    if (pushingPlayer) return this._handlePenalty("illegalPush", pushingPlayer);
+
+    // So we don't have "0" seconds
+    this._handlePenalty("illegalBlitz", player, {
+      time: this._blitzClockTime === 0 ? 1 : this._blitzClockTime,
+    });
   }
 
   handleBallInFrontOfLOS() {
@@ -260,6 +268,52 @@ export default class Snap extends SnapEvents {
 
   protected _startBlitzClock() {
     this._blitzClock = setInterval(this._blitzTimerInterval.bind(this), 1000);
+  }
+
+  /**
+   *
+   * Check if the offside defensive player was pushed by the offense across the LOS
+   * This will return the closest defensive player pushing or null if it wasn't a push
+   */
+  private _checkIfPlayerWasPushedToIllegalBlitz(offsidePlayer: PlayerObject) {
+    const offsidePlayerPosition = getPlayerDiscProperties(
+      offsidePlayer.id
+    )!.position;
+
+    // Find an offensive player that is touching the offside player, and that they were in front of him
+
+    const offensePlayersSortedByDistanceToOffsidePlayer = Room.game.players
+      .getOffense()
+      .map((player) => {
+        const discProps = getPlayerDiscProperties(player.id)!;
+
+        return {
+          player: player,
+          ...discProps,
+          distanceToOffsidePlayer: new DistanceCalculator()
+            .calcDifference3D(discProps.position, offsidePlayerPosition)
+            .calculate(),
+        };
+      })
+      .sort((a, b) => b.distanceToOffsidePlayer - a.distanceToOffsidePlayer);
+
+    const defensivePlayerTouchingOffsidePlayer =
+      offensePlayersSortedByDistanceToOffsidePlayer.find((player) => {
+        const { distanceToOffsidePlayer, radius, position } = player;
+
+        const isTouching = distanceToOffsidePlayer < radius * 2 + 2;
+        const isInFront = MapReferee.checkIfInFront(
+          position.x,
+          offsidePlayerPosition.x,
+          Room.game.offenseTeamId
+        );
+
+        return isTouching && isInFront;
+      });
+
+    return defensivePlayerTouchingOffsidePlayer
+      ? defensivePlayerTouchingOffsidePlayer.player
+      : null;
   }
 
   private _blitzTimerInterval() {
