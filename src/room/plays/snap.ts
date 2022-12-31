@@ -327,7 +327,7 @@ export default class Snap extends SnapEvents {
   private _blitzTimerInterval() {
     this._blitzClockTime++;
     if (this._blitzClockTime >= this.BLITZ_TIME_SECONDS) {
-      this.setState("canBlitz");
+      if (this.stateExists("canBlitz") === false) this.setState("canBlitz");
       return this._stopBlitzClock();
     }
   }
@@ -349,10 +349,10 @@ export default class Snap extends SnapEvents {
     if (this._ballMoveBlitzClockTime >= this.BALL_MOVE_BLITZ_TIME_SECONDS) {
       this._stopBallMoveBlitzClock();
 
-      const passAlreadyDead = this.stateExists("canBlitz");
-      this.stateExists("ballPassed") ||
-        this.stateExists("ballRan") ||
-        this.stateExists("lineBlitzed");
+      const passAlreadyDead =
+        this.stateExists("lineBlitzed") ||
+        this.stateExists("ballPassed") ||
+        this.stateExists("ballRan");
 
       if (passAlreadyDead) return;
 
