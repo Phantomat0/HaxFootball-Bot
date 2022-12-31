@@ -15,6 +15,9 @@ export interface PlayerSubstitution {
   wasLeave?: boolean;
 }
 
+const getLastKeyInMap = <T extends string | number>(map: Map<T, any>) =>
+  [...map][map.size - 1] ? [...map][map.size - 1][0] : null;
+
 export interface PlayerRecord {
   name: Player["name"];
   team: PlayerObject["team"];
@@ -128,7 +131,7 @@ export default class PlayerRecorder {
     return this.subIn(player, time);
   }
 
-  getPlayerRecordById(playerId: PlayerObject["id"]) {
+  getPlayerRecordByPlayerId(playerId: PlayerObject["id"]) {
     return this.records.findOne({
       ids: [playerId],
     });
@@ -158,10 +161,13 @@ export default class PlayerRecorder {
       return playerRecord!.recordId;
     }
 
+    const lastIdInRecord = getLastKeyInMap(this.records) ?? 0;
+    const newRecordId = lastIdInRecord + 1;
+
     // If no record, create one, and then substitute
-    this.records.set(playerProfile.id, {
+    this.records.set(newRecordId, {
       auth: playerProfile.auth,
-      recordId: playerProfile.id,
+      recordId: newRecordId,
       ids: [playerProfile.id],
       name: playerProfile.name,
       ip: playerProfile.ip,
@@ -172,7 +178,7 @@ export default class PlayerRecorder {
       wasAtEndOfGame: false,
     });
 
-    return playerProfile.id;
+    return newRecordId;
   }
 
   subOut(

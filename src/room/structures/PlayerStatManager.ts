@@ -24,7 +24,7 @@ export default class PlayerStatManager {
     playerId: PlayerObject["id"],
     statQuery: Partial<PlayerStatQuery>
   ) {
-    const playerRecord = Room.game.players.getPlayerRecordById(playerId);
+    const playerRecord = Room.game.players.getPlayerRecordByPlayerId(playerId);
     if (!playerRecord) throw Error("Error finding player record");
     this.statsCollection.get(playerRecord.recordId)?.updateStats(statQuery);
 
