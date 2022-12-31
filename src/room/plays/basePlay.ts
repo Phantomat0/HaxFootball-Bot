@@ -284,6 +284,8 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
     yardAndHalfStr: string;
     isTouchdown: boolean;
   } {
+    Room.game.setLastPlayEndPosition(rawEndPosition);
+
     const { yardLine, netYards, adjustedEndPositionX } =
       PreSetCalculators.getNetYardsAndAdjustedEndPosition(
         this._startingPosition,
@@ -323,7 +325,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
 
     const losX = Room.game.down.getLOS().x;
 
-    // We dont need to do any adjustmnents for map sections
+    // We dont need to do any adjustments for map sections
     const mapSection = new MapSectionFinder().getSectionName(
       rawEndPosition,
       losX,

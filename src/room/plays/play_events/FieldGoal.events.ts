@@ -20,7 +20,6 @@ export interface FieldGoalStore {
 
 export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
   protected abstract _kicker: PlayerObjFlat;
-  protected abstract _setPlayersInPosition(): void;
   protected abstract _handleRunTackle(playerContactObj: PlayerContact): void;
   protected abstract _handleTackle(playerContactObj: PlayerContact): void;
   protected abstract _handleRun(playerContact: PlayerContact): void;

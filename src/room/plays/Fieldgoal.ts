@@ -45,10 +45,13 @@ export default class FieldGoal extends FieldGoalEvents {
   }
 
   prepare() {
+    this.resetPlayerPhysicsAndRemoveTightEnd();
     Room.game.updateStaticPlayers();
     this._setStartingPosition(Room.game.down.getLOS());
 
-    const ballStartingPos = this._setBallInPosition();
+    const topOrBottomHashCoordinate = this._determineTopOrBottomHashStartPos();
+
+    const ballStartingPos = this._setBallInPosition(topOrBottomHashCoordinate);
     this.setBallPositionOnSet(ballStartingPos);
 
     Room.game.down.moveFieldMarkers();
@@ -111,13 +114,17 @@ export default class FieldGoal extends FieldGoalEvents {
       client.setPlayerAvatar(this._ballCarrier.id, ICONS.Football);
   }
 
+  handleIllegalCrossOffense() {
+    return this._handlePenalty("illegalLosCross", this._kicker);
+  }
+
   protected _getKicker() {
     return this._kicker;
   }
 
-  protected _setBallInPosition() {
+  protected _setBallInPosition(topOrBotHashYCoordinate: Position["y"]) {
     const positionToSet = {
-      y: MAP_POINTS.TOP_HASH,
+      y: topOrBotHashYCoordinate,
       x: Room.game.down.getSnapPosition().x,
     };
     Ball.setPosition(positionToSet);
@@ -326,7 +333,10 @@ export default class FieldGoal extends FieldGoalEvents {
     });
   }
 
-  handleIllegalCrossOffense() {
-    return this._handlePenalty("illegalLosCross", this._kicker);
+  private _determineTopOrBottomHashStartPos() {
+    const lastPlayEndPosition = Room.game.lastPlayEndPosition;
+
+    if (lastPlayEndPosition.y <= 0) return MAP_POINTS.TOP_HASH;
+    return MAP_POINTS.BOT_HASH;
   }
 }

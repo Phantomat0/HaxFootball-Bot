@@ -45,6 +45,7 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   private _canStartSnapPlay: boolean = true;
   private _isPaused: boolean = false;
   private _tightEndId: PlayerObject["id"] | null = null;
+  private _lastPlayEndPosition: Position = { x: 0, y: 0 };
   private _isActive: boolean = true;
 
   constructor() {
@@ -66,6 +67,14 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
 
   getTightEnd() {
     return this._tightEndId;
+  }
+
+  get lastPlayEndPosition() {
+    return this._lastPlayEndPosition;
+  }
+
+  setLastPlayEndPosition(pos: Position) {
+    this._lastPlayEndPosition = pos;
   }
 
   setTightEnd(playerId: PlayerObject["id"] | null) {
@@ -133,7 +142,7 @@ export default class Game extends WithStateStore<GameStore, keyof GameStore> {
   }
 
   /**
-   * Set the gamess current play, while first validating and throwing an error if validation occurs
+   * Set the games current play, while first validating and throwing an error if validation occurs
    */
   setPlay(play: PLAY_TYPES, player: PlayerObject | null) {
     // This will throw an error if any errors occur, and will be resolved by the ChatHandler
