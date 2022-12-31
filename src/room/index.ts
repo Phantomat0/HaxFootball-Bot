@@ -38,15 +38,15 @@ client.onGameStop = () => {
 
 client.onPositionsReset = () => {
   if (!Room.isBotOn || !Room.game) return;
+  Room.game.deleteState("canTwoPoint");
+  Room.game.deleteState("twoPointAttempt");
+  Room.game.deleteState("ballBeingScored");
   Room.game.down.startNew();
-  Room.game.setState("canTwoPoint", false);
-  Room.game.setState("twoPointAttempt", false);
   Room.game.setPlay(new KickOff(Room.game.getTimeRounded()), null);
 };
 
 client.onTeamGoal = () => {
   if (!Room.isBotOn || !Room.game) return;
-  Room.game.deleteState("canTwoPoint");
 };
 
 client.onGamePause = () => {

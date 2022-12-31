@@ -33,6 +33,11 @@ export interface GameCommandPermissions {
    * Can run this when a two point attempt is possible
    */
   canRunDuringTwoPointAttempt?: boolean;
+
+  /**
+   * Can run in the time between a score and the ball being scored in the goal
+   */
+  canRunDuringBallScore?: boolean;
 }
 
 export interface GameCommand {
@@ -196,6 +201,7 @@ const gameCommandsMap = new Map<string, GameCommand>([
         onlyOffense: true,
         onlyDuringNoPlay: true,
         canRunDuringTwoPointAttempt: true,
+        canRunDuringBallScore: true,
       },
       run(player) {
         const canTwoPoint = Room.game.stateExists("canTwoPoint");
@@ -218,21 +224,21 @@ const gameCommandsMap = new Map<string, GameCommand>([
 
         Chat.send(`${ICONS.BrownCircle} Two Point Attempt!`);
 
-        const TWO_POINT_ATTEMPT_YARD_LINE: number = 3;
+        const THREE_POINT_ATTEMPT_YARD_LINE: number = 3;
 
         /**
          * Set the LOS at the defensive team's 2 yard line
          */
-        const defensiveTwoYardLine = PreSetCalculators.getPositionOfTeamYard(
-          TWO_POINT_ATTEMPT_YARD_LINE,
+        const defensiveThreeYardLine = PreSetCalculators.getPositionOfTeamYard(
+          THREE_POINT_ATTEMPT_YARD_LINE,
           Room.game.defenseTeamId
         );
 
-        Room.game.down.setLOS(defensiveTwoYardLine);
-        Room.game.down.setYardsToGet(TWO_POINT_ATTEMPT_YARD_LINE);
+        Room.game.down.setLOS(defensiveThreeYardLine);
+        Room.game.down.setYardsToGet(THREE_POINT_ATTEMPT_YARD_LINE);
         Room.game.down.moveFieldMarkers();
         Room.game.startSnapDelay();
-        Room.game.down.hardSetPlayers();
+        Room.game.down.setPlayers();
         Ball.setPosition(Room.game.down.getSnapPosition());
         Ball.setGravity({ y: 0 });
         quickPause();

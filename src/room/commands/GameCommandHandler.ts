@@ -52,9 +52,17 @@ export default class GameCommandHandler {
   }
 
   private _validatePlay() {
-    const playAlreadyInProgess = Boolean(Room.game.play);
+    const playAlreadyInProgress = Boolean(Room.game.play);
 
-    if (playAlreadyInProgess && this.gameCommand.permissions.onlyDuringNoPlay)
+    const duringPlayWhenNoPlayAllowed =
+      playAlreadyInProgress && this.gameCommand.permissions.onlyDuringNoPlay;
+
+    // Prevents hike and fg's from being called after a touchdown or any type of score
+    const duringBallBeingScoredAndNotAllowed =
+      Room.game.stateExists("ballBeingScored") &&
+      Boolean(this.gameCommand.permissions.canRunDuringBallScore) === false;
+
+    if (duringPlayWhenNoPlayAllowed || duringBallBeingScoredAndNotAllowed)
       throw new GameCommandError("There is already a play in progress", true);
 
     const isTwoPointAttempt = Room.game.stateExists("twoPointAttempt");

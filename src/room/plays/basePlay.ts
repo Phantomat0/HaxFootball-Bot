@@ -263,6 +263,7 @@ export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
 
     Room.game.addScore(team, score);
     Ball.score(teamEndZoneToScore);
+    Room.game.setState("ballBeingScored");
     Room.game.sendScoreBoard();
     Room.game.down.resetAfterScore();
 
