@@ -44,6 +44,7 @@ export default class Punt extends PuntEvents {
     this._setPlayersInPosition();
     this._createInvisibleWallForDefense();
     this.resetPlayerPhysicsAndRemoveTightEnd();
+    Ball.setProperties({ damping: 0.993 });
   }
 
   run() {
