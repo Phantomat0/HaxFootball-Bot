@@ -97,6 +97,7 @@ export default class Snap extends SnapEvents {
   }
 
   run() {
+    Room.game.down.setMostRecentQuarterback(this._quarterback);
     this._setLivePlay(true);
     Ball.release();
     this.setState("ballSnapped");
@@ -226,6 +227,13 @@ export default class Snap extends SnapEvents {
   }
 
   handleTouchdown(position: Position) {
+    // Make sure the player cant score a touchdown if he was made the ballCarrier during an int
+    if (
+      this.stateExists("interceptionAttempt") &&
+      this.stateExists("ballIntercepted") === false
+    )
+      return;
+
     // First we need to get the type of touchdown, then handle
     if (this.stateExistsUnsafe("twoPointAttempt"))
       return this._handleTwoPointTouchdown(position);
@@ -394,6 +402,7 @@ export default class Snap extends SnapEvents {
 
     if (isOutOfBounds) {
       Chat.send(`${ICONS.DoNotEnter} Pass Incomplete, caught out of bounds`);
+      Room.game.setLastPlayEndPosition(ballContactObj.playerPosition);
       return this.endPlay({});
     }
 
