@@ -29,8 +29,8 @@ You can use the code in two ways
 4. Select "top" from the dropdown
 5. Paste the code, and press enter
 
-**How do I change the name of the room, or make it private?**
-Do CTRL + F and search for "HAXFOOTBALL" which is the name of the room, and then you can change it to whatever you would like.
+**How do I change the name of the room, make it private, add a password, change max players?**
+Do CTRL + F and search for "HAXFOOTBALL" which is the name of the room, and then you can change it to whatever you would like. Additionally, below you will find variables like maxPlayers, or password which you can edit to your liking.
 
 ### Using Puppeteer RoomLoader
 
@@ -87,7 +87,7 @@ Command system with permissions, alias names, error handling.
 | ---------- | ----- | -------------------------------------------------------- | ----------------------- |
 | dd         |       | Returns the down and distance                            |                         |
 | info       |       | Returns helpful command info                             |                         |
-| score      |       | Returns the score                                        |                         |
+| score      | sc    | Returns the score                                        |                         |
 | setscore   | ss    | Sets the score for a team                                | setscore blue 7, ss b 7 |
 | setlos     | sl    | Sets the line of scrimmage at a certain yard             | setlos blue 10, sl b 10 |
 | setplayers | sp    | Sets the players in front of the LOS                     |                         |
