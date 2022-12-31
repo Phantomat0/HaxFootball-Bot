@@ -39,17 +39,17 @@ export default class PlayerStatManager {
       // Receiving
       receptions: 3,
       receivingYards: 0.5,
-      rushingYards: 1,
-      touchdownsReceived: 6,
-      touchdownsRushed: 6,
+      rushingYards: 2,
+      touchdownsReceived: 7,
+      touchdownsRushed: 7,
 
       // Passing
-      passAttempts: 0,
+      passAttempts: -1,
       passCompletions: 2,
-      passYards: 0.3,
+      passYards: 0.25,
       touchdownsThrown: 4,
-      interceptionsThrown: -6,
-      qbSacks: -2,
+      interceptionsThrown: -10,
+      qbSacks: -4,
 
       // Defense
       passDeflections: 3,
