@@ -57,7 +57,7 @@ export default class PenaltyDataGetter {
     const PENALTIES: Record<PenaltyName, Penalty> = {
       snapOutOfHashes: {
         fullName: "Illegal Snap, Out Of Hashes",
-        message: `Illegal Snap, Out Of Hashes, automatic loss of down`,
+        message: `Illegal Snap, Out Of Hashes by ${playerName}, automatic loss of down`,
         netYards: 0,
         addDown: true,
       },
