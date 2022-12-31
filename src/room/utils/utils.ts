@@ -226,7 +226,6 @@ export const containsNWord = (msg: string) => {
   // return regExpTest || wordTest;
 
   const filters = [
-    "nig",
     "nigger",
     "n1gger",
     "n1gg3r",
@@ -243,7 +242,9 @@ export const containsNWord = (msg: string) => {
     "i"
   ).test(msg);
 
-  const isOffensive = filters.some((filterWord) => msg.includes(filterWord));
+  const isOffensive = filters.some(
+    (filterWord) => msg.includes(filterWord) || msg === filterWord
+  );
 
   return isOffensive || regExpText;
 };
