@@ -1,5 +1,5 @@
 var t = "HAXFOOTBALL",
-  MAX_PLAYERS = 15,
+  MAX_PLAYERS = 17,
   redScore = 0,
   blueScore = 0,
   redName = "Red: ",
