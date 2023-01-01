@@ -1,6 +1,4 @@
-var t = "[HFL] Season 13 League Game",
-// Remove the "//" before PASSWORD to enable a password
-//   PASSWORD = "trash3", 
+var t = "HAXFOOTBALL",
   MAX_PLAYERS = 15,
   redScore = 0,
   blueScore = 0,
@@ -152,7 +150,8 @@ var K, Y, j, _, X, Z, q, z, V, J, $, tt, nt, et = new Date,
   intTackle = 0,
   intTime = 0,
   pn = HBInit({
-    password: PASSWORD,
+    // Remove the "//" before password to set a password
+    // password: "trash2",
     roomName: r,
     maxPlayers: MAX_PLAYERS,
     public: true,
