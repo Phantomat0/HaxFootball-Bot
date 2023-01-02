@@ -220,6 +220,8 @@ const gameCommandsMap = new Map<string, GameCommand>([
             `There is already a two point attempt in progress`,
             true
           );
+
+        Room.game.deleteState("ballBeingScored");
         Room.game.setState("twoPointAttempt");
 
         Chat.send(`${ICONS.BrownCircle} Two Point Attempt!`);
