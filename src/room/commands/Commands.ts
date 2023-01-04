@@ -1,33 +1,49 @@
 import CommandMessage from "../classes/CommandMessage";
 import Player, { PlayerAdminLevel } from "../classes/Player";
-import { PlayableTeamId } from "../HBClient";
 import Chat from "../roomStructures/Chat";
 import Ball from "../roomStructures/Ball";
 import PreSetCalculators from "../structures/PreSetCalculators";
-import Collection from "../utils/Collection";
 import { getTeamStringFromId } from "../utils/haxUtils";
 import ICONS from "../utils/Icons";
 import { getRandomInt } from "../utils/utils";
-import CommandHandler, { CommandError } from "./CommandHandler";
+import { CommandError } from "./CommandHandler";
 import Room from "../roomStructures/Room";
 import { TEAMS } from "../utils/types";
 import client from "..";
+import ParamParser, { z } from "./ParamParser";
 
 export type CommandName = string;
 
-const TEAM_NAME_PARAM = ["blue", "b", "red", "r"] as const;
+export interface Command<T extends any> {
+  name: string;
+  alias: string[];
+  description: string;
+  usage: string[];
+  showCommand: boolean;
+  permissions: CommandPermissions;
+  params: T;
+  run(obj: {
+    cmd: CommandMessage;
+    input: {
+      [I in keyof T]: T[I] extends ParamParser<unknown, false>
+        ? ReturnType<T[I]["parse"]>
+        : T[I] extends ParamParser<unknown, true>
+        ? ReturnType<T[I]["parse"]>
+        : never;
+    };
+  }): Promise<void>;
+}
 
-const getTeamIdFromTeamNameParam = (param: typeof TEAM_NAME_PARAM[number]) => {
-  if (param === "b" || param === "blue") return TEAMS.BLUE as PlayableTeamId;
-  return TEAMS.RED as PlayableTeamId;
-};
-
-export type CommandParamType =
-  | "PLAYER"
-  | "PLAYER_OR_USER"
-  | "NUMBER"
-  | "CUSTOM"
-  | readonly string[];
+export interface CommandObj {
+  name: string;
+  alias: string[];
+  description: string;
+  usage: string[];
+  showCommand: boolean;
+  permissions: CommandPermissions;
+  params: ParamParser<unknown>[];
+  run(obj: { cmd: CommandMessage; input: any[] }): Promise<void>;
+}
 
 export interface CommandPermissions {
   /**
@@ -48,116 +64,30 @@ export interface CommandPermissions {
   notDuringPlay: boolean;
 }
 
-export interface CommandParams {
-  skipMaxCheck?: boolean;
-  min: number;
-  max: number;
-  types: CommandParamType[];
-}
+const asCommandArray = <T extends any[]>(
+  ...arr: { [I in keyof T]: Command<T[I]> }
+) => arr;
 
-export interface Command {
-  name: string;
-  alias: string[];
-  description: string;
-  usage: string[];
-  showCommand: boolean;
-  permissions: CommandPermissions;
-  params: CommandParams;
-  run(cmd: CommandMessage): Promise<void>;
-}
-
-export function getCommandsAccessibleToPlayer(player: Player) {
-  const commands = commandsMap.find();
-
-  return commands.filter((cmd) => cmd.permissions.level <= player.adminLevel);
-}
-
-export function getCommandByNameOrAlias(cmdName: string) {
-  const commandByName = commandsMap.get(cmdName) ?? null;
-
-  const commandByAlias = commandsMap.findOne({
-    alias: [cmdName],
-  });
-
-  return commandByName ?? commandByAlias ?? null;
-}
-
-const commandsMap = new Collection<CommandName, Command>([
-  [
-    "help",
-    {
-      name: "help",
-      alias: [],
-      description:
-        "Returns the list of room commands or returns the description of a given command",
-      usage: ["help [commandName]"],
-      showCommand: false,
-      permissions: {
-        level: 0,
-        muted: true,
-        game: false,
-        notDuringPlay: false,
-      },
-      params: {
-        min: 0,
-        max: 1,
-        types: ["CUSTOM"],
-      },
-      async run(cmd: CommandMessage) {
-        if (cmd.hasNoParams()) {
-          // Output the name of all the commands the player can use
-          const commandsAvail = getCommandsAccessibleToPlayer(cmd.author);
-
-          const cmdsAsString: string = commandsAvail
-            .map((cmd) => cmd.name)
-            .join(", ");
-
-          cmd.reply(`Commands: ${cmdsAsString}`);
-          return;
-        }
-
-        // Show info about a particular command
-        const cmdObj = getCommandByNameOrAlias(cmd.commandParamsStr);
-
-        if (!cmdObj)
-          throw new CommandError(
-            `Command (${cmd.commandParamsStr}) does not exist`
-          );
-
-        const cmdUsage =
-          cmdObj.usage.length === 0
-            ? `${cmdObj.name}`
-            : cmdObj.usage.join(`, ${Chat.PREFIX.COMMAND}`);
-
-        const cmdAlias =
-          cmdObj.alias.length === 0 ? "" : ` [${cmdObj.alias.join(", ")}] `;
-
-        cmd.reply(
-          `${cmdObj.name}${cmdAlias}: ${cmdObj.description} | ${Chat.PREFIX.COMMAND}${cmdUsage}`
-        );
-      },
+const commands = asCommandArray(
+  {
+    name: "help",
+    alias: [],
+    description:
+      "Returns the list of room commands or returns the description of a given command",
+    usage: [],
+    showCommand: false,
+    permissions: {
+      level: 0,
+      muted: true,
+      game: false,
+      notDuringPlay: false,
     },
-  ],
-  [
-    "commands",
-    {
-      name: "commands",
-      alias: ["cmds"],
-      description: "Returns the list of room commands",
-      usage: [],
-      showCommand: false,
-      permissions: {
-        level: 0,
-        muted: true,
-        game: false,
-        notDuringPlay: false,
-      },
-      params: {
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
+    params: [z.any("commandName").optional()] as const,
+    async run({ cmd, input }) {
+      const [commandName] = input;
+
+      if (!commandName) {
+        // Output the name of all the commands the player can use
         const commandsAvail = getCommandsAccessibleToPlayer(cmd.author);
 
         const cmdsAsString: string = commandsAvail
@@ -165,802 +95,662 @@ const commandsMap = new Collection<CommandName, Command>([
           .join(", ");
 
         cmd.reply(`Commands: ${cmdsAsString}`);
-      },
+        return;
+      }
+
+      // Show info about a particular command
+      const cmdObj = getCommandByNameOrAlias(commandName);
+
+      if (!cmdObj)
+        throw new CommandError(`Command (${commandName}) does not exist`);
+
+      const cmdUsage =
+        cmdObj.usage.length === 0
+          ? `${cmdObj.name}`
+          : cmdObj.usage.join(`, ${Chat.PREFIX.COMMAND}`);
+
+      const cmdAlias =
+        cmdObj.alias.length === 0 ? "" : ` [${cmdObj.alias.join(", ")}] `;
+
+      cmd.reply(
+        `${cmdObj.name}${cmdAlias}: ${cmdObj.description} | ${Chat.PREFIX.COMMAND}${cmdUsage}`
+      );
     },
-  ],
-  [
-    "info",
-    {
-      name: "info",
-      alias: [],
-      description: "Returns helpful command info",
-      usage: [],
-      showCommand: false,
-      permissions: {
-        level: 0,
-        muted: true,
-        game: false,
-        notDuringPlay: false,
-      },
-      params: {
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
-        cmd.reply(
-          `setfg | Attempt a Field Goal ${ICONS.SmallBlackSquare} sette | Sets you as the tight end ${ICONS.SmallBlackSquare} setonside | Attempt an onside kick ${ICONS.SmallBlackSquare}\nto | Calls a timeout ${ICONS.SmallBlackSquare} cp | Curved pass ${ICONS.SmallBlackSquare} set2 | Attempt a two point conversion\n!setlos (yard) | Sets the line of scrimmage position\n!setdown (down) (yard) | Sets the down and distance \n!setscore (team) (score) | Sets the score of a team\n!setplayers | Sets the players in front of ball\n!dd | Returns the down and distance \n!swapo | Swaps offense and defense`
-        );
-      },
+  },
+  {
+    name: "commands",
+    alias: ["cmds"],
+    description: "Returns the list of room commands",
+    usage: [],
+    showCommand: false,
+    permissions: {
+      level: 0,
+      muted: true,
+      game: false,
+      notDuringPlay: false,
     },
-  ],
-  [
-    "discord",
-    {
-      name: "discord",
-      alias: [],
-      description: "Returns the discord server link",
-      usage: [],
-      showCommand: false,
-      permissions: {
-        level: 0,
-        muted: true,
-        game: false,
-        notDuringPlay: false,
-      },
-      params: {
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
-        cmd.reply(`Discord: discord.gg/VdrD2p7`);
-      },
+    params: [] as const,
+    async run({ cmd, input }) {
+      const commandsAvail = getCommandsAccessibleToPlayer(cmd.author);
+
+      const cmdsAsString: string = commandsAvail
+        .map((cmd) => cmd.name)
+        .join(", ");
+
+      cmd.reply(`Commands: ${cmdsAsString}`);
     },
-  ],
-  [
-    "rules",
-    {
-      name: "rules",
-      alias: [],
-      description: "Returns the rules of the game",
-      usage: [],
-      showCommand: false,
-      permissions: {
-        level: 0,
-        muted: true,
-        game: false,
-        notDuringPlay: false,
-      },
-      params: {
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
-        cmd.reply(
-          `Rules of the game\n${ICONS.SmallBlackSquare} Offense | One player is a passer, while the rest of the team runs to get open for a catch. Catch the ball by touching it after a pass and run to the opposing team's goal.\n${ICONS.SmallBlackSquare} Defense | Guard the receivers and prevent them from catching the ball. Defense has to be behind the blue line at all times.`
-        );
-      },
+  },
+  {
+    name: "info",
+    alias: [],
+    description: "Returns helpful command info",
+    usage: [],
+    showCommand: false,
+    permissions: {
+      level: 0,
+      muted: true,
+      game: false,
+      notDuringPlay: false,
     },
-  ],
-  [
-    "cre",
-    {
-      name: "cre",
-      alias: [],
-      description: "Explains crowding",
-      usage: [],
-      showCommand: false,
-      permissions: {
-        level: 1,
-        muted: true,
-        game: false,
-        notDuringPlay: false,
-      },
-      params: {
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
-        cmd.announce(
-          `You cannot stand in front of the blue line for more than 3 seconds without an offensive player being present.`
-        );
-      },
+    params: [] as const,
+    async run({ cmd, input }) {
+      cmd.reply(
+        `setfg | Attempt a Field Goal ${ICONS.SmallBlackSquare} sette | Sets you as the tight end ${ICONS.SmallBlackSquare} setonside | Attempt an onside kick ${ICONS.SmallBlackSquare}\nto | Calls a timeout ${ICONS.SmallBlackSquare} cp | Curved pass ${ICONS.SmallBlackSquare} set2 | Attempt a two point conversion\n!setlos (yard) | Sets the line of scrimmage position\n!setdown (down) (yard) | Sets the down and distance \n!setscore (team) (score) | Sets the score of a team\n!setplayers | Sets the players in front of ball\n!dd | Returns the down and distance \n!swapo | Swaps offense and defense`
+      );
     },
-  ],
-  [
-    "stats",
-    {
-      name: "stats",
-      alias: [],
-      description: "Returns your stats or the stats of another player",
-      usage: ["stats", "stats tda"],
-      showCommand: false,
-      permissions: {
-        level: 0,
-        muted: true,
-        game: false,
-        notDuringPlay: false,
-      },
-      params: {
-        skipMaxCheck: true,
-        min: 0,
-        max: 1,
-        types: ["PLAYER"],
-      },
-      async run(cmd: CommandMessage) {
-        if (Room.game === null) throw new CommandError("No game in progress");
+  },
+  {
+    name: "rules",
+    alias: [],
+    description: "Returns the rules of the game",
+    usage: [],
+    showCommand: false,
+    permissions: {
+      level: 0,
+      muted: true,
+      game: false,
+      notDuringPlay: false,
+    },
+    params: [] as const,
+    async run({ cmd, input }) {
+      cmd.reply(
+        `Rules of the game\n${ICONS.SmallBlackSquare} Offense | One player is a passer, while the rest of the team runs to get open for a catch. Catch the ball by touching it after a pass and run to the opposing team's goal.\n${ICONS.SmallBlackSquare} Defense | Guard the receivers and prevent them from catching the ball. Defense has to be behind the blue line at all times.`
+      );
+    },
+  },
+  {
+    name: "cre",
+    alias: [],
+    description: "Explains crowding",
+    usage: [],
+    showCommand: false,
+    permissions: {
+      level: 1,
+      muted: true,
+      game: false,
+      notDuringPlay: false,
+    },
+    params: {
+      min: 0,
+      max: 0,
+      types: [],
+    },
+    async run({ cmd, input }) {
+      cmd.announce(
+        `You cannot stand in front of the blue line for more than 3 seconds without an offensive player being present.`
+      );
+    },
+  },
+  {
+    name: "stats",
+    alias: [],
+    description: "Returns your stats or the stats of another player",
+    usage: ["stats", "stats tda"],
+    showCommand: false,
+    permissions: {
+      level: 0,
+      muted: true,
+      game: false,
+      notDuringPlay: false,
+    },
+    params: [z.player().optional()] as const,
+    async run({ cmd, input }) {
+      if (Room.game === null) throw new CommandError("No game in progress");
 
-        // If no params get the stats of the player using the command
-        if (cmd.hasNoParams()) {
-          const playerRecord = Room.game.players.records.get(cmd.author.id);
+      const [player] = input;
 
-          const playerStats = Room.game.stats.statsCollection.get(
-            playerRecord?.recordId ?? 0
-          );
+      // If no params get the stats of the player using the command
+      if (!player) {
+        const playerRecord = Room.game.players.records.findOne({
+          auth: cmd.author.auth,
+        });
 
-          if (!playerRecord || !playerStats)
-            throw new CommandError(`You do not have any stats yet`);
-
-          const playerStatsString = playerStats.getStatsStringNormal();
-
-          cmd.reply(`${playerStatsString}`, {
-            autoSize: false,
-          });
-          return;
-        }
-
-        // Otherwise get the stats of a selected player
-
-        const playerToGetStatsOf = CommandHandler.getPlayerByNameAlways(
-          cmd.commandParamsStr
-        );
-
-        const playerRecord = Room.game.players.records.get(
-          playerToGetStatsOf.id
-        );
-
-        const playersStatProfile = Room.game.stats.statsCollection.get(
+        const playerStats = Room.game.stats.statsCollection.get(
           playerRecord?.recordId ?? 0
         );
 
-        if (!playersStatProfile || !playerRecord)
-          throw new CommandError(
-            `Player ${playerToGetStatsOf.shortName} does not have any stats yet`
-          );
+        if (!playerRecord || !playerStats)
+          throw new CommandError(`You do not have any stats yet`);
 
-        const playerStats = playersStatProfile.getStatsStringNormal();
+        const playerStatsString = playerStats.getStatsStringNormal();
 
-        cmd.reply(`Stats ${playerToGetStatsOf.shortName}\n${playerStats}`, {
+        cmd.reply(`${playerStatsString}`, {
           autoSize: false,
         });
-      },
-    },
-  ],
-  [
-    "score",
-    {
-      name: "score",
-      alias: ["sc"],
-      description: "Returns the score of the current game",
-      usage: [],
-      showCommand: false,
-      permissions: {
-        level: 0,
-        muted: true,
-        game: true,
-        notDuringPlay: false,
-      },
-      params: {
-        skipMaxCheck: false,
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
-        const scoreboardStr = Room.game.getScoreBoardStr();
-        cmd.reply(scoreboardStr);
-      },
-    },
-  ],
-  [
-    "setscore",
-    {
-      name: "setscore",
-      alias: ["ss"],
-      description: "Sets the score for a team",
-      usage: ["setscore blue 7", "setscore r 10"],
-      showCommand: true,
-      permissions: {
-        level: 1,
-        muted: true,
-        game: true,
-        notDuringPlay: false,
-      },
-      params: {
-        skipMaxCheck: false,
-        min: 2,
-        max: 2,
-        types: [TEAM_NAME_PARAM, "NUMBER"],
-      },
-      async run(cmd: CommandMessage) {
-        const [team, score] = cmd.commandParamsArray;
+        return;
+      }
 
-        const scoreParsed = Math.round(parseInt(score));
+      const playerRecord = Room.game.players.records.findOne({
+        auth: player.auth,
+      });
 
-        if (scoreParsed > 100) throw new CommandError(`Score exceeds limit`);
+      const playersStatProfile = Room.game.stats.statsCollection.get(
+        playerRecord?.recordId ?? 0
+      );
 
-        // If negative
-        if (scoreParsed < 0)
-          throw new CommandError("Score must be a positive integer");
-
-        // Figure out which team to update
-
-        const teamToUpdate = getTeamIdFromTeamNameParam(
-          team as typeof TEAM_NAME_PARAM[number]
+      if (!playersStatProfile || !playerRecord)
+        throw new CommandError(
+          `Player ${player.shortName} does not have any stats yet`
         );
 
-        Room.game.setScore(teamToUpdate, scoreParsed);
+      const playerStats = playersStatProfile.getStatsStringNormal();
 
-        cmd.announce(`Score updated by ${cmd.author.shortName}`);
-        Room.game.sendScoreBoard();
-      },
+      cmd.reply(`Stats ${player.shortName}\n${playerStats}`, {
+        autoSize: false,
+      });
     },
-  ],
-  [
-    "setlos",
-    {
-      name: "setlos",
-      alias: ["sl"],
-      description: "Sets the line of scrimmage position",
-      usage: ["setlos blue 7", "sl r 38"],
-      showCommand: true,
-      permissions: {
-        level: 1,
-        muted: true,
-        game: true,
-        notDuringPlay: true,
-      },
-      params: {
-        skipMaxCheck: false,
-        min: 2,
-        max: 2,
-        types: [TEAM_NAME_PARAM, "NUMBER"],
-      },
-      async run(cmd: CommandMessage) {
-        const [team, yardage] = cmd.commandParamsArray;
-
-        const yardageParsed = Math.round(parseInt(yardage));
-
-        if (yardageParsed > 50 || yardageParsed < 1)
-          throw new CommandError(`Yardage must be a number between 1 and 50`);
-
-        // Figure out which team to update
-        const teamHalf = getTeamIdFromTeamNameParam(
-          team as typeof TEAM_NAME_PARAM[number]
-        );
-
-        const yardAsDistance = PreSetCalculators.getPositionOfTeamYard(
-          yardageParsed,
-          teamHalf
-        );
-
-        Room.game.down.setLOS(yardAsDistance);
-        Room.game.down.setBallAndFieldMarkersPlayEnd();
-        Room.game.down.hardSetPlayers();
-
-        cmd.announce(`LOS moved by ${cmd.author.shortName}`);
-        Room.game.down.sendDownAndDistance();
-      },
+  },
+  {
+    name: "score",
+    alias: ["sc"],
+    description: "Returns the score of the current game",
+    usage: [],
+    showCommand: false,
+    permissions: {
+      level: 0,
+      muted: true,
+      game: true,
+      notDuringPlay: false,
     },
-  ],
-  [
-    "revert",
-    {
-      name: "revert",
-      alias: ["rv"],
-      description: "Reverts the LOS, down, and distance",
-      usage: [],
-      showCommand: true,
-      permissions: {
-        level: 1,
-        muted: true,
-        game: true,
-        notDuringPlay: true,
-      },
-      params: {
-        skipMaxCheck: false,
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
-        const { down, losX, yardsToGet } = Room.game.down.previousDown;
-
-        Room.game.down.setDown(down);
-        Room.game.down.setYardsToGet(yardsToGet);
-
-        Room.game.down.setLOS(losX);
-        Room.game.down.setBallAndFieldMarkersPlayEnd();
-        Room.game.down.hardSetPlayers();
-
-        cmd.announce(`Play reverted by ${cmd.author.shortName}`);
-        Room.game.down.sendDownAndDistance();
-      },
+    params: [] as const,
+    async run({ cmd, input }) {
+      const scoreboardStr = Room.game.getScoreBoardStr();
+      cmd.reply(scoreboardStr);
     },
-  ],
-  [
-    "setplayers",
-    {
-      name: "setplayers",
-      alias: ["setp", "gfi"],
-      description: "Sets the players in front of the LOS",
-      usage: [],
-      showCommand: true,
-      permissions: {
-        level: 0,
-        muted: true,
-        game: true,
-        notDuringPlay: true,
-      },
-      params: {
-        skipMaxCheck: false,
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
-        Room.game.down.hardSetPlayers();
-        cmd.replySuccess("Players set!");
-      },
+  },
+  {
+    name: "setscore",
+    alias: ["ss"],
+    description: "Sets the score for a team",
+    usage: ["setscore blue 7", "ss r 10"],
+    showCommand: true,
+    permissions: {
+      level: 1,
+      muted: true,
+      game: true,
+      notDuringPlay: false,
     },
-  ],
-  [
-    "setdown",
-    {
-      name: "setdown",
-      alias: ["sd"],
-      description: "Sets the down and distance",
-      usage: ["setdown 2 15", "sd 4"],
-      showCommand: true,
-      permissions: {
-        level: 1,
-        muted: true,
-        game: true,
-        notDuringPlay: true,
-      },
-      params: {
-        skipMaxCheck: false,
-        min: 1,
-        max: 2,
-        types: ["NUMBER", "NUMBER"],
-      },
-      async run(cmd: CommandMessage) {
-        const [down, yardDistance = "USE CURRENT DISTANCE"] =
-          cmd.commandParamsArray;
+    params: [z.team(), z.integer("Score").positive().max(100)] as const,
+    async run({ cmd, input }) {
+      const [team, score] = input;
 
-        const downParsed = Math.round(parseInt(down));
-        const yardDistanceParsed =
-          yardDistance === "USE CURRENT DISTANCE"
-            ? Room.game.down.getYardsToGet()
-            : Math.round(parseInt(yardDistance));
+      Room.game.setScore(team.id, score);
 
-        if (downParsed > 4 || downParsed < 1)
-          throw new CommandError(`Down must be a number between 1 and 4`);
-
-        if (yardDistanceParsed > 99 || yardDistanceParsed < 1)
-          throw new CommandError(`Distance must be a number between 1 and 99`);
-
-        Room.game.down.setDown(downParsed as 1 | 2 | 3 | 4);
-        Room.game.down.setYardsToGet(yardDistanceParsed);
-        Room.game.down.setBallAndFieldMarkersPlayEnd();
-
-        cmd.announce(`Down and Distance updated by ${cmd.author.shortName}`);
-        Room.game.down.sendDownAndDistance();
-      },
+      cmd.announce(
+        `Score updated [${team.name.toUpperCase()}] by ${cmd.author.shortName}`
+      );
+      Room.game.sendScoreBoard();
     },
-  ],
-  [
-    "swap",
-    {
-      name: "swap",
-      alias: [],
-      description: "Swaps red and blue",
-      usage: [],
-      showCommand: true,
-      permissions: {
-        level: 1,
-        muted: true,
-        game: false,
-        notDuringPlay: true,
-      },
-      params: {
-        skipMaxCheck: false,
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
-        const redPlayers = Room.players.getRed();
-
-        const bluePlayers = Room.players.getBlue();
-
-        redPlayers.forEach((player) => {
-          player.setTeam(TEAMS.BLUE);
-        });
-
-        bluePlayers.forEach((player) => {
-          player.setTeam(TEAMS.RED);
-        });
-
-        cmd.announce("Teams swapped");
-      },
+  },
+  {
+    name: "setlos",
+    alias: ["sl"],
+    description: "Sets the line of scrimmage position",
+    usage: ["setlos blue 7", "sl r 38"],
+    showCommand: true,
+    permissions: {
+      level: 1,
+      muted: true,
+      game: true,
+      notDuringPlay: true,
     },
-  ],
-  [
-    "swapo",
-    {
-      name: "swapo",
-      alias: [],
-      description: "Swaps offense and defense",
-      usage: [],
-      showCommand: true,
-      permissions: {
-        level: 1,
-        muted: false,
-        game: false,
-        notDuringPlay: true,
-      },
-      params: {
-        skipMaxCheck: false,
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
-        Room.game.swapOffenseAndUpdatePlayers();
-        Room.game.down.setBallAndFieldMarkersPlayEnd();
+    params: [z.team(), z.integer("Yardage").min(1).max(50)] as const,
+    async run({ cmd, input }) {
+      const [team, yardage] = input;
 
-        const newOffense = Room.game.offenseTeamId;
+      const yardAsDistance = PreSetCalculators.getPositionOfTeamYard(
+        yardage,
+        team.id
+      );
 
-        const offenseString = getTeamStringFromId(newOffense);
+      Room.game.down.setLOS(yardAsDistance);
+      Room.game.down.setBallAndFieldMarkersPlayEnd();
+      Room.game.down.hardSetPlayers();
 
-        cmd.announce(
-          `Offense swapped by ${cmd.author.shortName}, ${offenseString} is now on offense`
-        );
-        Room.game.down.sendDownAndDistance();
-      },
+      cmd.announce(`LOS moved by ${cmd.author.shortName}`);
+      Room.game.down.sendDownAndDistance();
     },
-  ],
-  [
-    "dd",
-    {
-      name: "dd",
-      alias: [],
-      description: "Shows the down and distance",
-      usage: [],
-      showCommand: true,
-      permissions: {
-        level: 0,
-        muted: true,
-        game: true,
-        notDuringPlay: false,
-      },
-      params: {
-        skipMaxCheck: false,
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
-        const downAndDistanceStr = Room.game.down.getDownAndDistanceString();
-
-        cmd.reply(downAndDistanceStr);
-      },
+  },
+  {
+    name: "revert",
+    alias: ["rv"],
+    description: "Reverts the LOS, down, and distance",
+    usage: [],
+    showCommand: true,
+    permissions: {
+      level: 1,
+      muted: true,
+      game: true,
+      notDuringPlay: true,
     },
-  ],
-  [
-    "release",
-    {
-      name: "release",
-      alias: [],
-      description: "Releases the ball",
-      usage: [],
-      showCommand: true,
-      permissions: {
-        level: 1,
-        muted: true,
-        game: true,
-        notDuringPlay: false,
-      },
-      params: {
-        skipMaxCheck: false,
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
-        Ball.release();
-        cmd.replySuccess("Ball released");
-      },
+    params: [] as const,
+    async run({ cmd, input }) {
+      const { down, losX, yardsToGet } = Room.game.down.previousDown;
+
+      Room.game.down.setDown(down);
+      Room.game.down.setYardsToGet(yardsToGet);
+
+      Room.game.down.setLOS(losX);
+      Room.game.down.setBallAndFieldMarkersPlayEnd();
+      Room.game.down.hardSetPlayers();
+
+      cmd.announce(`Play reverted by ${cmd.author.shortName}`);
+      Room.game.down.sendDownAndDistance();
     },
-  ],
-  [
-    "reset",
-    {
-      name: "reset",
-      alias: [],
-      description: "Resets all variables and removes the current play",
-      usage: [],
-      showCommand: true,
-      permissions: {
-        level: 1,
-        muted: true,
-        game: true,
-        notDuringPlay: false,
-      },
-      params: {
-        skipMaxCheck: false,
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
-        Room.game.down.hardReset();
-        Chat.sendAnnouncement(`Reset ran by ${cmd.author.shortName}`);
-      },
+  },
+  {
+    name: "setplayers",
+    alias: ["setp", "gfi"],
+    description: "Sets the players infront of the LOS",
+    usage: [],
+    showCommand: true,
+    permissions: {
+      level: 0,
+      muted: true,
+      game: true,
+      notDuringPlay: true,
     },
-  ],
-  [
-    "mute",
-    {
-      name: "mute",
-      alias: ["m"],
-      description: "Mutes a player",
-      usage: ["mute [name]"],
-      showCommand: true,
-      permissions: {
-        level: 1,
-        muted: true,
-        game: false,
-        notDuringPlay: false,
-      },
-      params: {
-        min: 1,
-        max: 1,
-        types: ["PLAYER"],
-      },
-      run: async function (cmd: CommandMessage) {
-        const player = CommandHandler.getPlayerByNameAlways(
-          cmd.commandParamsStr
-        );
-
-        if (player.isMuted)
-          throw new CommandError(`${player.shortName} is already muted`);
-
-        if (!cmd.author.canModerate(player))
-          throw new CommandError("You cannot mute an admin");
-
-        Room.players.muted.addMute(player);
-
-        cmd.announce(
-          `${player.shortName} has been muted by ${cmd.author.shortName}`,
-          { icon: ICONS.Mute }
-        );
-      },
+    params: [] as const,
+    async run({ cmd, input }) {
+      Room.game.down.hardSetPlayers();
+      cmd.replySuccess("Players set!");
     },
-  ],
-  [
-    "unmute",
-    {
-      name: "unmute",
-      alias: ["um"],
-      description: "Unmutes a player",
-      usage: ["unmute [name]"],
-      showCommand: true,
-      permissions: {
-        level: 1,
-        muted: true,
-        game: false,
-        notDuringPlay: false,
-      },
-      params: {
-        min: 1,
-        max: 1,
-        types: ["PLAYER"],
-      },
-      run: async function (cmd: CommandMessage) {
-        const player = CommandHandler.getPlayerByNameAlways(
-          cmd.commandParamsStr
-        );
-
-        if (player.isMuted === false)
-          throw new CommandError(`Player ${player.shortName} is not muted`);
-
-        Room.players.muted.removeMute(player.auth);
-
-        cmd.announce(`${player.shortName} has been unmuted`);
-      },
+  },
+  {
+    name: "setdown",
+    alias: ["sd"],
+    description: "Sets the down and distance",
+    usage: ["setdown 2 15", "sd 4"],
+    showCommand: true,
+    permissions: {
+      level: 1,
+      muted: true,
+      game: true,
+      notDuringPlay: true,
     },
-  ],
-  [
-    "flip",
-    {
-      name: "flip",
-      alias: ["coinflip", "cointoss"],
-      description: "Flips a coin",
-      usage: [],
-      showCommand: true,
-      permissions: {
-        level: 0,
-        muted: false,
-        game: false,
-        notDuringPlay: false,
-      },
-      params: {
-        skipMaxCheck: false,
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
-        const face = getRandomInt(100) > 50 ? "Heads" : "Tails";
-        Chat.sendAnnouncement(`Coin Flip: ${face}`);
-      },
-    },
-  ],
-  [
-    "status",
-    {
-      name: "status",
-      alias: ["botstatus"],
-      description: "Returns the status of the bot, either on or off",
-      usage: [],
-      showCommand: true,
-      permissions: {
-        level: 0,
-        muted: false,
-        game: false,
-        notDuringPlay: false,
-      },
-      params: {
-        skipMaxCheck: false,
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
-        const { isBotOn } = Room;
+    params: [
+      z.integer("Down").min(1).max(4),
+      z.integer("Distance").min(1).max(99).optional(),
+    ] as const,
+    async run({ cmd, input }) {
+      const [down, yardDistance] = input;
 
-        if (isBotOn)
-          return cmd.reply(`${ICONS.GreenSquare} The Bot is currently ON`);
-        cmd.reply(`${ICONS.RedSquare} The Bot is currently OFF`);
-      },
-    },
-  ],
-  [
-    "bot",
-    {
-      name: "bot",
-      alias: [],
-      description: "Turns the bot on or off",
-      usage: ["bot on", "bot off"],
-      showCommand: true,
-      permissions: {
-        level: 1,
-        muted: false,
-        game: false,
-        notDuringPlay: false,
-      },
-      params: {
-        skipMaxCheck: false,
-        min: 1,
-        max: 1,
-        types: [["on", "off"]],
-      },
-      async run(cmd: CommandMessage) {
-        const [onOrOff] = cmd.commandParamsArray;
+      // If yard distance is supplied, use it, otherwise use the current yards to get
+      const yardDistanceParsed = yardDistance
+        ? yardDistance
+        : Room.game.down.getYardsToGet();
 
-        const { isBotOn } = Room;
+      Room.game.down.setDown(down as 1 | 2 | 3 | 4);
+      Room.game.down.setYardsToGet(yardDistanceParsed);
+      Room.game.down.setBallAndFieldMarkersPlayEnd();
 
-        if (onOrOff === "on") {
-          if (isBotOn) return cmd.reply("The bot is already ON");
-          client.stopGame();
-          Room.turnBotOn();
-          return cmd.replySuccess("The Bot has been turned ON");
-        } else {
-          if (!isBotOn) return cmd.reply("The bot is already OFF");
-          client.stopGame();
-          Room.turnBotOff();
-          return cmd.replySuccess("The Bot has been turned OFF");
-        }
-      },
+      cmd.announce(`Down and Distance updated by ${cmd.author.shortName}`);
+      Room.game.down.sendDownAndDistance();
     },
-  ],
-  [
-    "clearbans",
-    {
-      name: "clearbans",
-      alias: [],
-      description: "Clears bans",
-      usage: [],
-      showCommand: true,
-      permissions: {
-        level: 1,
-        muted: false,
-        game: false,
-        notDuringPlay: false,
-      },
-      params: {
-        skipMaxCheck: false,
-        min: 0,
-        max: 0,
-        types: [],
-      },
-      async run(cmd: CommandMessage) {
-        client.clearBans();
-        cmd.replySuccess("Bans have been cleared!");
-      },
+  },
+  {
+    name: "swap",
+    alias: [],
+    description: "Swaps red and blue",
+    usage: [],
+    showCommand: true,
+    permissions: {
+      level: 1,
+      muted: true,
+      game: false,
+      notDuringPlay: true,
     },
-  ],
-  [
-    "testingid",
-    {
-      name: "testingid",
-      alias: [],
-      description: "Sets the testing ID for debug chat",
-      usage: [],
-      showCommand: false,
-      permissions: {
-        level: 3,
-        muted: true,
-        game: false,
-        notDuringPlay: false,
-      },
-      params: {
-        min: 1,
-        max: 1,
-        types: ["CUSTOM"],
-      },
-      async run(cmd: CommandMessage) {
-        console.log(Room);
-        Room.setPlayerTestingId(parseInt(cmd.commandParamsStr));
-        cmd.replySuccess(`Testing id set`);
-      },
-    },
-  ],
-  [
-    "admin",
-    {
-      name: "admin",
-      alias: [],
-      description: "Sets the player as a Bot Admin using an admin code",
-      usage: ["admin [code]"],
-      showCommand: false,
-      permissions: {
-        level: 0,
-        muted: true,
-        game: false,
-        notDuringPlay: false,
-      },
-      params: {
-        min: 1,
-        max: 1,
-        types: ["CUSTOM"],
-      },
-      async run(cmd: CommandMessage) {
-        const adminCode = cmd.commandParamsStr;
+    params: [] as const,
+    async run({ cmd, input }) {
+      const redPlayers = Room.players.getRed();
 
-        if (adminCode !== Room.sessionId)
-          throw new CommandError("Invalid Admin Code");
+      const bluePlayers = Room.players.getBlue();
 
-        cmd.author.setAdminLevel(3).setAdmin(true);
-        cmd.replySuccess(`You are now the Bot Admin`, { color: 0xffd726 });
-      },
+      redPlayers.forEach((player) => {
+        player.setTeam(TEAMS.BLUE);
+      });
+
+      bluePlayers.forEach((player) => {
+        player.setTeam(TEAMS.RED);
+      });
+
+      cmd.announce("Teams swapped");
     },
-  ],
-]);
+  },
+  {
+    name: "swapo",
+    alias: [],
+    description: "Swaps offense and defense",
+    usage: [],
+    showCommand: true,
+    permissions: {
+      level: 1,
+      muted: false,
+      game: false,
+      notDuringPlay: true,
+    },
+    params: [] as const,
+    async run({ cmd, input }) {
+      Room.game.swapOffenseAndUpdatePlayers();
+      Room.game.down.setBallAndFieldMarkersPlayEnd();
 
-export default commandsMap;
+      const newOffense = Room.game.offenseTeamId;
+
+      const offenseString = getTeamStringFromId(newOffense);
+
+      cmd.announce(
+        `Offense swapped by ${cmd.author.shortName}, ${offenseString} is now on offense`
+      );
+      Room.game.down.sendDownAndDistance();
+    },
+  },
+  {
+    name: "dd",
+    alias: [],
+    description: "Shows the down and distance",
+    usage: [],
+    showCommand: true,
+    permissions: {
+      level: 0,
+      muted: true,
+      game: true,
+      notDuringPlay: false,
+    },
+    params: [] as const,
+    async run({ cmd, input }) {
+      const downAndDistanceStr = Room.game.down.getDownAndDistanceString();
+
+      cmd.reply(downAndDistanceStr);
+    },
+  },
+  {
+    name: "release",
+    alias: [],
+    description: "Releases the ball",
+    usage: [],
+    showCommand: true,
+    permissions: {
+      level: 1,
+      muted: true,
+      game: true,
+      notDuringPlay: false,
+    },
+    params: [] as const,
+    async run({ cmd, input }) {
+      Ball.release();
+      cmd.replySuccess("Ball released");
+    },
+  },
+  {
+    name: "mute",
+    alias: ["m"],
+    description: "Mutes a player",
+    usage: ["mute [name]"],
+    showCommand: true,
+    permissions: {
+      level: 1,
+      muted: true,
+      game: false,
+      notDuringPlay: false,
+    },
+    params: [z.player()] as const,
+    async run({ cmd, input }) {
+      const [player] = input;
+
+      if (player.isMuted)
+        throw new CommandError(`${player.shortName} is already muted`);
+
+      if (!cmd.author.canModerate(player))
+        throw new CommandError("You cannot mute an admin");
+
+      Room.players.muted.addMute(player);
+
+      cmd.announce(
+        `${player.shortName} has been muted by ${cmd.author.shortName}`,
+        { icon: ICONS.Mute }
+      );
+    },
+  },
+  {
+    name: "unmute",
+    alias: ["um"],
+    description: "Unmutes a player",
+    usage: ["unmute [name]"],
+    showCommand: true,
+    permissions: {
+      level: 1,
+      muted: true,
+      game: false,
+      notDuringPlay: false,
+    },
+    params: [z.player()] as const,
+    async run({ cmd, input }) {
+      const [player] = input;
+
+      if (player.isMuted === false)
+        throw new CommandError(`Player ${player.shortName} is not muted`);
+
+      Room.players.muted.removeMute(player.auth);
+
+      cmd.announce(`${player.shortName} has been unmuted`);
+    },
+  },
+  {
+    name: "silence",
+    alias: [],
+    description: "Mutes messages from non admins, does not effect team chat",
+    usage: [],
+    showCommand: true,
+    permissions: {
+      level: 1,
+      muted: false,
+      game: false,
+      notDuringPlay: false,
+    },
+    params: [] as const,
+    async run({ cmd, input }) {
+      if (Chat.silenced) throw new CommandError("The chat is already silenced");
+      Chat.silenced = true;
+
+      cmd.announce("The chat has been silenced");
+    },
+  },
+  {
+    name: "unsilence",
+    alias: [],
+    description: "Removes the silence from the chat",
+    usage: [],
+    showCommand: true,
+    permissions: {
+      level: 1,
+      muted: false,
+      game: false,
+      notDuringPlay: false,
+    },
+    params: [] as const,
+    async run({ cmd, input }) {
+      if (Chat.silenced!)
+        throw new CommandError("The chat is not currently silenced");
+      Chat.silenced = false;
+
+      cmd.announce("The chat has been un-silenced");
+    },
+  },
+  {
+    name: "muted",
+    alias: [],
+    description: "Returns all the muted players currently in the room",
+    usage: [],
+    showCommand: false,
+    permissions: {
+      level: 0,
+      muted: true,
+      game: false,
+      notDuringPlay: false,
+    },
+    params: [] as const,
+    async run({ cmd, input }) {
+      // Only show the muted players currently in the room
+      const mutedPlayers = Room.players.muted.mutedCollection.find();
+      // .filter(({ id }) => Room.players.has(id));
+
+      if (mutedPlayers.length === 0)
+        throw new CommandError("There are no muted players");
+
+      const mutedPlayersStr: string = mutedPlayers
+        .map(({ name }) => `${name}`)
+        .join(", ");
+
+      cmd.reply(`Muted: ${mutedPlayersStr}`);
+    },
+  },
+  {
+    name: "reset",
+    alias: [],
+    description: "Resets all variables and removes the current play",
+    usage: [],
+    showCommand: true,
+    permissions: {
+      level: 1,
+      muted: true,
+      game: true,
+      notDuringPlay: false,
+    },
+    params: [] as const,
+    async run({ cmd, input }) {
+      Room.game.down.hardReset();
+      Chat.sendAnnouncement(`Manual reset by ${cmd.author.shortName}`);
+    },
+  },
+  {
+    name: "discord",
+    alias: [],
+    description: "Returns the community discord link",
+    usage: [],
+    showCommand: false,
+    permissions: {
+      level: 0,
+      muted: false,
+      game: false,
+      notDuringPlay: false,
+    },
+    params: [] as const,
+    async run({ cmd, input }) {
+      cmd.reply("Discord: discord.gg/VdrD2p7");
+    },
+  },
+  {
+    name: "flip",
+    alias: ["coinflip", "cointoss"],
+    description: "Flips a coin",
+    usage: [],
+    showCommand: true,
+    permissions: {
+      level: 1,
+      muted: false,
+      game: false,
+      notDuringPlay: false,
+    },
+    params: [] as const,
+    async run({ cmd, input }) {
+      const face = getRandomInt(100) > 50 ? "Heads" : "Tails";
+      Chat.sendAnnouncement(`Coin Flip: ${face}`);
+    },
+  },
+  {
+    name: "status",
+    alias: ["botstatus"],
+    description: "Returns the status of the bot, either on or off",
+    usage: [],
+    showCommand: true,
+    permissions: {
+      level: 0,
+      muted: false,
+      game: false,
+      notDuringPlay: false,
+    },
+    params: [] as const,
+    async run({ cmd, input }) {
+      const { isBotOn } = Room;
+
+      if (isBotOn)
+        return cmd.reply(`${ICONS.GreenSquare} The Bot is currently ON`);
+      cmd.reply(`${ICONS.RedSquare} The Bot is currently OFF`);
+    },
+  },
+  {
+    name: "clearbans",
+    alias: [],
+    description: "Clears bans",
+    usage: [],
+    showCommand: true,
+    permissions: {
+      level: 1,
+      muted: false,
+      game: false,
+      notDuringPlay: false,
+    },
+    params: [] as const,
+    async run({ cmd, input }) {
+      client.clearBans();
+      cmd.replySuccess("Bans have been cleared!");
+    },
+  },
+  {
+    name: "admin",
+    alias: [],
+    description: "Sets the player as a Bot Admin using an admin code",
+    usage: ["admin [code]"],
+    showCommand: false,
+    permissions: {
+      level: 0,
+      muted: true,
+      game: false,
+      notDuringPlay: false,
+    },
+    params: [z.any()] as const,
+    async run({ cmd, input }) {
+      const [adminCode] = input;
+
+      if (adminCode !== Room.sessionId)
+        throw new CommandError("Invalid Admin Code");
+
+      cmd.author.setAdminLevel(3).setAdmin(true);
+      cmd.replySuccess(`You are now the Bot Admin`, { color: 0xffd726 });
+    },
+  }
+);
+
+export function getCommandsAccessibleToPlayer(player: Player) {
+  return commands.filter((cmd) => cmd.permissions.level <= player.adminLevel);
+}
+
+export function getCommandByNameOrAlias(cmdName: string) {
+  const commandByName = commands.find((cmd) => cmd.name === cmdName);
+
+  const commandByAlias = commands.find((cmd) => cmd.alias.includes(cmdName));
+
+  return commandByName ?? commandByAlias ?? null;
+}
+
+export default commands;

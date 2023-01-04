@@ -2,8 +2,9 @@ import CommandMessage from "../classes/CommandMessage";
 import Player from "../classes/Player";
 import Chat from "../roomStructures/Chat";
 import Room from "../roomStructures/Room";
-import { plural, toOrdinalSuffix } from "../utils/utils";
-import { Command, getCommandByNameOrAlias } from "./Commands";
+import ParamParser from "./ParamParser";
+import { plural } from "../utils/utils";
+import { CommandObj, getCommandByNameOrAlias } from "./Commands";
 
 export class CommandError {
   errorMsg: string;
@@ -26,7 +27,7 @@ export default class CommandHandler {
   /**
    * The command object, can be null if the command is not found
    */
-  command: Command | null;
+  command: CommandObj | null;
 
   constructor(commandMsg: CommandMessage) {
     this.commandMsg = commandMsg;
@@ -43,7 +44,7 @@ export default class CommandHandler {
       this.command = null;
       return false;
     }
-    this.command = command;
+    this.command = command as unknown as CommandObj;
     return true;
   }
 
@@ -67,7 +68,7 @@ export default class CommandHandler {
       throw new CommandError(`You cannot use command ${cmdName} while muted`);
 
     // Check if there is a game going on
-    if (game && (Room.game === null || Room.game?.isActive === false))
+    if (game && Room.game === null)
       throw new CommandError(
         `Command ${cmdName} requires a game to be in session`
       );
@@ -78,114 +79,76 @@ export default class CommandHandler {
     return this;
   }
 
-  private _checkPlayerParamType() {
-    const player = Room.players.getByName(this.commandMsg.commandParamsStr);
+  private _parseParamsIntoInput() {
+    const { name: cmdName, params: cmdParams, usage: cmdUsage } = this.command!;
 
-    console.log("CHECK PLAYER", player);
+    const indexOfFirstOptionalParam = cmdParams.findIndex(
+      (paramParser) => paramParser.isOptional
+    );
+    const containsString = cmdParams.some(
+      (paramParser) =>
+        paramParser.type === "string" ||
+        paramParser.type === "player" ||
+        (Array.isArray(paramParser._dataType) &&
+          paramParser._dataType.some(
+            (orParser) =>
+              orParser instanceof ParamParser && orParser.type === "string"
+          ))
+    );
+    // Validate the number of arguments first
+    const minArguments =
+      indexOfFirstOptionalParam === -1
+        ? cmdParams.length
+        : indexOfFirstOptionalParam;
+    const maxArguments = containsString ? Infinity : cmdParams.length;
 
-    if (player === null)
+    const usageOrParamTypesMapped =
+      cmdUsage.length > 0
+        ? cmdUsage.join(` or ${Chat.PREFIX.COMMAND}`)
+        : `${cmdName} ${cmdParams
+            .map((parser) => `[${parser.dataName}]`)
+            .join(" ")}`;
+
+    const minArgumentsStr = plural(minArguments, "option", "options");
+    const maxArgumentsStr = plural(maxArguments, "option", "options");
+
+    if (this.commandMsg.commandParamsArray.length < minArguments)
       throw new CommandError(
-        `Player ${this.commandMsg.commandParamsStr} does not exist in the room`
+        `Command ${cmdName} requires at least ${minArgumentsStr} i.e ${Chat.PREFIX.COMMAND}${usageOrParamTypesMapped}`
       );
 
-    if (player === -1)
+    if (this.commandMsg.commandParamsArray.length > maxArguments)
       throw new CommandError(
-        `Multiple players were found starting with the name ${this.commandMsg.commandParamsStr} in the room`
+        `Command ${cmdName} accepts only ${maxArgumentsStr} i.e ${Chat.PREFIX.COMMAND}${usageOrParamTypesMapped}`
       );
-  }
 
-  private _checkArrayParamTypes(
-    paramType: string[],
-    param: string,
-    index: number
-  ) {
-    const passesParamCheck = paramType.includes(param);
+    // Validate the arguments themselves
 
-    const commandParamsStr = paramType.join(" ");
+    const input: any[] = [];
 
-    if (!passesParamCheck)
-      throw new CommandError(
-        `The ${toOrdinalSuffix(index + 1)} option to command ${
-          this.command!.name
-        } must be one of the following: ${commandParamsStr}`
-      );
-  }
+    for (let [index, paramParser] of cmdParams.entries()) {
+      const isStringOrPlayer =
+        paramParser.type === "string" || paramParser.type === "player";
 
-  private _checkNumberParamType(param: string, index: number) {
-    const numberAsANumber = parseInt(param);
+      // if its a string or player, get the rest of the command args
+      const arg = isStringOrPlayer
+        ? this.commandMsg.commandParamsArray.splice(index, Infinity).join(" ")
+        : this.commandMsg.commandParamsArray[index];
 
-    const isValidNumber = isNaN(numberAsANumber) === false;
+      const parsed = (paramParser as ParamParser<unknown, false>).parse(arg);
 
-    console.log(isValidNumber);
-
-    if (!isValidNumber)
-      throw new CommandError(
-        `The ${toOrdinalSuffix(index + 1)} option to command ${
-          this.command!.name
-        } must be a number`
-      );
-  }
-
-  private _validateCommandParams(): this | never {
-    const {
-      name: cmdName,
-      params: { min, max, types, skipMaxCheck = false },
-    } = this.command!;
-
-    // Check length of arguments
-    const minArgStr = plural(min, "option", "options");
-    const maxArgStr = plural(max, "option", "options");
-
-    if (this.commandMsg.commandParamsArray.length < min)
-      throw new CommandError(`Command ${cmdName} requires ${minArgStr}.`);
-    if (
-      this.commandMsg.commandParamsArray.length > max &&
-      skipMaxCheck === false
-    ) {
-      if (max === 0)
-        throw new CommandError(
-          `Command ${cmdName} does not accept any options.`
-        );
-
-      // If its a player name, then the player name may include spaces, which will lead to a large number of arguments parsed
-      if (!skipMaxCheck)
-        throw new CommandError(`Command ${cmdName} accepts only ${maxArgStr}.`);
+      input.push(parsed);
     }
 
-    // Check arguments type
-
-    // Return if no type is specified or no arguments were passed into the call
-    if (types.length === 0 || this.commandMsg.commandParamsArray.length === 0)
-      return this;
-
-    // Validate each argument that is passed in
-    this.commandMsg.commandParamsArray.forEach((param, index) => {
-      const paramType = this.command!.params.types[index];
-
-      // If the function has custom arguments, skip
-      if (paramType === "CUSTOM") return;
-
-      // If its an array, check that the argument matches one of the options in the argument types array
-      if (Array.isArray(paramType))
-        return this._checkArrayParamTypes(paramType, param, index);
-
-      // If its a player
-      if (paramType === "PLAYER") return this._checkPlayerParamType();
-
-      // If its a number
-      if (paramType === "NUMBER")
-        return this._checkNumberParamType(param, index);
-    });
-
-    return this;
+    return input;
   }
 
   validateAndRun() {
     // Validate the command, then run
     this._validateCommandPermissions();
-    this._validateCommandParams();
+    const input = this._parseParamsIntoInput();
 
-    this.command!.run(this.commandMsg).catch((error) => {
+    this.command!.run({ cmd: this.commandMsg, input }).catch((error) => {
       // If we get an error, check what kind of error we have
       const isCommandError = error instanceof CommandError;
 
