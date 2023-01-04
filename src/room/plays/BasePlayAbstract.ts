@@ -23,10 +23,9 @@ type PlayStorages = SnapStore &
 
 export type PlayStorageKeys = keyof PlayStorages;
 
-export default abstract class BasePlayAbstract<T> extends WithStateStore<
-  T,
-  PlayStorageKeys
-> {
+export default abstract class BasePlayAbstract<
+  T extends Record<string, any>
+> extends WithStateStore<T, PlayStorageKeys> {
   /**
    * Validation before the game sets the play
    * @return Throws a GameCommandError in the case of an error

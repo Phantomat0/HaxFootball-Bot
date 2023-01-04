@@ -4,7 +4,10 @@ import Chat from "../roomStructures/Chat";
 /**
  * Class allowing for managing state
  */
-export default class WithStateStore<T extends object, R extends string> {
+export default class WithStateStore<
+  T extends Record<string, any>,
+  R extends string
+> {
   private _stateStore: Partial<T> = {};
 
   /**

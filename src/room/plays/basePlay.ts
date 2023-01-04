@@ -41,7 +41,9 @@ export interface EndPlayData {
   setNewDown?: boolean;
 }
 
-export default abstract class BasePlay<T> extends BasePlayAbstract<T> {
+export default abstract class BasePlay<
+  T extends Record<string, any>
+> extends BasePlayAbstract<T> {
   /**
    * Starts play and fires event listeners
    */
