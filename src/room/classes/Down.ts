@@ -84,7 +84,7 @@ export default class Down {
     return;
   }
 
-  setMostRecentQuarterback(player: PlayerObject | null) {
+  setMostRecentQuarterback(player: PlayerObject | null): any {
     if (!player) return (this._mostRecentQb = player);
     this._mostRecentQb = { ...player };
   }

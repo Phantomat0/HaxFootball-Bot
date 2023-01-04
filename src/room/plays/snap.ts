@@ -244,7 +244,7 @@ export default class Snap extends SnapEvents {
     this._handlePenalty("illegalLosCross", player);
   }
 
-  handleIllegalBlitz(player: PlayerObject) {
+  handleIllegalBlitz(player: PlayerObject): any {
     // Check if player was pushed
     const pushingPlayer = this._checkIfPlayerWasPushedToIllegalBlitz(player);
 

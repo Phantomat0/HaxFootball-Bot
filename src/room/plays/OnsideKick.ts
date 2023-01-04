@@ -13,6 +13,8 @@ import { DISC_IDS, MAP_POINTS } from "../utils/map";
 import { EndPlayData } from "./BasePlay";
 import OnsideKickEvents from "./play_events/OnsideKick.events";
 
+// test
+
 export default class OnsideKick extends OnsideKickEvents {
   protected _kicker: PlayerObject;
 
