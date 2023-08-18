@@ -18,7 +18,7 @@ export default class Player {
   constructor({ name, id, auth, conn }: FullPlayerObject) {
     this.name = name.trim();
     this.id = id;
-    this.auth = DEBUG_MODE ? getRandomChars(6) : auth;
+    this.auth = DEBUG_MODE ? name : auth;
     this._adminLevel = 0;
     this.ip = DEBUG_MODE ? getRandomChars(6) : conn;
   }
