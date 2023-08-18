@@ -1,6 +1,6 @@
 const HFL_MAP = `{
 
-	"name" : "2022 HFL Official",
+	"name" : "2023 HFL",
 
 	"width" : 1090,
 
@@ -490,16 +490,16 @@ const HFL_MAP = `{
 		"cGroup" : [ "ball"
 		],
 		"color" : "602323",
-		"radius" : 6.3
+		"radius" : 7
 
 	},
 
 	"playerPhysics" : {
-		"kickStrength" : 7.6,
+		"kickStrength" : 7.1,
         "kickback" : 0,
 		"bCoef" : 0.75,
-		"invMass" : 0.8,
-		"radius" : 14,
+		"invMass" : 0.7,
+		"radius" : 14.5,
 
 	},
 
@@ -521,14 +521,14 @@ invMass: 0.5
 Damping: 0.99
 Kicking damping: 0.96
 Acceleration: 0.1
-Kicking acceleration: 0.07
+Kicking acceleraton: 0.07
 Kick Strength: 5
 */
 
 export const MAP_POINTS = {
-  PLAYER_RADIUS: 14,
+  PLAYER_RADIUS: 14.5,
   TE_PLAYER_RADIUS: 17,
-  BALL_RADIUS: 6.7,
+  BALL_RADIUS: 7,
   DEF_DAMPING: 0.99,
   // =============
   KICKOFF: 0,
@@ -555,7 +555,7 @@ export const MAP_POINTS = {
   // BOT_HASH: 80,
   TOP_FG_POST: -60,
   BOTTOM_FG_POST: 60,
-};
+} as const;
 
 export const DISC_IDS = {
   BALL: 0,
