@@ -199,9 +199,7 @@ export default class Down {
 
       // Otherwise set him 7 yards behind LOS, but at the same y coordinate
 
-      const { position, team } = Room.game.players.playerPositionsMap.get(
-        player.id
-      )!;
+      const { position } = Room.game.players.playerPositionsMap.get(player.id)!;
 
       if (this._mostRecentQb) {
         if (this._mostRecentQb.team !== Room.game.offenseTeamId)
@@ -214,7 +212,7 @@ export default class Down {
         .subtractByTeam(
           this.getLOS().x,
           MAP_POINTS.YARD * yardsBehindLosX,
-          team as PlayableTeamId
+          player.team as PlayableTeamId
         )
         .calculate();
 
