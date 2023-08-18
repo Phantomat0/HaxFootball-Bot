@@ -366,7 +366,7 @@ eval("\r\nvar __importDefault = (this && this.__importDefault) || function (mod)
   \*********************************/
 /***/ ((__unused_webpack_module, exports) => {
 
-eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.DEBUG_MODE = void 0;\r\nconst roomConfig = {\r\n    roomName: \"🏈 HAXFOOTBALL 🏈\",\r\n    maxPlayers: 16,\r\n    noPlayer: true,\r\n    public: false,\r\n    token: \"thr1.AAAAAGO50liBpU1r5kM5yQ.j9_PEUFDkus\",\r\n};\r\nexports.DEBUG_MODE = true;\r\nexports[\"default\"] = roomConfig;\r\n\n\n//# sourceURL=webpack://hfl_new/./src/room/room.config.ts?");
+eval("\r\nObject.defineProperty(exports, \"__esModule\", ({ value: true }));\r\nexports.DEBUG_MODE = void 0;\r\nconst roomConfig = {\r\n    roomName: \"🏈 HAXFOOTBALL 🏈\",\r\n    maxPlayers: 16,\r\n    noPlayer: true,\r\n    public: false,\r\n    token: \"thr1.AAAAAGO50liBpU1r5kM5yQ.j9_PEUFDkus\",\r\n};\r\nexports.DEBUG_MODE = false;\r\nexports[\"default\"] = roomConfig;\r\n\n\n//# sourceURL=webpack://hfl_new/./src/room/room.config.ts?");
 
 /***/ }),
 
