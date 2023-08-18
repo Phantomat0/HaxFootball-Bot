@@ -26,7 +26,7 @@ export default class PlayerStatManager {
   ) {
     const playerRecord = Room.game.players.getPlayerRecordByPlayerId(playerId);
     if (!playerRecord) throw Error("Error finding player record");
-    this.statsCollection.get(playerRecord.recordId)?.updateStats(statQuery);
+    this.statsCollection.get(playerRecord.recordId)!.updateStats(statQuery);
 
     if (DEBUG_MODE)
       Chat.send(`STAT UPDATE: ${JSON.stringify(statQuery)}`, {
