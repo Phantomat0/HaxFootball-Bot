@@ -1,6 +1,6 @@
 # 🏈 Haxfootball Bot [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-![Haxfootball Bot](https://i.imgur.com/7jwWrDH.png)
+![Haxfootball Bot](https://i.imgur.com/40tsTwS.png)
 
 American Football gameplay implemented in haxball. Rules adapted to fit 5v5 and 4v4 games.
 
