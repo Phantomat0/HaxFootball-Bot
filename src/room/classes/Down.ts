@@ -16,6 +16,7 @@ import Room from "../roomStructures/Room";
 export default class Down {
   static CONFIG = {
     DEFAULT_YARDS_TO_GET: 20,
+    YARDS_BEHIND_LOS: 2,
   };
 
   private _los: {
@@ -91,7 +92,11 @@ export default class Down {
 
   getSnapPosition() {
     const x = new DistanceCalculator()
-      .subtractByTeam(this._los.x, MAP_POINTS.YARD * 5, Room.game.offenseTeamId)
+      .subtractByTeam(
+        this._los.x,
+        MAP_POINTS.YARD * Down.CONFIG.YARDS_BEHIND_LOS,
+        Room.game.offenseTeamId
+      )
       .calculate();
 
     return {

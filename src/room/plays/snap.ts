@@ -141,11 +141,14 @@ export default class Snap extends SnapEvents {
     player: PlayerObjFlat,
     penaltyData: AdditionalPenaltyData = {}
   ): Promise<void> {
+    // If a snap penalty occurs, playData will still be null, so we just need to load the data
+
     // We have to check the room and play state, since play state may not be sent on a snap penalty
-    if (
+    const isTwoPoint =
       this.stateExists("twoPointAttempt") ||
-      Room.game.stateExists("twoPointAttempt")
-    ) {
+      Room.game.stateExists("twoPointAttempt");
+
+    if (isTwoPoint) {
       quickPause();
 
       const losX = Room.game.down.getLOS().x;
@@ -258,6 +261,21 @@ export default class Snap extends SnapEvents {
 
   handleBallInFrontOfLOS() {
     this._handlePenalty("illegalPass", this._quarterback);
+  }
+
+  handleQuarterbackLOSCross(
+    qbOrKicker: ReturnType<InstanceType<typeof Snap>["getBallCarrier"]>
+  ) {
+    // If he is allowed to cross the LOS, allow him, and set that state
+    if (
+      this.stateExists("lineBlitzed") ||
+      qbOrKicker.id !== this._quarterback.id
+    ) {
+      this.setState("qbRunPastLOS");
+      return;
+    }
+
+    this.handleIllegalCrossOffense(qbOrKicker);
   }
 
   handleDefenseLineBlitz() {
@@ -404,7 +422,7 @@ export default class Snap extends SnapEvents {
     const isOutOfBounds = MapReferee.checkIfPlayerOutOfBounds(playerPosition);
 
     if (isOutOfBounds) {
-      Chat.send(`${ICONS.DoNotEnter} Pass Incomplete, caught out of bounds`);
+      Chat.send(`${ICONS.DoNotEnter} Incomplete - Caught out of bounds`);
       Room.game.setLastPlayEndPosition(ballContactObj.playerPosition);
       return this.endPlay({});
     }
@@ -750,8 +768,9 @@ export default class Snap extends SnapEvents {
         Room.game.offenseTeamId
       );
 
-    if (isSafety) return this._handleSafety();
-    if (isTouchback) return this._handleTouchback();
+    // No safeties on interceptions
+    // if (isSafety) return this._handleSafety();
+    if (isSafety || isTouchback) return this._handleTouchback();
 
     return this.endPlay({ newLosX: adjustedEndPosition.x, setNewDown: true });
   }
@@ -779,8 +798,9 @@ export default class Snap extends SnapEvents {
           Room.game.offenseTeamId
         );
 
-      if (isSafety) return this._handleSafety();
-      if (isTouchback) return this._handleTouchback();
+      // No safeties on interceptions
+      if (isSafety || isTouchback) return this._handleTouchback();
+      // if (isTouchback) return this._handleTouchback();
 
       return this.endPlay({
         newLosX: endPosition.x,
@@ -889,8 +909,9 @@ export default class Snap extends SnapEvents {
           Room.game.offenseTeamId
         );
 
-      if (isSafety) return this._handleSafety();
-      if (isTouchback) return this._handleTouchback();
+      // No safeties on interceptions
+      if (isSafety || isTouchback) return this._handleTouchback();
+      // if (isTouchback) return this._handleTouchback();
     } else {
       const { isSafety } = GameReferee.checkIfSafetyOrTouchbackPlayer(
         startingPosition,

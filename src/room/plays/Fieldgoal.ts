@@ -122,6 +122,12 @@ export default class FieldGoal extends FieldGoalEvents {
     return this._kicker;
   }
 
+  handleQuarterbackLOSCross(
+    qbOrKicker: ReturnType<InstanceType<typeof FieldGoal>["getBallCarrier"]>
+  ) {
+    return this._handlePenalty("illegalLosCross", this._kicker);
+  }
+
   protected _setBallInPosition(topOrBotHashYCoordinate: Position["y"]) {
     const positionToSet = {
       y: topOrBotHashYCoordinate,

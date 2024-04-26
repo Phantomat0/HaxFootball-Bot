@@ -29,7 +29,7 @@ class PlayerCrowdData {
 
 export default class SnapCrowdChecker {
   private CROWD_BOX_YARDS_FRONT: number = 6;
-  private CROWD_BOX_YARDS_BEHIND: number = 6;
+  private CROWD_BOX_YARDS_BEHIND: number = 5;
   private MAX_CROWDING_SECONDS: number = 3;
   private MAX_CROWD_ABUSE_SECONDS: number = 2.2;
 

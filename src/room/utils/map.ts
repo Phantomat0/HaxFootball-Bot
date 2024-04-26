@@ -1,6 +1,6 @@
 const HFL_MAP = `{
 
-	"name" : "2023 HFL",
+	"name" : "2024 HFL Official",
 
 	"width" : 1090,
 
@@ -145,7 +145,7 @@ const HFL_MAP = `{
 		/* 119 */ { "x" : -651, "y" : 95, "trait" : "yardline" },
 		/* 120 */ { "x" : -651, "y" : 75, "trait" : "yardline" },
 		/* 121 */ { "x" : -651, "y" : -75, "trait" : "yardline" },
-		/* 122 */ { "x" : -651, "y" : -95, "trait" : "yardline", "_selected" : true },
+		/* 122 */ { "x" : -651, "y" : -95, "trait" : "yardline" },
 		/* 123 */ { "x" : -527, "y" : 95, "trait" : "yardline" },
 		/* 124 */ { "x" : -527, "y" : 75, "trait" : "yardline" },
 		/* 125 */ { "x" : -527, "y" : -75, "trait" : "yardline" },
@@ -181,7 +181,7 @@ const HFL_MAP = `{
 		/* 155 */ { "x" : 93, "y" : -75, "trait" : "yardline" },
 		/* 156 */ { "x" : 93, "y" : -95, "trait" : "yardline" },
 		/* 157 */ { "x" : 93, "y" : 95, "trait" : "yardline" },
-		/* 158 */ { "x" : 93, "y" : 75, "trait" : "yardline" },
+		/* 158 */ { "x" : 93, "y" : 75, "trait" : "yardline", "_selected" : true },
 		/* 159 */ { "x" : 124, "y" : 95, "trait" : "yardline" },
 		/* 160 */ { "x" : 124, "y" : 75, "trait" : "yardline" },
 		/* 161 */ { "x" : 124, "y" : -75, "trait" : "yardline" },
@@ -416,23 +416,26 @@ const HFL_MAP = `{
 		{ "pos" : [930,-280 ], "trait" : "goalmarker" },
 		{ "pos" : [-775,280 ], "trait" : "goalmarker" },
 		{ "pos" : [-775,-280 ], "trait" : "goalmarker" },
-
+		
 		{ "pos" : [10000,0 ], "trait" : "teweight1" },
+		
 		{ "pos" : [10000,13 ], "trait" : "teweight" },
 		{ "pos" : [9987,0 ], "trait" : "teweight" },
 		{ "pos" : [10000,-13 ], "trait" : "teweight" },
 		{ "pos" : [10013,0 ], "trait" : "teweight" },
+		
 		{ "pos" : [9960,280 ], "trait" : "crowdboxmarker" },
 		{ "pos" : [9960,-280 ], "trait" : "crowdboxmarker" },
 		{ "pos" : [9950,280 ], "trait" : "crowdboxmarker" },
-		{ "pos" : [9950,-280 ], "trait" : "crowdboxmarker" },
+		{ "pos" : [9950,-280 ], "trait" : "crowdboxmarker" }
 
 	],
 
 	"joints" : [
 		{ "d0" : 1, "d1" : 2, "trait" : "losline" },
+		
 		{ "d0" : 3, "d1" : 4, "trait" : "yardtogetline" },
-
+		
 		{ "d0" : 17, "d1" : 18, "trait" : "joint" },
 		{ "d0" : 17, "d1" : 19, "trait" : "joint" },
 		{ "d0" : 17, "d1" : 20, "trait" : "joint" },
@@ -441,11 +444,6 @@ const HFL_MAP = `{
 		{ "d0" : 19, "d1" : 20, "trait" : "joint" },
 		{ "d0" : 20, "d1" : 21, "trait" : "joint" },
 		{ "d0" : 21, "d1" : 18, "trait" : "joint" }
-
-		// { "d0" : 22, "d1" : 23, "trait" : "crowdboxline" },
-		// { "d0" : 23, "d1" : 24, "trait" : "crowdboxline" },
-		// { "d0" : 24, "d1" : 25, "trait" : "crowdboxline" },
-		// { "d0" : 25, "d1" : 22, "trait" : "crowdboxline" }
 
 	],
 
@@ -474,8 +472,8 @@ const HFL_MAP = `{
 		"goalmarker" : { "vis" : true, "color" : "FFA500", "cMask" : [ ], "radius" : 3 },
 		"losmarker" : { "vis" : true, "color" : "273d6b", "cMask" : [ ], "radius" : 3 },
 		"yardtogetmarker" : { "vis" : true, "color" : "8FE271", "cMask" : [ ], "radius" : 3 },
-		"teweight" : { "vis" : false, "radius" : 0, "cMask" : ["red", "blue" ], "invMass" : 1.2 },
-		"teweight1" : { "vis" : false, "radius" : 0, "cMask" : [], "invMass" : 1.2, "color" : "F2F2F2" },
+		"teweight" : { "vis" : false, "radius" : 0, "cMask" : ["red","blue" ], "invMass" : 1.2 },
+		"teweight1" : { "vis" : false, "radius" : 0, "cMask" : [ ], "invMass" : 1.2, "color" : "F2F2F2" },
 		"losline" : { "vis" : true, "color" : "273d6b" },
 		"yardtogetline" : { "color" : "8FE271" },
 		"crowdboxline" : { "color" : "ff8164", "invMass" : 0.1 },
@@ -495,11 +493,11 @@ const HFL_MAP = `{
 	},
 
 	"playerPhysics" : {
-		"kickStrength" : 7.1,
-        "kickback" : 0,
+		"kickStrength" : 6.8,
+		"kickback" : 0,
 		"bCoef" : 0.75,
-		"invMass" : 0.7,
-		"radius" : 14.5,
+		"invMass" : 0.8,
+		"radius" : 14.2
 
 	},
 
@@ -526,9 +524,9 @@ Kick Strength: 5
 */
 
 export const MAP_POINTS = {
-  PLAYER_RADIUS: 14.5,
+  PLAYER_RADIUS: 14.2,
   TE_PLAYER_RADIUS: 17,
-  BALL_RADIUS: 7,
+  BALL_RADIUS: 7.2,
   DEF_DAMPING: 0.99,
   // =============
   KICKOFF: 0,

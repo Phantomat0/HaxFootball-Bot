@@ -1,17 +1,12 @@
+import client from "../..";
 import BallContact from "../../classes/BallContact";
 import PlayerContact from "../../classes/PlayerContact";
 import { PlayerStatQuery } from "../../classes/PlayerStats";
-import {
-  PlayableTeamId,
-  PlayerObject,
-  PlayerObjFlat,
-  Position,
-} from "../../HBClient";
+import { PlayerObject, PlayerObjFlat, Position } from "../../HBClient";
 import Ball from "../../roomStructures/Ball";
 import Chat from "../../roomStructures/Chat";
 import Room from "../../roomStructures/Room";
 import GameReferee from "../../structures/GameReferee";
-import MapReferee from "../../structures/MapReferee";
 import ICONS from "../../utils/Icons";
 import { MapSectionName } from "../../utils/MapSectionFinder";
 import BasePlay from "../BasePlay";
@@ -29,6 +24,7 @@ export interface SnapStore {
   canBlitz: true;
   ballBlitzed: true;
   lineBlitzed: true;
+  qbRunPastLOS: true;
   interceptionAttempt: true;
   interceptionAttemptKicked: true;
   interceptingPlayer: PlayerObjFlat;
@@ -206,14 +202,16 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     const { player, playerPosition, ballCarrierPosition } = playerContact;
 
     // Verify that its a legal run
-    const isBehindQuarterBack = MapReferee.checkIfBehind(
-      playerPosition.x,
-      ballCarrierPosition.x,
-      player.team as PlayableTeamId
-    );
+    // const isBehindQuarterBack = MapReferee.checkIfBehind(
+    //   playerPosition.x,
+    //   ballCarrierPosition.x,
+    //   player.team as PlayableTeamId
+    // );
 
-    // If its a legal run, handle it, otherwise its a penalty
-    if (isBehindQuarterBack) return this._handleRun(playerContact);
+    // // If its a legal run, handle it, otherwise its a penalty
+    // if (isBehindQuarterBack) return this._handleRun(playerContact);
+
+    return this._handleRun(playerContact);
 
     this._handlePenalty("illegalRun", player);
   }
@@ -250,6 +248,14 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
       passAttempts: { [mapSection]: 1 },
     });
 
+    client.setPlayerAvatar(ballContactObj.player.id, ICONS.X);
+
+    setTimeout(() => {
+      if (this.stateExists("ballIntercepted")) return;
+
+      client.setPlayerAvatar(ballContactObj.player.id, null);
+    }, 3500);
+
     if (this.stateExists("curvePass")) {
       this._updateStatsIfNotTwoPoint(this.getQuarterback().id, {
         curvedPassAttempts: 1,
@@ -261,6 +267,17 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
     Chat.send(`${ICONS.DoNotEnter} Incomplete - Pass Deflected`);
 
     this.setState("ballDeflected");
+
+    // Check for intentional grounding
+
+    const isIntentionalGrounding = GameReferee.isIntentionalGrounding({
+      playerPosition: ballContactObj.playerPosition,
+      losX: Room.game.down.getLOS().x,
+      defenseTeamId: Room.game.defenseTeamId,
+    });
+
+    if (isIntentionalGrounding)
+      return this._handlePenalty("intentionalGrounding", this.getQuarterback());
 
     if (this.stateExists("twoPointAttempt"))
       return this._handleFailedTwoPointConversion();

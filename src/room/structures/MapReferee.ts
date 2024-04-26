@@ -142,20 +142,37 @@ class MapReferee {
     return team === TEAMS.RED ? x1 >= x2 : x1 <= x2;
   }
 
-  checkIfBallBetweenFGPosts(position: Position, endzoneTeamId: PlayableTeamId) {
-    const { topFG, botFG, redFG, blueFG } =
+  checkIfBallBetweenHashes(position: Position) {
+    const { topHash, botHash } =
       PreSetCalculators.adjustMapCoordinatesForRadius(MAP_POINTS.BALL_RADIUS);
 
-    // First check alongside the x, if it passed the FG line
-    // For opposing endzone, we wanna check if its infront, for our own if its behind
-    const satisfiesXAxis =
-      endzoneTeamId === 1
-        ? this.checkIfBehind(position.x, redFG, 1)
-        : this.checkIfBehind(position.x, blueFG, 2);
+    return this.checkIfBetweenY(position.y, topHash, botHash);
+  }
 
-    const satisfiesYAxis = this.checkIfBetweenY(position.y, topFG, botFG);
+  checkIfBallBetweenFGPosts(position: Position) {
+    const { topFG, botFG } = PreSetCalculators.adjustMapCoordinatesForRadius(
+      MAP_POINTS.BALL_RADIUS
+    );
 
-    return satisfiesXAxis && satisfiesYAxis;
+    return this.checkIfBetweenY(position.y, topFG, botFG);
+  }
+
+  checkIfBallCompletelyOutOfBounds(ballPosition: Position) {
+    const { x, y } = ballPosition;
+
+    const { TOP_SIDELINE, BOT_SIDELINE, RED_SIDELINE, BLUE_SIDELINE } =
+      MAP_POINTS;
+
+    const ballDiameter = MAP_POINTS.BALL_RADIUS * 2;
+
+    const topSideLine = TOP_SIDELINE - ballDiameter;
+    const botSideLine = BOT_SIDELINE + ballDiameter;
+    const redSideLine = RED_SIDELINE - ballDiameter;
+    const blueSideLine = BLUE_SIDELINE + ballDiameter;
+
+    return (
+      y < topSideLine || y > botSideLine || x < redSideLine || x > blueSideLine
+    );
   }
 
   checkIfBetweenY(yToCheck: number, yTop: number, yBottom: number) {

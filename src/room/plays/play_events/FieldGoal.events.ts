@@ -38,7 +38,17 @@ export default abstract class FieldGoalEvents extends BasePlay<FieldGoalStore> {
   }
 
   onBallOutOfBounds(ballPosition: Position) {
-    this.handleUnsuccessfulFg();
+    // Check if it went out of bounds between the posts
+    const betweenPosts = MapReferee.checkIfBallBetweenFGPosts(ballPosition);
+
+    if (!betweenPosts) return this.handleUnsuccessfulFg();
+
+    const successfulFieldGoal = GameReferee.checkIfFieldGoalSuccessful(
+      ballPosition,
+      Room.game.offenseTeamId
+    );
+
+    if (successfulFieldGoal) return this.handleSuccessfulFg();
   }
 
   onBallCarrierOutOfBounds(ballCarrierPosition: Position) {

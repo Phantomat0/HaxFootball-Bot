@@ -8,7 +8,6 @@ import Snap from "../plays/Snap";
 import Ball from "../roomStructures/Ball";
 import PreSetCalculators from "../structures/PreSetCalculators";
 import FieldGoal from "../plays/FieldGoal";
-import { MAP_POINTS } from "../utils/map";
 import { PlayStorageKeys } from "../plays/BasePlayAbstract";
 import Room from "../roomStructures/Room";
 
@@ -16,15 +15,17 @@ const eventListeners: EventListener[] = [
   {
     // Pass Incompletes, Punts/Kickoffs Out Of Bounds, Interceptions
     name: "Ball Position",
-    runWhen: ["ballSnapped", "punt", "kickOff", "onsideKick"],
+    runWhen: ["ballSnapped", "punt", "kickOff", "onsideKick", "fieldGoal"],
     stopWhen: [
       "ballCaught",
       "ballRan",
       "ballBlitzed",
+      "qbRunPastLOS",
       "puntCaught",
       "onsideKickCaught",
       "kickOffCaught",
       "interceptionRuling",
+      "fieldGoalBlitzed",
     ],
     run: () => {
       const ballPosition = Ball.getPosition();
@@ -32,41 +33,10 @@ const eventListeners: EventListener[] = [
       const ballOutOfBounds = MapReferee.checkIfBallOutOfBounds(ballPosition); // This returns either null or the ballPosition,
       if (ballOutOfBounds)
         return Room?.game?.play?.onBallOutOfBounds(ballOutOfBounds);
-    },
-  },
-  {
-    // Field Goal Rulings, Missed, Out Of Bounds,
-    name: "Ball Field Goal",
-    runWhen: ["fieldGoal"],
-    stopWhen: ["fieldGoalBlitzed", "ballRan"],
-    run: () => {
-      // Here we check if the ball is within the hashes,
-      // Check if the ball has enough speed to even reach the field goal posts
-      // Check if the ball went through the posts
-
-      const ballPosition = Ball.getPosition();
-
-      const successfulFieldGoal = GameReferee.checkIfFieldGoalSuccessful(
-        ballPosition,
-        Room.game.offenseTeamId
-      );
-      if (successfulFieldGoal)
-        return Room.getPlay<FieldGoal>().handleSuccessfulFg();
-
-      // Check if ball is out of bounds AFTER checking if it was successful or not
-      const ballOutOfBounds = MapReferee.checkIfBallOutOfBounds(ballPosition); // This returns either null or the ballPosition,
-
-      const withinHash = MapReferee.checkIfWithinHash(
-        ballPosition,
-        MAP_POINTS.BALL_RADIUS
-      );
-
-      if (ballOutOfBounds && withinHash === false)
-        return Room?.game?.play?.onBallOutOfBounds(ballOutOfBounds);
-
-      const ballSpeed = Ball.getSpeed();
 
       if (Room.getPlay<FieldGoal>().stateExists("fieldGoalKicked")) {
+        const ballSpeed = Ball.getSpeed();
+
         const ballMoving = MapReferee.checkIfBallIsMoving(ballSpeed);
 
         if (!ballMoving)
@@ -82,10 +52,12 @@ const eventListeners: EventListener[] = [
       "ballCaught",
       "ballRan",
       "ballBlitzed",
+      "qbRunPastLOS",
       "fieldGoalBlitzed",
       "puntCaught",
       "kickOffCaught",
       "onsideKickCaught",
+      "fieldGoalKicked",
       "interceptionRuling",
     ],
     run: () => {
@@ -231,7 +203,7 @@ const eventListeners: EventListener[] = [
       );
 
       if (!isBehindLOS)
-        return Room.getPlay<Snap | FieldGoal>().handleIllegalCrossOffense(
+        return Room.getPlay<Snap | FieldGoal>().handleQuarterbackLOSCross(
           qbOrKicker
         );
     },
@@ -269,7 +241,7 @@ const eventListeners: EventListener[] = [
   },
   {
     // Kick Drag on Interceptions
-    name: "Ball Position Interceeption",
+    name: "Ball Position Interception",
     runWhen: ["interceptionAttempt"],
     stopWhen: ["interceptionRuling"],
     run: () => {

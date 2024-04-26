@@ -26,6 +26,7 @@ export type PenaltyName =
   | "crowdAbuse"
   | "illegalPass"
   | "snapDrag"
+  | "intentionalGrounding"
   | "fgDrag"
   | "puntDrag"
   | "onsideKickDrag"
@@ -85,6 +86,12 @@ export default class PenaltyDataGetter {
         netYards: 0,
         addDown: true,
       },
+      intentionalGrounding: {
+        fullName: "Intentional Grounding",
+        message: `Intentional Grounding, 10 yard penalty, automatic loss of down`,
+        netYards: -10,
+        addDown: true,
+      },
       crowding: {
         fullName: "Crowding",
         message: `Crowding ${playerName}, 10 yard penalty, repeat the down`,
@@ -99,6 +106,7 @@ export default class PenaltyDataGetter {
         addDown: false,
         delay: true,
       },
+
       illegalPass: {
         fullName: "Illegal Pass In Front Of Line Of Scrimmage",
         message: `Illegal Pass In Front Of Line Of Scrimmage, automatic loss of down`,

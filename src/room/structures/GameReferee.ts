@@ -104,27 +104,26 @@ export default class GameReferee {
     ballPosition: Position,
     offenseTeamId: PlayableTeamId
   ) {
-    const { x, y } = ballPosition;
-    // const { redFG, blueFG } =
-    //   PreSetCalculators.adjustMapCoordinatesForRadius(MAP_POINTS.BALL_RADIUS);
+    const { topFG, botFG, redFG, blueFG } =
+      PreSetCalculators.adjustMapCoordinatesForRadius(MAP_POINTS.BALL_RADIUS);
 
-    const {
-      RED_FIELD_GOAL_LINE,
-      BLUE_FIELD_GOAL_LINE,
-      TOP_FG_POST,
-      BOTTOM_FG_POST,
-    } = MAP_POINTS;
+    // First check alongside the x, if it passed the FG line
+    // For opposing endzone, we wanna check if its infront, for our own if its behind
+    const satisfiesXAxis =
+      offenseTeamId === 1
+        ? MapReferee.checkIfBehind(ballPosition.x, blueFG, 2)
+        : MapReferee.checkIfBehind(ballPosition.x, redFG, 1);
 
-    const passesFgLine =
-      offenseTeamId === TEAMS.RED
-        ? x > BLUE_FIELD_GOAL_LINE
-        : x < RED_FIELD_GOAL_LINE;
-    const betweenFGPosts = MapReferee.checkIfBetweenY(
-      y,
-      TOP_FG_POST,
-      BOTTOM_FG_POST
+    const satisfiesYAxis = MapReferee.checkIfBetweenY(
+      ballPosition.y,
+      topFG,
+      botFG
     );
-    return passesFgLine && betweenFGPosts;
+
+    const ballCompletelyOutOfBounds =
+      MapReferee.checkIfBallCompletelyOutOfBounds(ballPosition);
+
+    return satisfiesXAxis && satisfiesYAxis && ballCompletelyOutOfBounds;
   }
 
   static checkIfInterceptionWithinTime(intTime: number, timeNow: number) {
@@ -137,15 +136,35 @@ export default class GameReferee {
 
   // Check for the ball position to be behind one of the endzones and between FG posts
   static checkIfInterceptionSuccessful(ballPosition: Position) {
-    const isBehindRedFG = MapReferee.checkIfBallBetweenFGPosts(
-      ballPosition,
-      TEAMS.RED as PlayableTeamId
-    );
-    const isBehindBlueFG = MapReferee.checkIfBallBetweenFGPosts(
-      ballPosition,
-      TEAMS.BLUE as PlayableTeamId
+    const isBetweenFieldGoalPosts =
+      MapReferee.checkIfBallBetweenFGPosts(ballPosition);
+
+    const ballCompletelyOutOfBounds =
+      MapReferee.checkIfBallCompletelyOutOfBounds(ballPosition);
+
+    return isBetweenFieldGoalPosts && ballCompletelyOutOfBounds;
+  }
+
+  static isIntentionalGrounding({
+    playerPosition,
+    losX,
+    defenseTeamId,
+  }: {
+    playerPosition: Position;
+    defenseTeamId: PlayableTeamId;
+    losX: number;
+  }) {
+    const ballWithinHashes = MapReferee.checkIfWithinHash(
+      playerPosition,
+      MAP_POINTS.PLAYER_RADIUS
     );
 
-    return isBehindRedFG || isBehindBlueFG;
+    const defenderInFrontOfLOS = MapReferee.checkIfInFront(
+      playerPosition.x,
+      losX,
+      defenseTeamId
+    );
+
+    return ballWithinHashes && defenderInFrontOfLOS;
   }
 }
