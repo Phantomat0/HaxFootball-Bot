@@ -217,6 +217,7 @@ const eventListeners: EventListener[] = [
       "ballBlitzed",
       "ballRan",
       "ballDragged",
+      "lineBlitzed",
       "fieldGoalKicked",
       "fieldGoalBlitzed",
       "puntKicked",

@@ -7,6 +7,7 @@ import Ball from "../../roomStructures/Ball";
 import Chat from "../../roomStructures/Chat";
 import Room from "../../roomStructures/Room";
 import GameReferee from "../../structures/GameReferee";
+import MapReferee from "../../structures/MapReferee";
 import ICONS from "../../utils/Icons";
 import { MapSectionName } from "../../utils/MapSectionFinder";
 import BasePlay from "../BasePlay";
@@ -99,10 +100,15 @@ export default abstract class SnapEvents extends BasePlay<SnapStore> {
   onBallOutOfBounds(ballPosition: Position) {
     // Check if this was a result of an int attempt
     if (this.stateExists("interceptionAttempt")) {
+      const isBetweenFGPosts =
+        MapReferee.checkIfBallBetweenFGPosts(ballPosition);
+
       const isSuccessfulInt =
         GameReferee.checkIfInterceptionSuccessful(ballPosition);
 
       if (isSuccessfulInt) return this._handleSuccessfulInterception();
+
+      if (isBetweenFGPosts) return;
 
       return this.handleUnsuccessfulInterception();
     }

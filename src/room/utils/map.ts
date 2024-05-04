@@ -255,8 +255,8 @@ const HFL_MAP = `{
 		/* 229 */ { "x" : -542.5, "y" : -280, "trait" : "yardline" },
 		/* 230 */ { "x" : -697.5, "y" : -246, "trait" : "yardline" },
 		/* 231 */ { "x" : -697.5, "y" : -280, "trait" : "yardline" },
-		/* 232 */ { "x" : 540.5, "y" : 264, "trait" : "yardline" },
-		/* 233 */ { "x" : 540.5, "y" : 244, "trait" : "yardline" },
+		/* 232 */ { "x" : 540.5, "y" : 246, "trait" : "yardline" },
+		/* 233 */ { "x" : 540.5, "y" : 280, "trait" : "yardline" },
 		/* 234 */ { "x" : 697.5, "y" : 280, "trait" : "yardline" },
 		/* 235 */ { "x" : 697.5, "y" : 246, "trait" : "yardline" }
 
