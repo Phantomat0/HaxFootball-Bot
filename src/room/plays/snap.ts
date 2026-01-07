@@ -847,7 +847,7 @@ export default class Snap extends SnapEvents {
         sacks: 1,
       });
 
-      this._updateStatsIfNotTwoPoint(playerContact.player.id, {
+      this._updateStatsIfNotTwoPoint(this._quarterback.id, {
         qbSacks: 1,
       });
     } else {
